@@ -1,0 +1,75 @@
+.App {
+  font-family: Arial, sans-serif;
+  background-color: #f4f4f4;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.App-header {
+  background-color: #FCEBB6; /* 백태콩물색 */
+  width: 100%;
+  padding: 20px 0; /* 더 많은 여백을 추가하여 타이틀을 여유롭게 보여줍니다 */
+  text-align: center;
+}
+
+.search button {
+  background-color: #5C5C5C; /* 검은콩 색상 */
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 5px;
+}
+
+.App-nav {
+  display: flex;
+  justify-content: center;
+  background-color: #FCEBB6; /* 백태콩물색 */
+  width: 100%;
+  padding: 10px 0;
+  position: relative; /* 고정시키지 않고 자연스럽게 흐르도록 변경 */
+}
+
+.App-nav button {
+  background-color: #5C5C5C; /* 검은콩 색상 */
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  margin: 0 10px;
+  border-radius: 5px;
+  font-size: 14px;
+}
+
+.main {
+  width: 100%;
+  max-width: 600px;
+  margin: 20px auto;
+}
+
+.map-container {
+  background-color: #ddd; /* 임시 지도 영역 */
+  height: 200px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.filters {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 20px;
+}
+
+.restaurant-list {
+  margin-top: 20px;
+}
+
+.restaurant-item {
+  background-color: white;
+  margin-bottom: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
