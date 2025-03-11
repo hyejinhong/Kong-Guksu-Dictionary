@@ -2,10 +2,13 @@ package com.kong.kong_dic.domain.restaurant.entity;
 
 import com.kong.kong_dic.domain.bean.BeanType;
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDate;
 
 @Entity
+@Getter @Setter
 public class Restaurant {
 
     @Id
