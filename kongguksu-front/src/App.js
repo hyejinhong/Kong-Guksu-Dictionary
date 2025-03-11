@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import "./index.css"; // Tailwind 적용
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import KakaoMap from "./components/KakaoMap";
 
 // 임시 데이터
 const restaurants = [
@@ -46,11 +47,12 @@ function App() {
         </div>
 
         {/* 지도 컨테이너 */}
-        <div className="flex justify-center">
-          <div className="bg-gray-300 w-11/12 h-52 flex items-center justify-center rounded-lg">
-            🗺 지도 (Placeholder)
-          </div>
-        </div>
+        
+        <div className="flex justify-center my-4">
+          <KakaoMap />
+        </div>;
+
+
 
         {/* 필터 */}
         <div className="flex justify-around mt-4 bg-white p-4 rounded-lg mx-4">
