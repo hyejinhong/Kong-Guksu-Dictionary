@@ -55,25 +55,64 @@ function App() {
 
 
         {/* 필터 */}
-        <div className="flex justify-around mt-4 bg-white p-4 rounded-lg mx-4">
-          <label className="flex items-center">
-            <input type="radio" name="season" value="year-round" onChange={() => handleFilterChange("season", "year-round")} />
-            <span className="ml-2">연중 상시</span>
-          </label>
-          <label className="flex items-center">
-            <input type="radio" name="season" value="seasonal" onChange={() => handleFilterChange("season", "seasonal")} />
-            <span className="ml-2">특정 기간</span>
-          </label>
-          <label className="flex items-center">
-            <input type="radio" name="beanType" value="백태콩" onChange={() => handleFilterChange("beanType", "백태콩")} />
-            <span className="ml-2">백태콩</span>
-          </label>
-          <label className="flex items-center">
-            <input type="radio" name="beanType" value="검은콩" onChange={() => handleFilterChange("beanType", "검은콩")} />
-            <span className="ml-2">검은콩</span>
-          </label>
-        </div>
+        {/* 필터 메뉴 */}
+        <div className="flex flex-wrap justify-center bg-white p-4 rounded-lg mx-4">
+          <div className="flex space-x-4">
+            <label className="flex items-center">
+              <input
+                type="radio"
+                name="beanType"
+                value="all"
+                checked={filter.beanType === "all"}
+                onChange={() => handleFilterChange("beanType", "all")}
+              />
+              <span className="ml-2">전체</span>
+            </label>
+            <label className="flex items-center">
+              <input
+                type="radio"
+                name="beanType"
+                value="백태콩"
+                checked={filter.beanType === "백태콩"}
+                onChange={() => handleFilterChange("beanType", "백태콩")}
+              />
+              <span className="ml-2">백태콩</span>
+            </label>
+            <label className="flex items-center">
+              <input
+                type="radio"
+                name="beanType"
+                value="검은콩"
+                checked={filter.beanType === "검은콩"}
+                onChange={() => handleFilterChange("beanType", "검은콩")}
+              />
+              <span className="ml-2">검은콩</span>
+            </label>
+          </div>
 
+          <div className="flex space-x-4 mt-2">
+            <label className="flex items-center">
+              <input
+                type="radio"
+                name="season"
+                value="all"
+                checked={filter.season === "all"}
+                onChange={() => handleFilterChange("season", "all")}
+              />
+              <span className="ml-2">사계절</span>
+            </label>
+            <label className="flex items-center">
+              <input
+                type="radio"
+                name="season"
+                value="open-now"
+                checked={filter.season === "open-now"}
+                onChange={() => handleFilterChange("season", "open-now")}
+              />
+              <span className="ml-2">현재 콩국수 개시</span>
+            </label>
+          </div>
+        </div>
         {/* 추천 식당 리스트 */}
         <div className="mx-4 mt-4">
           {filteredRestaurants.map((restaurant, index) => (
