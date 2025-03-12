@@ -5,6 +5,8 @@ import com.kong.kong_dic.domain.restaurant.dto.RestaurantRequestDto;
 import com.kong.kong_dic.domain.restaurant.dto.RestaurantResponseDto;
 import com.kong.kong_dic.domain.restaurant.entity.Restaurant;
 import com.kong.kong_dic.domain.restaurant.repository.RestaurantRepository;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -23,21 +25,49 @@ public class RestaurantService {
     }
 
     public RestaurantResponseDto getRestaurantById(Long id) {
-        return null;
+        Restaurant restaurant = restaurantRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("식당을 찾을 수 없습니다: " + id));
+        return entityToDto(restaurant);
     }
 
     public RestaurantResponseDto addRestaurant(RestaurantRequestDto request) {
-        return null;
+        Restaurant restaurant = Restaurant.builder()
+                .name(request.getName())
+                .address(request.getAddress())
+                .latitude(request.getLatitude())
+                .longitude(request.getLongitude())
+                .beanType(request.getBeanType())
+                .servesAllYear(request.getServesAllYear())
+                .startDate(request.getStartDate())
+                .endDate(request.getEndDate())
+                .build();
+        restaurantRepository.save(restaurant);
+        return entityToDto(restaurant);
     }
 
+    @Transactional
     public RestaurantResponseDto updateRestaurant(Long id, RestaurantRequestDto request) {
-        return null;
+        Restaurant restaurant = restaurantRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("식당을 찾을 수 없습니다: " + id));
+
+        restaurant.setAddress(request.getAddress());
+        restaurant.setName(request.getName());
+        restaurant.setLatitude(request.getLatitude());
+        restaurant.setLongitude(request.getLongitude());
+        restaurant.setServesAllYear(request.getServesAllYear());
+        restaurant.setBeanType(request.getBeanType());
+        restaurant.setStartDate(request.getStartDate());
+        restaurant.setEndDate(request.getEndDate());
+
+        return entityToDto(restaurant);
     }
 
     public void deleteRestaurant(Long id) {
+        Restaurant restaurant = restaurantRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("식당을 찾을 수 없습니다: " + id));
+
+        restaurantRepository.delete(restaurant);
     }
 
-    public List<RestaurantResponseDto> getNearbyRestaurants(Double latitude, Double longitude) {
+    public List<RestaurantResponseDto> getNearbyRestaurants(Double latitude, Double longitude, Double distance) {
         return null;
     }
 

@@ -4,6 +4,7 @@ import com.kong.kong_dic.domain.bean.BeanType;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.time.MonthDay;
 
 @Getter
 @Setter
@@ -18,6 +19,6 @@ public class RestaurantRequestDto {
     private Double longitude;
     private BeanType beanType;
     private Boolean servesAllYear;
-    private LocalDate startDate;
-    private LocalDate endDate;
+    private MonthDay startDate;
+    private MonthDay endDate;
 }

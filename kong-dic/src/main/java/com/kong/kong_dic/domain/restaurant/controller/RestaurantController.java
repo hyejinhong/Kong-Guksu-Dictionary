@@ -72,8 +72,10 @@ public class RestaurantController {
      * @return
      */
     @GetMapping("/nearby")
-    public List<RestaurantResponseDto> getNearbyRestaurants(@RequestParam Double latitude, @RequestParam Double longitude) {
-        return restaurantService.getNearbyRestaurants(latitude, longitude);
+    public List<RestaurantResponseDto> getNearbyRestaurants(@RequestParam Double latitude,
+                                                            @RequestParam Double longitude,
+                                                            @RequestParam Double distance) {
+        return restaurantService.getNearbyRestaurants(latitude, longitude, distance);
     }
 
     /**
