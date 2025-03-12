@@ -5,8 +5,6 @@ import com.kong.kong_dic.domain.restaurant.RestaurantComment;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDate;
-import java.time.MonthDay;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,6 +31,6 @@ public class Restaurant {
 
     private Boolean servesAllYear;
 
-    private MonthDay startDate;
-    private MonthDay endDate;
+    private Integer startMonth;
+    private Integer endMonth;
 }

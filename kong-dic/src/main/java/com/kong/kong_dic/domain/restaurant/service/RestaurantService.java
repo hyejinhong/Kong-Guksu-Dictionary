@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -37,8 +38,8 @@ public class RestaurantService {
                 .longitude(request.getLongitude())
                 .beanType(request.getBeanType())
                 .servesAllYear(request.getServesAllYear())
-                .startDate(request.getStartDate())
-                .endDate(request.getEndDate())
+                .startMonth(request.getStartMonth())
+                .endMonth(request.getEndMonth())
                 .build();
         restaurantRepository.save(restaurant);
         return entityToDto(restaurant);
@@ -54,8 +55,8 @@ public class RestaurantService {
         restaurant.setLongitude(request.getLongitude());
         restaurant.setServesAllYear(request.getServesAllYear());
         restaurant.setBeanType(request.getBeanType());
-        restaurant.setStartDate(request.getStartDate());
-        restaurant.setEndDate(request.getEndDate());
+        restaurant.setStartMonth(request.getStartMonth());
+        restaurant.setEndMonth(request.getEndMonth());
 
         return entityToDto(restaurant);
     }
@@ -68,7 +69,10 @@ public class RestaurantService {
     }
 
     public List<RestaurantResponseDto> getNearbyRestaurants(Double latitude, Double longitude, Double distance) {
-        return null;
+        return restaurantRepository.findNearbyRestaurants(latitude, longitude, distance)
+                .stream()
+                .map(this::entityToDto)
+                .collect(Collectors.toList());
     }
 
     public List<RestaurantResponseDto> getRestaurantsByBeanType(BeanType beanType) {
@@ -84,8 +88,8 @@ public class RestaurantService {
                 .longitude(restaurant.getLongitude())
                 .beanType(restaurant.getBeanType())
                 .servesAllYear(restaurant.getServesAllYear())
-                .startDate(restaurant.getStartDate())
-                .endDate(restaurant.getEndDate())
+                .startMonth(restaurant.getStartMonth())
+                .endMonth(restaurant.getEndMonth())
                 // .distance(calculateDistance(restaurant, restaurant.getLatitude(), restaurant.getLongitude()))
                 .build();
     }
