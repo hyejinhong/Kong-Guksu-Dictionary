@@ -2,13 +2,14 @@ import React, { useState } from "react";
 import { BrowserRouter as Router, Route, Routes, Link } from "react-router-dom";
 import "./index.css"; // Tailwind 적용
 import KakaoMap from "./components/KakaoMap";
-import RestaurantDetail from "./components/RestaurantDetail"; // 추가
+import RestaurantDetail from "./components/RestaurantDetail";
+import RestaurantSubmissionForm from "./components/RestaurantSubmissionForm";
 
 // 임시 데이터
 const restaurants = [
-  { name: "맛집 A", distance: "500m", type: "백태콩" },
-  { name: "맛집 B", distance: "1km", type: "검은콩" },
-  { name: "맛집 C", distance: "300m", type: "백태콩" },
+  { name: "맛집 A", distance: "500m", type: "백태콩", startMonth: 6, endMonth: 9 },
+  { name: "맛집 B", distance: "1km", type: "검은콩", startMonth: 11, endMonth: 3 }, // 겨울철 판매
+  { name: "맛집 C", distance: "300m", type: "백태콩", startMonth: 5, endMonth: 8 },
 ];
 
 function App() {
@@ -20,11 +21,33 @@ function App() {
 
   // 필터된 식당 리스트
   const filteredRestaurants = restaurants.filter((restaurant) => {
-    return (
-      (filter.season === "all" || filter.season === "year-round") &&
-      (filter.beanType === "all" || restaurant.type === filter.beanType)
-    );
+    const currentMonth = new Date().getMonth() + 1; // 현재 월 (1~12)
+
+    const isSeasonMatch =
+      filter.season === "all" ||
+      (filter.season === "open-now" && isCurrentlySelling(restaurant));
+
+    const isBeanTypeMatch =
+      filter.beanType === "all" || restaurant.type === filter.beanType;
+
+    return isSeasonMatch && isBeanTypeMatch;
   });
+
+  /**
+   * 현재 식당이 콩국수를 판매 중인지 확인하는 함수
+   */
+  function isCurrentlySelling(restaurant) {
+    const { startMonth, endMonth } = restaurant;
+    const currentMonth = new Date().getMonth() + 1;
+
+    if (startMonth <= endMonth) {
+      // 보통의 경우 (예: 6월 ~ 9월)
+      return startMonth <= currentMonth && currentMonth <= endMonth;
+    } else {
+      // 겨울을 넘겨서 판매하는 경우 (예: 11월 ~ 3월)
+      return currentMonth >= startMonth || currentMonth <= endMonth;
+    }
+  }
 
   return (
     <Router>
@@ -93,6 +116,7 @@ function App() {
                       <p className="font-bold">{restaurant.name}</p>
                       <p>{restaurant.distance}</p>
                       <p>{restaurant.type}</p>
+                      <p>{restaurant.startMonth}월~{restaurant.endMonth}월</p>
                     </div>
                   </Link>
                 ))}
@@ -102,7 +126,11 @@ function App() {
 
           {/* 식당 상세 페이지 */}
           <Route path="/restaurant/:id" element={<RestaurantDetail restaurants={restaurants} />} />
+          {/* ✅ 식당 등록 요청 페이지 추가 */}
+          <Route path="/submit-restaurant" element={<RestaurantSubmissionForm />} />
+
         </Routes>
+
 
         {/* 네비게이션 바 */}
         <nav className="bg-[#5C5C5C] text-white p-4 flex justify-around text-sm md:text-lg fixed bottom-0 w-full">
@@ -122,6 +150,11 @@ function App() {
             <span>⚙</span>
             <span>설정</span>
           </button>
+          {/* ✅ 새로운 메뉴 추가 */}
+          <Link to="/submit-restaurant" className="flex flex-col items-center">
+            <span>📝</span>
+            <span>식당 등록</span>
+          </Link>
         </nav>
       </div>
     </Router>
