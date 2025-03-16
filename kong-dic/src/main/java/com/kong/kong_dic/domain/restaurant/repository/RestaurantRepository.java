@@ -9,7 +9,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 public interface RestaurantRepository extends JpaRepository<Restaurant, Long> {
-    List<Restaurant> findByBeanType(BeanType beanType);
+    List<Restaurant> findByBeanTypesContains(BeanType beanType);
 
     @Query(value = """
         SELECT *, 

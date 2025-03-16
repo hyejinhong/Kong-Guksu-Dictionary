@@ -21,13 +21,13 @@ public class RestaurantService {
 
     public List<RestaurantResponseDto> getAllRestaurants() {
         return restaurantRepository.findAll().stream()
-                .map(this::entityToDto)
+                .map(this::entityToResponseDto)
                 .toList();
     }
 
     public RestaurantResponseDto getRestaurantById(Long id) {
         Restaurant restaurant = restaurantRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("식당을 찾을 수 없습니다: " + id));
-        return entityToDto(restaurant);
+        return entityToResponseDto(restaurant);
     }
 
     public RestaurantResponseDto addRestaurant(RestaurantRequestDto request) {
@@ -36,13 +36,13 @@ public class RestaurantService {
                 .address(request.getAddress())
                 .latitude(request.getLatitude())
                 .longitude(request.getLongitude())
-                .beanType(request.getBeanType())
+                .beanTypes(request.getBeanTypes())
                 .servesAllYear(request.getServesAllYear())
                 .startMonth(request.getStartMonth())
                 .endMonth(request.getEndMonth())
                 .build();
         restaurantRepository.save(restaurant);
-        return entityToDto(restaurant);
+        return entityToResponseDto(restaurant);
     }
 
     @Transactional
@@ -54,11 +54,11 @@ public class RestaurantService {
         restaurant.setLatitude(request.getLatitude());
         restaurant.setLongitude(request.getLongitude());
         restaurant.setServesAllYear(request.getServesAllYear());
-        restaurant.setBeanType(request.getBeanType());
+        restaurant.setBeanTypes(request.getBeanTypes());
         restaurant.setStartMonth(request.getStartMonth());
         restaurant.setEndMonth(request.getEndMonth());
 
-        return entityToDto(restaurant);
+        return entityToResponseDto(restaurant);
     }
 
     public void deleteRestaurant(Long id) {
@@ -71,7 +71,7 @@ public class RestaurantService {
     public List<RestaurantResponseDto> getNearbyRestaurants(Double latitude, Double longitude, Double distance) {
         return restaurantRepository.findNearbyRestaurants(latitude, longitude, distance)
                 .stream()
-                .map(this::entityToDto)
+                .map(this::entityToResponseDto)
                 .collect(Collectors.toList());
     }
 
@@ -79,14 +79,14 @@ public class RestaurantService {
         return null;
     }
 
-    private RestaurantResponseDto entityToDto(Restaurant restaurant) {
+    private RestaurantResponseDto entityToResponseDto(Restaurant restaurant) {
         return RestaurantResponseDto.builder()
                 .id(restaurant.getId())
                 .name(restaurant.getName())
                 .address(restaurant.getAddress())
                 .latitude(restaurant.getLatitude())
                 .longitude(restaurant.getLongitude())
-                .beanType(restaurant.getBeanType())
+                .beanType(restaurant.getBeanTypes())
                 .servesAllYear(restaurant.getServesAllYear())
                 .startMonth(restaurant.getStartMonth())
                 .endMonth(restaurant.getEndMonth())

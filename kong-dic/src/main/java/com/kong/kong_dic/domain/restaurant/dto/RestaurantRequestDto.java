@@ -3,6 +3,8 @@ package com.kong.kong_dic.domain.restaurant.dto;
 import com.kong.kong_dic.domain.bean.BeanType;
 import lombok.*;
 
+import java.util.List;
+
 @Getter
 @Setter
 @ToString
@@ -14,7 +16,7 @@ public class RestaurantRequestDto {
     private String address;
     private Double latitude;
     private Double longitude;
-    private BeanType beanType;
+    private List<BeanType> beanTypes;
     private Boolean servesAllYear;
     private Integer startMonth;
     private Integer endMonth;

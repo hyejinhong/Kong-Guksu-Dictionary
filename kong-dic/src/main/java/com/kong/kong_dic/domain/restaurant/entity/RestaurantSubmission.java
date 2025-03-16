@@ -1,18 +1,18 @@
 package com.kong.kong_dic.domain.restaurant.entity;
 
 import com.kong.kong_dic.domain.bean.BeanType;
-import com.kong.kong_dic.domain.restaurant.RestaurantComment;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Getter @Setter @Builder
+@Getter
+@Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Restaurant {
+public class RestaurantSubmission {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -20,18 +20,23 @@ public class Restaurant {
 
     private String name;
     private String address;
-    private Double latitude;
-    private Double longitude;
 
-    @OneToMany(mappedBy = "restaurant", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Builder.Default
-    private List<RestaurantComment> comments = new ArrayList<>();
-
-    @ElementCollection
+    @Enumerated(EnumType.STRING)
     private List<BeanType> beanTypes;
 
     private Boolean servesAllYear;
 
     private Integer startMonth;
     private Integer endMonth;
+
+    @Builder.Default
+    private SubmissionStatus status = SubmissionStatus.REJECTED;
+
+    public void approved() {
+        this.status = SubmissionStatus.APPROVED;
+    }
+
+    public void reject() {
+        this.status = SubmissionStatus.REJECTED;
+    }
 }
