@@ -4,6 +4,7 @@ import "./index.css"; // Tailwind 적용
 import KakaoMap from "./components/KakaoMap";
 import RestaurantDetail from "./components/RestaurantDetail";
 import RestaurantSubmissionForm from "./components/RestaurantSubmissionForm";
+import AdminRestaurantSubmissions from "./pages/AdminRestaurantSubmissions";
 
 // 임시 데이터
 const restaurants = [
@@ -128,7 +129,7 @@ function App() {
           <Route path="/restaurant/:id" element={<RestaurantDetail restaurants={restaurants} />} />
           {/* ✅ 식당 등록 요청 페이지 추가 */}
           <Route path="/submit-restaurant" element={<RestaurantSubmissionForm />} />
-
+          <Route path="/admin/restaurant-submissions" element={<AdminRestaurantSubmissions />} />
         </Routes>
 
 
