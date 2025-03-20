@@ -5,6 +5,7 @@ import KakaoMap from "./components/KakaoMap";
 import RestaurantDetail from "./components/RestaurantDetail";
 import RestaurantSubmissionForm from "./components/RestaurantSubmissionForm";
 import AdminRestaurantSubmissions from "./pages/AdminRestaurantSubmissions";
+import LoginPage from "./pages/LoginPage";
 
 // 임시 데이터
 const restaurants = [
@@ -53,10 +54,15 @@ function App() {
   return (
     <Router>
       <div className="flex flex-col min-h-screen bg-[#FCEBB6]">
-        <header className="bg-[#5C5C5C] text-white text-center py-4 text-xl md:text-2xl font-bold">
-          🍜 콩국수 사전 🍜
-        </header>
 
+        <header className="bg-[#5C5C5C] text-white py-4 text-xl md:text-2xl font-bold flex justify-end items-center px-4 relative">
+          <h1 className="absolute left-1/2 transform -translate-x-1/2">
+            🍜 콩국수 사전 🍜
+          </h1>
+          <Link to="/login" className="bg-[#57B4BA] text-white bg-blue-500 px-3 py-1 rounded-md text-sm">
+            로그인
+          </Link>
+        </header>
         <Routes>
           {/* 홈 페이지 */}
           <Route path="/" element={
@@ -130,6 +136,7 @@ function App() {
           {/* ✅ 식당 등록 요청 페이지 추가 */}
           <Route path="/submit-restaurant" element={<RestaurantSubmissionForm />} />
           <Route path="/admin/restaurant-submissions" element={<AdminRestaurantSubmissions />} />
+          <Route path="/login" element={<LoginPage />} />
         </Routes>
 
 
