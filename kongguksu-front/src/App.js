@@ -6,6 +6,7 @@ import RestaurantDetail from "./components/RestaurantDetail";
 import RestaurantSubmissionForm from "./components/RestaurantSubmissionForm";
 import AdminRestaurantSubmissions from "./pages/AdminRestaurantSubmissions";
 import LoginPage from "./pages/LoginPage";
+import SignupPage from "./pages/SignupPage";
 
 // 임시 데이터
 const restaurants = [
@@ -137,6 +138,7 @@ function App() {
           <Route path="/submit-restaurant" element={<RestaurantSubmissionForm />} />
           <Route path="/admin/restaurant-submissions" element={<AdminRestaurantSubmissions />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
         </Routes>
 
 
