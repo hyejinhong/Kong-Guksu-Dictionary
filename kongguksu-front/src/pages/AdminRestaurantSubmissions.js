@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import axios from "axios";
 
 const AdminRestaurantSubmissions = () => {
   const [submissions, setSubmissions] = useState([]);
@@ -7,22 +8,26 @@ const AdminRestaurantSubmissions = () => {
   const itemsPerPage = 3;
 
   useEffect(() => {
-    setTimeout(() => {
-      setSubmissions([
-        { id: 1, name: "콩국수 맛집 A", address: "서울 강남구 테헤란로 123", beanTypes: ["백태콩"], servesAllYear: true, status: "PENDING", submittedAt: "2025-03-17 10:30" },
-        { id: 2, name: "여름 콩국수 전문점 B", address: "서울 마포구 홍대입구 45", beanTypes: ["검은콩"], servesAllYear: false, startMonth: 6, endMonth: 9, status: "PENDING", submittedAt: "2025-03-16 15:45" },
-        { id: 3, name: "콩콩식당", address: "부산 해운대구 해변로 77", beanTypes: ["백태콩", "검은콩"], servesAllYear: false, startMonth: 5, endMonth: 8, status: "APPROVED", submittedAt: "2025-03-15 14:20" },
-        { id: 4, name: "사계절콩국수집", address: "대구 중구 동성로 90", beanTypes: ["백태콩"], servesAllYear: true, status: "REJECTED", submittedAt: "2025-03-14 18:10" },
-      ]);
-      setLoading(false);
-    }, 1000);
+    const fetchSubmissions = async () => {
+      try {
+        const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/restaurants/submissions`);
+        setSubmissions(response.data);
+      } catch (error) {
+        console.error("❌ 데이터 불러오기 실패:", error);
+        alert("데이터를 불러오는 중 오류가 발생했습니다.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSubmissions();
   }, []);
 
   // 정렬 (대기 중인 요청을 오래된 순으로 우선)
   const sortedSubmissions = [...submissions].sort((a, b) => {
     if (a.status === "PENDING" && b.status !== "PENDING") return -1;
     if (b.status === "PENDING" && a.status !== "PENDING") return 1;
-    return new Date(a.submittedAt) - new Date(b.submittedAt);
+    return 0;
   });
 
   // 페이징 처리
@@ -41,8 +46,8 @@ const AdminRestaurantSubmissions = () => {
       <h1 className="text-2xl font-bold mb-4 text-center text-[#5C5C5C]">📌 식당 등록 요청 목록</h1>
 
       <div className="max-w-4xl mx-auto bg-white shadow-lg rounded-lg p-4">
-        {paginatedSubmissions.map((submission) => (
-          <div key={submission.id} className="border-b last:border-0 p-4">
+        {paginatedSubmissions.map((submission, index) => (
+          <div key={index} className="border-b last:border-0 p-4">
             <div className="flex justify-between items-center">
               <div>
                 <p className="text-lg font-semibold">{submission.name}</p>

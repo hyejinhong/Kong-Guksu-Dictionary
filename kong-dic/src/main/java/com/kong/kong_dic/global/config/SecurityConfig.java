@@ -30,12 +30,13 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable) // ✅ 최신 방식으로 CSRF 비활성화
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers(
-                                "/auth/**",
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**"
-                                ).permitAll() // 인증 없이 접근 가능
-                        .anyRequest().authenticated() // 그 외 모든 요청은 인증 필요
+//                        .requestMatchers(
+//                                "/auth/**",
+//                                "/swagger-ui/**",
+//                                "/v3/api-docs/**"
+//                                ).permitAll() // 인증 없이 접근 가능
+//                        .anyRequest().authenticated() // 그 외 모든 요청은 인증 필요
+                                .anyRequest().permitAll()
                 )
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS) // JWT 사용 시 Stateless
