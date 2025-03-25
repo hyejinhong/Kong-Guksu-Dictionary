@@ -3,6 +3,7 @@ package com.kong.kong_dic.domain.restaurant.service;
 import com.kong.kong_dic.domain.restaurant.dto.RestaurantSubmitRequestDto;
 import com.kong.kong_dic.domain.restaurant.entity.Restaurant;
 import com.kong.kong_dic.domain.restaurant.entity.RestaurantSubmission;
+import com.kong.kong_dic.domain.restaurant.entity.SubmissionStatus;
 import com.kong.kong_dic.domain.restaurant.repository.RestaurantSubmitRepository;
 import com.kong.kong_dic.global.util.KakaoMapUtil;
 import jakarta.persistence.EntityNotFoundException;
@@ -54,7 +55,7 @@ public class RestaurantSubmitService {
         // TODO latitude, longitude kakao map API set
         String coordinate = kakaoMapUtil.searchByAddress(submission.getAddress());
         log.info("### result : {}", coordinate);
-    
+
         Restaurant restaurant = Restaurant.builder()
                 .name(submission.getName())
                 .address(submission.getAddress())

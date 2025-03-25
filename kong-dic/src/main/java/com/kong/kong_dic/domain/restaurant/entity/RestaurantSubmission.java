@@ -30,7 +30,7 @@ public class RestaurantSubmission {
     private Integer endMonth;
 
     @Builder.Default
-    private SubmissionStatus status = SubmissionStatus.REJECTED;
+    private SubmissionStatus status = SubmissionStatus.PENDING;
 
     public void approved() {
         this.status = SubmissionStatus.APPROVED;

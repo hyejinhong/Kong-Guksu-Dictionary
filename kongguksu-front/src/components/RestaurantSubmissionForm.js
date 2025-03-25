@@ -9,6 +9,7 @@ const RestaurantSubmissionForm = () => {
     servesAllYear: false,
     startMonth: "",
     endMonth: "",
+    status: "PENDING", // 기본 상태 추가
   });
 
   const [loading, setLoading] = useState(false);
@@ -16,7 +17,7 @@ const RestaurantSubmissionForm = () => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    
+
     if (name === "beanTypes") {
       setFormData((prev) => ({
         ...prev,
@@ -36,8 +37,8 @@ const RestaurantSubmissionForm = () => {
     setLoading(true);
     setSuccessMessage("");
 
-    // 백엔드 API URL
-    const apiUrl = "/restaurant/submissions";
+    // API URL을 환경변수에서 가져오기
+    const apiUrl = `${process.env.REACT_APP_API_BASE_URL}/restaurants/submissions`;
 
     // 서버로 보낼 데이터 구성
     const submissionData = {
@@ -60,6 +61,7 @@ const RestaurantSubmissionForm = () => {
           servesAllYear: false,
           startMonth: "",
           endMonth: "",
+          status: "PENDING",
         });
       }
     } catch (error) {
@@ -112,8 +114,8 @@ const RestaurantSubmissionForm = () => {
                 <input
                   type="checkbox"
                   name="beanTypes"
-                  value="백태콩"
-                  checked={formData.beanTypes.includes("백태콩")}
+                  value="SOY_BEAN"
+                  checked={formData.beanTypes.includes("SOY_BEAN")}
                   onChange={handleChange}
                   className="mr-2"
                 />
@@ -123,8 +125,8 @@ const RestaurantSubmissionForm = () => {
                 <input
                   type="checkbox"
                   name="beanTypes"
-                  value="검은콩"
-                  checked={formData.beanTypes.includes("검은콩")}
+                  value="BLACK_BEAN"
+                  checked={formData.beanTypes.includes("BLACK_BEAN")}
                   onChange={handleChange}
                   className="mr-2"
                 />
@@ -146,44 +148,44 @@ const RestaurantSubmissionForm = () => {
           </div>
 
           {/* 판매 기간 선택 */}
-          {!formData.servesAllYear && (
-            <div className="flex space-x-4">
-              <div>
-                <label className="block text-gray-700 font-semibold mb-1">시작 월</label>
-                <select
-                  name="startMonth"
-                  value={formData.startMonth}
-                  onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded-md"
-                  required
-                >
-                  <option value="">선택</option>
-                  {[...Array(12)].map((_, i) => (
-                    <option key={i} value={i + 1}>
-                      {i + 1}월
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-gray-700 font-semibold mb-1">종료 월</label>
-                <select
-                  name="endMonth"
-                  value={formData.endMonth}
-                  onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded-md"
-                  required
-                >
-                  <option value="">선택</option>
-                  {[...Array(12)].map((_, i) => (
-                    <option key={i} value={i + 1}>
-                      {i + 1}월
-                    </option>
-                  ))}
-                </select>
-              </div>
+          <div className="flex space-x-4">
+            <div>
+              <label className="block text-gray-700 font-semibold mb-1">시작 월</label>
+              <select
+                name="startMonth"
+                value={formData.startMonth}
+                onChange={handleChange}
+                className="w-full p-2 border border-gray-300 rounded-md"
+                disabled={formData.servesAllYear} // 연중 판매 체크하면 비활성화
+                required={!formData.servesAllYear}
+              >
+                <option value="">선택</option>
+                {[...Array(12)].map((_, i) => (
+                  <option key={i} value={i + 1}>
+                    {i + 1}월
+                  </option>
+                ))}
+              </select>
             </div>
-          )}
+            <div>
+              <label className="block text-gray-700 font-semibold mb-1">종료 월</label>
+              <select
+                name="endMonth"
+                value={formData.endMonth}
+                onChange={handleChange}
+                className="w-full p-2 border border-gray-300 rounded-md"
+                disabled={formData.servesAllYear} // 연중 판매 체크하면 비활성화
+                required={!formData.servesAllYear}
+              >
+                <option value="">선택</option>
+                {[...Array(12)].map((_, i) => (
+                  <option key={i} value={i + 1}>
+                    {i + 1}월
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
 
           {/* 제출 버튼 */}
           <button
