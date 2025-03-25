@@ -54,7 +54,7 @@ public class RestaurantSubmitService {
         // TODO latitude, longitude kakao map API set
         String coordinate = kakaoMapUtil.searchByAddress(submission.getAddress());
         log.info("### result : {}", coordinate);
-    
+
         Restaurant restaurant = Restaurant.builder()
                 .name(submission.getName())
                 .address(submission.getAddress())
