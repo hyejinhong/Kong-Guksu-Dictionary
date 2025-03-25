@@ -4,7 +4,9 @@ import com.kong.kong_dic.domain.bean.BeanType;
 import com.kong.kong_dic.domain.restaurant.dto.RestaurantRequestDto;
 import com.kong.kong_dic.domain.restaurant.dto.RestaurantResponseDto;
 import com.kong.kong_dic.domain.restaurant.service.RestaurantService;
+import com.kong.kong_dic.global.response.BaseResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,8 +23,8 @@ public class RestaurantController {
      * @return
      */
     @GetMapping
-    public List<RestaurantResponseDto> getAllRestaurants() {
-        return restaurantService.getAllRestaurants();
+    public ResponseEntity<BaseResponse<List<RestaurantResponseDto>>> getAllRestaurants() {
+        return ResponseEntity.ok(BaseResponse.success("Success", restaurantService.getAllRestaurants()));
     }
 
     /**
