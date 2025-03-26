@@ -3,12 +3,13 @@ package com.kong.kong_dic.domain.auth.service;
 import com.kong.kong_dic.domain.auth.dto.LoginRequestDto;
 import com.kong.kong_dic.domain.auth.dto.LoginResponseDto;
 import com.kong.kong_dic.domain.auth.dto.SignupRequestDto;
+import com.kong.kong_dic.domain.auth.exception.AuthExceptionType;
 import com.kong.kong_dic.domain.user.entity.Role;
 import com.kong.kong_dic.domain.user.entity.User;
 import com.kong.kong_dic.domain.user.repository.UserRepository;
+import com.kong.kong_dic.global.exception.BaseException;
 import com.kong.kong_dic.global.jwt.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -27,8 +28,7 @@ public class AuthService {
 
     public void signup(SignupRequestDto request) throws Exception {
         if (userRepository.existsByUsername(request.getUsername())) {
-            // TODO
-            throw new Exception();
+            throw new BaseException(AuthExceptionType.DUPLICATED_USERNAME);
         }
 
         User newUser = User.builder()
