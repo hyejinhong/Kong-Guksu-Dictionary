@@ -24,10 +24,4 @@ public class AuthController {
         authService.signup(request);
         return ResponseEntity.ok(BaseResponse.success("You are registered."));
     }
-
-    @PostMapping("/login")
-    public ResponseEntity<BaseResponse<LoginResponseDto>> login(@RequestBody LoginRequestDto request) {
-        LoginResponseDto response = authService.authenticate(request);
-        return ResponseEntity.ok(BaseResponse.success("successfully Log in.", response));
-    }
 }
