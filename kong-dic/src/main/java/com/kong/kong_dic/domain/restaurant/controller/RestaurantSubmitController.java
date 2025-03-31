@@ -3,6 +3,7 @@ package com.kong.kong_dic.domain.restaurant.controller;
 import com.kong.kong_dic.domain.restaurant.dto.RestaurantSubmitRequestDto;
 import com.kong.kong_dic.domain.restaurant.service.RestaurantSubmitService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -30,11 +31,13 @@ public class RestaurantSubmitController {
     }
 
     @PatchMapping("/{id}/approve")
+    @PreAuthorize("hasAuthority('ADMIN')")
     public void approveRestaurantSubmission(@PathVariable Long id) {
         submitService.approveSubmission(id);
     }
 
     @PatchMapping("/{id}/reject)")
+    @PreAuthorize("hasAuthority('ADMIN')")
     public void rejectRestaurantSubmission(@PathVariable Long id) {
         submitService.rejectSubmission(id);
     }

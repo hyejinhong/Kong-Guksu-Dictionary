@@ -1,6 +1,7 @@
 package com.kong.kong_dic.global.config;
 
 import com.kong.kong_dic.domain.auth.filter.LoginFilter;
+import com.kong.kong_dic.domain.user.entity.Role;
 import com.kong.kong_dic.domain.user.service.CustomUserDetailsService;
 import com.kong.kong_dic.global.jwt.JwtAuthenticationFilter;
 import com.kong.kong_dic.global.jwt.JwtProvider;
@@ -10,6 +11,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -20,6 +22,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -37,9 +40,9 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**"
                                 ,"/login"
-                                ).permitAll() // 인증 없이 접근 가능
-                        .anyRequest().authenticated() // 그 외 모든 요청은 인증 필요
-//                                .anyRequest().permitAll()
+                                ).permitAll()
+                        .requestMatchers("/admin/**").hasAuthority(Role.ADMIN.getAuthority())
+                        .anyRequest().authenticated()
                 )
                 .addFilter(new LoginFilter(authenticationManager(authenticationConfiguration), jwtProvider))
                 .sessionManagement(AbstractHttpConfigurer::disable)
