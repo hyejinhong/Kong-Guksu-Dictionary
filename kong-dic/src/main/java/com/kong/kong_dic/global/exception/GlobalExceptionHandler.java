@@ -2,6 +2,7 @@ package com.kong.kong_dic.global.exception;
 
 import com.kong.kong_dic.global.response.BaseResponse;
 import io.swagger.v3.oas.annotations.Hidden;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -15,5 +16,12 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(ex.getHttpStatusCode())
                 .body(BaseResponse.error(ex.getCode(), ex.getMessage()));
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<BaseResponse<Void>> handleGeneralException(Exception ex) {
+        return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(BaseResponse.error(500, "Internal Server Error."));
     }
 }

@@ -24,7 +24,11 @@ public class RestaurantController {
      */
     @GetMapping
     public ResponseEntity<BaseResponse<List<RestaurantResponseDto>>> getAllRestaurants() {
-        return ResponseEntity.ok(BaseResponse.success("Success", restaurantService.getAllRestaurants()));
+        List<RestaurantResponseDto> result = restaurantService.getAllRestaurants();
+        if (result.isEmpty()) {
+            return ResponseEntity.ok(BaseResponse.success("조회 결과가 없습니다.", result));
+        }
+        return ResponseEntity.ok(BaseResponse.success("Success", result));
     }
 
     /**
@@ -33,8 +37,8 @@ public class RestaurantController {
      * @return
      */
     @GetMapping("/{id}")
-    public RestaurantResponseDto getRestaurantById(@RequestParam Long id) {
-        return restaurantService.getRestaurantById(id);
+    public ResponseEntity<BaseResponse<RestaurantResponseDto>> getRestaurantById(@PathVariable Long id) {
+        return ResponseEntity.ok(BaseResponse.success(restaurantService.getRestaurantById(id)));
     }
 
     /**
@@ -43,8 +47,8 @@ public class RestaurantController {
      * @return
      */
     @PostMapping
-    public RestaurantResponseDto addRestaurant(@RequestBody RestaurantRequestDto request) {
-        return restaurantService.addRestaurant(request);
+    public ResponseEntity<BaseResponse<RestaurantResponseDto>> addRestaurant(@RequestBody RestaurantRequestDto request) {
+        return ResponseEntity.ok(BaseResponse.success(restaurantService.addRestaurant(request)));
     }
 
     /**
@@ -54,8 +58,8 @@ public class RestaurantController {
      * @return
      */
     @PutMapping("/{id}")
-    public RestaurantResponseDto updateRestaurant(@PathVariable Long id, @RequestBody RestaurantRequestDto request) {
-        return restaurantService.updateRestaurant(id, request);
+    public ResponseEntity<BaseResponse<RestaurantResponseDto>> updateRestaurant(@PathVariable Long id, @RequestBody RestaurantRequestDto request) {
+        return ResponseEntity.ok(BaseResponse.success(restaurantService.updateRestaurant(id, request)));
     }
 
     /**
@@ -63,8 +67,9 @@ public class RestaurantController {
      * @param id
      */
     @DeleteMapping("/{id}")
-    public void deleteRestaurant(@PathVariable Long id) {
+    public ResponseEntity<BaseResponse<Void>> deleteRestaurant(@PathVariable Long id) {
         restaurantService.deleteRestaurant(id);
+        return ResponseEntity.ok(BaseResponse.success("Deleted."));
     }
 
     /**
@@ -74,10 +79,11 @@ public class RestaurantController {
      * @return
      */
     @GetMapping("/nearby")
-    public List<RestaurantResponseDto> getNearbyRestaurants(@RequestParam Double latitude,
+    public ResponseEntity<BaseResponse<List<RestaurantResponseDto>>> getNearbyRestaurants(@RequestParam Double latitude,
                                                             @RequestParam Double longitude,
                                                             @RequestParam Double distance) {
-        return restaurantService.getNearbyRestaurants(latitude, longitude, distance);
+        return ResponseEntity.ok(
+                BaseResponse.success(restaurantService.getNearbyRestaurants(latitude, longitude, distance)));
     }
 
     /**
@@ -86,7 +92,8 @@ public class RestaurantController {
      * @return
      */
     @GetMapping("/by-bean")
-    public List<RestaurantResponseDto> getRestaurantsByBeanType(@RequestParam BeanType beanType) {
-        return restaurantService.getRestaurantsByBeanType(beanType);
+    public ResponseEntity<BaseResponse<List<RestaurantResponseDto>>> getRestaurantsByBeanType(@RequestParam BeanType beanType) {
+        return ResponseEntity.ok(
+                BaseResponse.success(restaurantService.getRestaurantsByBeanType(beanType)));
     }
 }

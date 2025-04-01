@@ -4,7 +4,9 @@ import com.kong.kong_dic.domain.bean.BeanType;
 import com.kong.kong_dic.domain.restaurant.dto.RestaurantRequestDto;
 import com.kong.kong_dic.domain.restaurant.dto.RestaurantResponseDto;
 import com.kong.kong_dic.domain.restaurant.entity.Restaurant;
+import com.kong.kong_dic.domain.restaurant.exception.RestaurantExceptionType;
 import com.kong.kong_dic.domain.restaurant.repository.RestaurantRepository;
+import com.kong.kong_dic.global.exception.BaseException;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +28,8 @@ public class RestaurantService {
     }
 
     public RestaurantResponseDto getRestaurantById(Long id) {
-        Restaurant restaurant = restaurantRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("식당을 찾을 수 없습니다: " + id));
+        Restaurant restaurant = restaurantRepository.findById(id)
+                .orElseThrow(() -> new BaseException(RestaurantExceptionType.RESTAURANT_NOT_FOUND));
         return entityToResponseDto(restaurant);
     }
 
