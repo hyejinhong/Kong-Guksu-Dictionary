@@ -5,8 +5,10 @@ import com.kong.kong_dic.domain.restaurant.dto.RestaurantRequestDto;
 import com.kong.kong_dic.domain.restaurant.dto.RestaurantResponseDto;
 import com.kong.kong_dic.domain.restaurant.service.RestaurantService;
 import com.kong.kong_dic.global.response.BaseResponse;
+import jakarta.annotation.security.PermitAll;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -47,6 +49,7 @@ public class RestaurantController {
      * @return
      */
     @PostMapping
+    @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<BaseResponse<RestaurantResponseDto>> addRestaurant(@RequestBody RestaurantRequestDto request) {
         return ResponseEntity.ok(BaseResponse.success(restaurantService.addRestaurant(request)));
     }
