@@ -62,9 +62,8 @@ public class JwtProvider {
             Jwts.parserBuilder().setSigningKey(getSigningKey()).build().parseClaimsJws(token);
             return true;
         } catch (JwtException | IllegalArgumentException e) {
-            // 토큰이 유효하지 않음
+            throw e;
         }
-        return false;
     }
 
     public String getUsernameFromToken(String token) {

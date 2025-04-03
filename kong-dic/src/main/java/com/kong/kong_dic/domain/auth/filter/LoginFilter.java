@@ -59,10 +59,8 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
                                             FilterChain chain, Authentication authResult) throws IOException, ServletException {
         log.info("### Login success");
 
-        // JWT 생성
         String token = jwtProvider.generateToken((User) authResult.getPrincipal());
 
-        // JSON 응답 반환
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
 
@@ -78,12 +76,11 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
         log.info("### Login failed");
 
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
 
-        PrintWriter writer = response.getWriter();
-        // TODO
-        writer.println("{ \"error\": \"Invalid username or password\" }");
-        writer.flush();
+        response.getWriter().write(objectMapper.writeValueAsString(BaseResponse.error(1, "Invalid username or password.")));
+        response.getWriter().flush();
     }
 }
