@@ -10,6 +10,10 @@ public class BaseResponse<T> {
     private final String message;
     private final T data;
 
+    public static BaseResponse<Void> success() {
+        return new BaseResponse<>(0, "Success", null);
+    }
+
     public static BaseResponse<Void> success(String message) {
         return new BaseResponse<>(0, message, null);
     }
