@@ -18,7 +18,6 @@ public class ControllerLoggingAspect {
         String className = joinPoint.getTarget().getClass().getSimpleName();
         String methodName = joinPoint.getSignature().getName();
 
-        // 파라미터 로깅
         String params = Arrays.stream(joinPoint.getArgs())
                 .map(arg -> arg != null ? arg.toString() : "null")
                 .collect(Collectors.joining(", "));

@@ -15,7 +15,7 @@ public class RestaurantResponseDto {
     private String address;
     private Double latitude;
     private Double longitude;
-    private List<BeanType> beanType;
+    private List<BeanType> beanTypes;
     private Boolean servesAllYear;
     private Integer startMonth;
     private Integer endMonth;

@@ -22,6 +22,6 @@ public class AuthController {
     @PostMapping("/signup")
     public ResponseEntity<BaseResponse<Void>> signup(@RequestBody SignupRequestDto request) throws Exception {
         authService.signup(request);
-        return ResponseEntity.ok(BaseResponse.success("You are registered."));
+        return ResponseEntity.ok(BaseResponse.success());
     }
 }

@@ -79,7 +79,21 @@ public class RestaurantService {
     }
 
     public List<RestaurantResponseDto> getRestaurantsByBeanType(BeanType beanType) {
-        return null;
+        List<Restaurant> result = restaurantRepository.findByBeanTypesContains(beanType);
+
+        return result.stream().map(restaurant ->
+                RestaurantResponseDto.builder()
+                .id(restaurant.getId())
+                .name(restaurant.getName())
+                .address(restaurant.getAddress())
+                .latitude(restaurant.getLatitude())
+                .longitude(restaurant.getLongitude())
+                .beanTypes(restaurant.getBeanTypes())
+                .servesAllYear(restaurant.getServesAllYear())
+                .startMonth(restaurant.getStartMonth())
+                .endMonth(restaurant.getEndMonth())
+                // .distance(calculateDistance(restaurant, restaurant.getLatitude(), restaurant.getLongitude()))
+                .build()).toList();
     }
 
     private RestaurantResponseDto entityToResponseDto(Restaurant restaurant) {
@@ -89,7 +103,7 @@ public class RestaurantService {
                 .address(restaurant.getAddress())
                 .latitude(restaurant.getLatitude())
                 .longitude(restaurant.getLongitude())
-                .beanType(restaurant.getBeanTypes())
+                .beanTypes(restaurant.getBeanTypes())
                 .servesAllYear(restaurant.getServesAllYear())
                 .startMonth(restaurant.getStartMonth())
                 .endMonth(restaurant.getEndMonth())
@@ -97,7 +111,11 @@ public class RestaurantService {
                 .build();
     }
 
-    private double calculateDistance(Restaurant restaurant, double curLatitude, double curLongitude) {
+    private double calculateDistance(Restaurant restaurant, Double curLatitude, Double curLongitude) {
+        if (curLatitude == null && curLongitude == null) {
+            return -1;
+        }
+
         final int EARTH_RADIUS_KM = 6371; // 지구 반지름 (km)
 
         double lat1 = Math.toRadians(restaurant.getLatitude());
