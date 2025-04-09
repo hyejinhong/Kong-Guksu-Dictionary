@@ -3,23 +3,37 @@ package com.kong.kong_dic.global.config;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
+import io.swagger.v3.oas.models.security.SecurityScheme;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class SwaggerConfig {
-    // http://localhost:8080/swagger-ui/index.html
+
+    private static final String SECURITY_SCHEME_NAME = "bearerAuth";
+
     @Bean
     public OpenAPI customOpenAPI() {
         return new OpenAPI()
-                .components(new Components())
-                .info(info());
+                .components(new Components()
+                        .addSecuritySchemes(SECURITY_SCHEME_NAME, createSecurityScheme()))
+                .addSecurityItem(new SecurityRequirement().addList(SECURITY_SCHEME_NAME))
+                .info(apiInfo());
     }
 
-    private Info info() {
+    private Info apiInfo() {
         return new Info()
-                .title("Mongo Basic API")
-                .description("Mongo API reference for developers")
+                .title("Kong Guksu Dictionary API")
+                .description("콩국수 사전 API 문서입니다.")
                 .version("1.0");
+    }
+
+    private SecurityScheme createSecurityScheme() {
+        return new SecurityScheme()
+                .name(SECURITY_SCHEME_NAME)
+                .type(SecurityScheme.Type.HTTP)
+                .scheme("bearer")
+                .bearerFormat("JWT");
     }
 }
