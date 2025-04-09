@@ -7,9 +7,12 @@ import com.kong.kong_dic.domain.restaurant.entity.Restaurant;
 import com.kong.kong_dic.domain.restaurant.exception.RestaurantExceptionType;
 import com.kong.kong_dic.domain.restaurant.repository.RestaurantRepository;
 import com.kong.kong_dic.global.exception.BaseException;
+import com.kong.kong_dic.global.util.KakaoMapUtil;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -20,11 +23,11 @@ import java.util.stream.Collectors;
 public class RestaurantService {
 
     private final RestaurantRepository restaurantRepository;
+    private final KakaoMapUtil kakaoMapUtil;
 
-    public List<RestaurantResponseDto> getAllRestaurants() {
-        return restaurantRepository.findAll().stream()
-                .map(this::entityToResponseDto)
-                .toList();
+    public List<RestaurantResponseDto> getAllRestaurants(Double lan, Double lon, Pageable pageable) {
+        Page<Restaurant> page = restaurantRepository.findAll(pageable);
+        return page.map(restaurant -> entityToResponseDto(restaurant, lan, lon)).toList();
     }
 
     public RestaurantResponseDto getRestaurantById(Long id) {
@@ -34,6 +37,7 @@ public class RestaurantService {
     }
 
     public RestaurantResponseDto addRestaurant(RestaurantRequestDto request) {
+
         Restaurant restaurant = Restaurant.builder()
                 .name(request.getName())
                 .address(request.getAddress())
@@ -83,20 +87,20 @@ public class RestaurantService {
 
         return result.stream().map(restaurant ->
                 RestaurantResponseDto.builder()
-                .id(restaurant.getId())
-                .name(restaurant.getName())
-                .address(restaurant.getAddress())
-                .latitude(restaurant.getLatitude())
-                .longitude(restaurant.getLongitude())
-                .beanTypes(restaurant.getBeanTypes())
-                .servesAllYear(restaurant.getServesAllYear())
-                .startMonth(restaurant.getStartMonth())
-                .endMonth(restaurant.getEndMonth())
-                // .distance(calculateDistance(restaurant, restaurant.getLatitude(), restaurant.getLongitude()))
-                .build()).toList();
+                        .id(restaurant.getId())
+                        .name(restaurant.getName())
+                        .address(restaurant.getAddress())
+                        .latitude(restaurant.getLatitude())
+                        .longitude(restaurant.getLongitude())
+                        .beanTypes(restaurant.getBeanTypes())
+                        .servesAllYear(restaurant.getServesAllYear())
+                        .startMonth(restaurant.getStartMonth())
+                        .endMonth(restaurant.getEndMonth())
+                        // .distance(calculateDistance(restaurant, restaurant.getLatitude(), restaurant.getLongitude()))
+                        .build()).toList();
     }
 
-    private RestaurantResponseDto entityToResponseDto(Restaurant restaurant) {
+    private RestaurantResponseDto entityToResponseDto(Restaurant restaurant, Double latitude, Double longitude) {
         return RestaurantResponseDto.builder()
                 .id(restaurant.getId())
                 .name(restaurant.getName())
@@ -107,8 +111,18 @@ public class RestaurantService {
                 .servesAllYear(restaurant.getServesAllYear())
                 .startMonth(restaurant.getStartMonth())
                 .endMonth(restaurant.getEndMonth())
-                // .distance(calculateDistance(restaurant, restaurant.getLatitude(), restaurant.getLongitude()))
+                .distance(calculateDistance(restaurant, latitude, longitude))
                 .build();
+    }
+
+    /**
+     * 현재 좌표 정보가 없는 경우 오버로딩
+     *
+     * @param restaurant
+     * @return
+     */
+    private RestaurantResponseDto entityToResponseDto(Restaurant restaurant) {
+        return entityToResponseDto(restaurant, null, null);
     }
 
     private double calculateDistance(Restaurant restaurant, Double curLatitude, Double curLongitude) {

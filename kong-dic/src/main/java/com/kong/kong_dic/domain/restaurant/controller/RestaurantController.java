@@ -7,6 +7,7 @@ import com.kong.kong_dic.domain.restaurant.service.RestaurantService;
 import com.kong.kong_dic.global.response.BaseResponse;
 import jakarta.annotation.security.PermitAll;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -22,11 +23,15 @@ public class RestaurantController {
 
     /**
      * 모든 식당 조회
+     *
      * @return
      */
+    // TODO 현재 좌표 받아오기
     @GetMapping
-    public ResponseEntity<BaseResponse<List<RestaurantResponseDto>>> getAllRestaurants() {
-        List<RestaurantResponseDto> result = restaurantService.getAllRestaurants();
+    public ResponseEntity<BaseResponse<List<RestaurantResponseDto>>> getAllRestaurants(@RequestParam(required = false) Double lan,
+                                                                                       @RequestParam(required = false) Double lon,
+                                                                                       Pageable pageable) {
+        List<RestaurantResponseDto> result = restaurantService.getAllRestaurants(lan, lon, pageable);
         if (result.isEmpty()) {
             return ResponseEntity.ok(BaseResponse.success("조회 결과가 없습니다.", result));
         }
@@ -35,6 +40,7 @@ public class RestaurantController {
 
     /**
      * ID로 식당 조회
+     *
      * @param id
      * @return
      */
@@ -45,6 +51,7 @@ public class RestaurantController {
 
     /**
      * 식당 추가
+     *
      * @param request
      * @return
      */
@@ -56,6 +63,7 @@ public class RestaurantController {
 
     /**
      * 식당 수정
+     *
      * @param id
      * @param request
      * @return
@@ -67,6 +75,7 @@ public class RestaurantController {
 
     /**
      * 식당 삭제
+     *
      * @param id
      */
     @DeleteMapping("/{id}")
@@ -77,20 +86,22 @@ public class RestaurantController {
 
     /**
      * 근처 식당 조회
+     *
      * @param latitude
      * @param longitude
      * @return
      */
     @GetMapping("/nearby")
     public ResponseEntity<BaseResponse<List<RestaurantResponseDto>>> getNearbyRestaurants(@RequestParam Double latitude,
-                                                            @RequestParam Double longitude,
-                                                            @RequestParam Double distance) {
+                                                                                          @RequestParam Double longitude,
+                                                                                          @RequestParam Double distance) {
         return ResponseEntity.ok(
                 BaseResponse.success(restaurantService.getNearbyRestaurants(latitude, longitude, distance)));
     }
 
     /**
      * 콩 종류로 필터
+     *
      * @param beanType
      * @return
      */
