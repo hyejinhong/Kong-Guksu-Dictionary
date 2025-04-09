@@ -4,7 +4,9 @@ import com.kong.kong_dic.domain.restaurant.dto.RestaurantSubmitRequestDto;
 import com.kong.kong_dic.domain.restaurant.entity.Restaurant;
 import com.kong.kong_dic.domain.restaurant.entity.RestaurantSubmission;
 import com.kong.kong_dic.domain.restaurant.entity.SubmissionStatus;
+import com.kong.kong_dic.domain.restaurant.repository.RestaurantRepository;
 import com.kong.kong_dic.domain.restaurant.repository.RestaurantSubmitRepository;
+import com.kong.kong_dic.global.model.Coordinates;
 import com.kong.kong_dic.global.util.KakaoMapUtil;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +21,7 @@ import java.util.List;
 public class RestaurantSubmitService {
 
     private final RestaurantSubmitRepository submitRepository;
+    private final RestaurantRepository restaurantRepository;
     private final KakaoMapUtil kakaoMapUtil;
 
     public List<RestaurantSubmitRequestDto> getAllSubmissions() {
@@ -52,20 +55,21 @@ public class RestaurantSubmitService {
         submission.approved();
         submitRepository.save(submission);
 
-        // TODO latitude, longitude kakao map API set
-        String coordinate = kakaoMapUtil.searchByAddress(submission.getAddress());
-        log.info("### result : {}", coordinate);
+        Coordinates coordinate = kakaoMapUtil.addressToCoordinates(submission.getAddress());
+        log.debug("### result : {}", coordinate);
 
         Restaurant restaurant = Restaurant.builder()
                 .name(submission.getName())
                 .address(submission.getAddress())
-                .latitude(0.0)
-                .longitude(0.0)
+                .latitude(coordinate.getLatitude())
+                .longitude(coordinate.getLongitude())
                 .beanTypes(submission.getBeanTypes())
                 .startMonth(submission.getStartMonth())
                 .endMonth(submission.getEndMonth())
                 .build();
 
+        log.debug("### inserted Entity : {}", restaurant.toString());
+        restaurantRepository.save(restaurant);
     }
 
     public void rejectSubmission(Long id) {

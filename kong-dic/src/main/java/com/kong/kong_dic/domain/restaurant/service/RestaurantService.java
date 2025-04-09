@@ -7,10 +7,12 @@ import com.kong.kong_dic.domain.restaurant.entity.Restaurant;
 import com.kong.kong_dic.domain.restaurant.exception.RestaurantExceptionType;
 import com.kong.kong_dic.domain.restaurant.repository.RestaurantRepository;
 import com.kong.kong_dic.global.exception.BaseException;
+import com.kong.kong_dic.global.model.Coordinates;
 import com.kong.kong_dic.global.util.KakaoMapUtil;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -18,6 +20,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class RestaurantService {
@@ -37,12 +40,14 @@ public class RestaurantService {
     }
 
     public RestaurantResponseDto addRestaurant(RestaurantRequestDto request) {
+        Coordinates coordinate = kakaoMapUtil.addressToCoordinates(request.getAddress());
+        log.info("### result : {}", coordinate);
 
         Restaurant restaurant = Restaurant.builder()
                 .name(request.getName())
                 .address(request.getAddress())
-                .latitude(request.getLatitude())
-                .longitude(request.getLongitude())
+                .latitude(coordinate.getLatitude())
+                .longitude(coordinate.getLongitude())
                 .beanTypes(request.getBeanTypes())
                 .servesAllYear(request.getServesAllYear())
                 .startMonth(request.getStartMonth())

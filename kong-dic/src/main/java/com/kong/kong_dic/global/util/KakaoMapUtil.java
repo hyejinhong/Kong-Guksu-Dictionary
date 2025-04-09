@@ -1,5 +1,10 @@
 package com.kong.kong_dic.global.util;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.kong.kong_dic.global.model.Coordinates;
+import com.kong.kong_dic.global.model.KakaoMapResponse;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -18,26 +23,40 @@ public class KakaoMapUtil {
     }
 
     /**
-     * 키워드 To 장소검색
+     * 주소 To 좌표
      * @param address
      * @return String {latitude#longitude}
      */
-    public String searchByAddress(String address) {
-
+    public Coordinates addressToCoordinates(String address) {
         log.info("### searchByAddress : {}", address);
 
         String result = webClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("search/address.json")
                         .queryParam("query", address)
-                        .queryParam("category_group_code", "FD6")
                         .build())
                 .retrieve()
                 .bodyToMono(String.class)
                 .block();
 
-        log.info("### searchByKeyword result : {}", result);
+        log.info("### KakaoMap API result : {}", result);
 
-        return result;
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            KakaoMapResponse response = objectMapper.readValue(result, KakaoMapResponse.class);
+
+            if (response.getDocuments() != null && !response.getDocuments().isEmpty()) {
+                KakaoMapResponse.Document doc = response.getDocuments().get(0);
+                double lat = Double.parseDouble(doc.getY());
+                double lon = Double.parseDouble(doc.getX());
+                return new Coordinates(lat, lon);
+            } else {
+                log.warn("### No coordinates found for address: {}", address);
+                return null;
+            }
+        } catch (Exception e) {
+            log.error("### Error parsing KakaoMap API response", e);
+            return null;
+        }
     }
 }
