@@ -49,6 +49,7 @@ public class KakaoMapUtil {
                 KakaoMapResponse.Document doc = response.getDocuments().get(0);
                 double lat = Double.parseDouble(doc.getY());
                 double lon = Double.parseDouble(doc.getX());
+                log.info("### lat : {} / lon : {}", lat, lon);
                 return new Coordinates(lat, lon);
             } else {
                 log.warn("### No coordinates found for address: {}", address);

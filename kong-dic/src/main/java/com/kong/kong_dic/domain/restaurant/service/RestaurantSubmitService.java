@@ -56,7 +56,6 @@ public class RestaurantSubmitService {
         submitRepository.save(submission);
 
         Coordinates coordinate = kakaoMapUtil.addressToCoordinates(submission.getAddress());
-        log.debug("### result : {}", coordinate);
 
         Restaurant restaurant = Restaurant.builder()
                 .name(submission.getName())

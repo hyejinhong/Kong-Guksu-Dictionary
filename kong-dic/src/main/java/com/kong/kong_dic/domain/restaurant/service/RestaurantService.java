@@ -41,7 +41,6 @@ public class RestaurantService {
 
     public RestaurantResponseDto addRestaurant(RestaurantRequestDto request) {
         Coordinates coordinate = kakaoMapUtil.addressToCoordinates(request.getAddress());
-        log.info("### result : {}", coordinate);
 
         Restaurant restaurant = Restaurant.builder()
                 .name(request.getName())
@@ -61,10 +60,12 @@ public class RestaurantService {
     public RestaurantResponseDto updateRestaurant(Long id, RestaurantRequestDto request) {
         Restaurant restaurant = restaurantRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("식당을 찾을 수 없습니다: " + id));
 
+        Coordinates coordinate = kakaoMapUtil.addressToCoordinates(request.getAddress());
+
         restaurant.setAddress(request.getAddress());
         restaurant.setName(request.getName());
-        restaurant.setLatitude(request.getLatitude());
-        restaurant.setLongitude(request.getLongitude());
+        restaurant.setLatitude(coordinate.getLatitude());
+        restaurant.setLongitude(coordinate.getLongitude());
         restaurant.setServesAllYear(request.getServesAllYear());
         restaurant.setBeanTypes(request.getBeanTypes());
         restaurant.setStartMonth(request.getStartMonth());
@@ -87,6 +88,7 @@ public class RestaurantService {
                 .collect(Collectors.toList());
     }
 
+    // TODO Distance
     public List<RestaurantResponseDto> getRestaurantsByBeanType(BeanType beanType) {
         List<Restaurant> result = restaurantRepository.findByBeanTypesContains(beanType);
 
