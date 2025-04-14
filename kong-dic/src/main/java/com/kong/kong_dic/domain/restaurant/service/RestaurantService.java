@@ -81,30 +81,15 @@ public class RestaurantService {
         restaurantRepository.delete(restaurant);
     }
 
-    public List<RestaurantResponseDto> getNearbyRestaurants(Double latitude, Double longitude, Double distance) {
-        return restaurantRepository.findNearbyRestaurants(latitude, longitude, distance)
-                .stream()
-                .map(this::entityToResponseDto)
-                .collect(Collectors.toList());
+    public List<RestaurantResponseDto> getNearbyRestaurants(Double latitude, Double longitude, Double distance, Pageable pageable) {
+        Page<Restaurant> page = restaurantRepository.findNearbyRestaurants(latitude, longitude, distance, pageable);
+        return page.map(restaurant -> entityToResponseDto(restaurant, latitude, longitude)).toList();
     }
 
-    // TODO Distance
-    public List<RestaurantResponseDto> getRestaurantsByBeanType(BeanType beanType) {
-        List<Restaurant> result = restaurantRepository.findByBeanTypesContains(beanType);
+    public List<RestaurantResponseDto> getRestaurantsByBeanType(BeanType beanType, Double latitude, Double longitude, Pageable pageable) {
+        Page<Restaurant> page = restaurantRepository.findByBeanTypesContains(beanType, pageable);
 
-        return result.stream().map(restaurant ->
-                RestaurantResponseDto.builder()
-                        .id(restaurant.getId())
-                        .name(restaurant.getName())
-                        .address(restaurant.getAddress())
-                        .latitude(restaurant.getLatitude())
-                        .longitude(restaurant.getLongitude())
-                        .beanTypes(restaurant.getBeanTypes())
-                        .servesAllYear(restaurant.getServesAllYear())
-                        .startMonth(restaurant.getStartMonth())
-                        .endMonth(restaurant.getEndMonth())
-                        // .distance(calculateDistance(restaurant, restaurant.getLatitude(), restaurant.getLongitude()))
-                        .build()).toList();
+        return page.map(restaurant -> entityToResponseDto(restaurant, latitude, longitude)).toList();
     }
 
     private RestaurantResponseDto entityToResponseDto(Restaurant restaurant, Double latitude, Double longitude) {

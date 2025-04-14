@@ -5,7 +5,6 @@ import com.kong.kong_dic.domain.restaurant.dto.RestaurantRequestDto;
 import com.kong.kong_dic.domain.restaurant.dto.RestaurantResponseDto;
 import com.kong.kong_dic.domain.restaurant.service.RestaurantService;
 import com.kong.kong_dic.global.response.BaseResponse;
-import jakarta.annotation.security.PermitAll;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
@@ -94,9 +93,10 @@ public class RestaurantController {
     @GetMapping("/nearby")
     public ResponseEntity<BaseResponse<List<RestaurantResponseDto>>> getNearbyRestaurants(@RequestParam Double latitude,
                                                                                           @RequestParam Double longitude,
-                                                                                          @RequestParam Double distance) {
+                                                                                          @RequestParam Double distance,
+                                                                                          Pageable pageable) {
         return ResponseEntity.ok(
-                BaseResponse.success(restaurantService.getNearbyRestaurants(latitude, longitude, distance)));
+                BaseResponse.success(restaurantService.getNearbyRestaurants(latitude, longitude, distance, pageable)));
     }
 
     /**
@@ -106,8 +106,11 @@ public class RestaurantController {
      * @return
      */
     @GetMapping("/by-bean")
-    public ResponseEntity<BaseResponse<List<RestaurantResponseDto>>> getRestaurantsByBeanType(@RequestParam BeanType beanType) {
+    public ResponseEntity<BaseResponse<List<RestaurantResponseDto>>> getRestaurantsByBeanType(@RequestParam BeanType beanType,
+                                                                                              @RequestParam(required = false) Double latitude,
+                                                                                              @RequestParam(required = false) Double longitude,
+                                                                                              Pageable pageable) {
         return ResponseEntity.ok(
-                BaseResponse.success(restaurantService.getRestaurantsByBeanType(beanType)));
+                BaseResponse.success(restaurantService.getRestaurantsByBeanType(beanType, latitude, longitude, pageable)));
     }
 }
