@@ -25,7 +25,6 @@ public class RestaurantController {
      *
      * @return
      */
-    // TODO 현재 좌표 받아오기
     @GetMapping
     public ResponseEntity<BaseResponse<List<RestaurantResponseDto>>> getAllRestaurants(@RequestParam(required = false) Double lan,
                                                                                        @RequestParam(required = false) Double lon,

@@ -1,22 +1,52 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Route, Routes, Link } from "react-router-dom";
-import "./index.css"; // Tailwind 적용
+import "./index.css";
 import KakaoMap from "./components/KakaoMap";
 import RestaurantDetail from "./components/RestaurantDetail";
 import RestaurantSubmissionForm from "./components/RestaurantSubmissionForm";
 import AdminRestaurantSubmissions from "./pages/AdminRestaurantSubmissions";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
-
-// 임시 데이터
-const restaurants = [
-  { name: "맛집 A", distance: "500m", type: "백태콩", startMonth: 6, endMonth: 9 },
-  { name: "맛집 B", distance: "1km", type: "검은콩", startMonth: 11, endMonth: 3 }, // 겨울철 판매
-  { name: "맛집 C", distance: "300m", type: "백태콩", startMonth: 5, endMonth: 8 },
-];
+import axios from "axios";
 
 function App() {
   const [filter, setFilter] = useState({ season: "all", beanType: "all" });
+  const [restaurants, setRestaurants] = useState([]);
+  const [location, setLocation] = useState({ latitude: null, longitude: null });
+
+  useEffect(() => {
+    // 사용자의 현재 위치 받아오기
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setLocation({ latitude, longitude });
+        fetchRestaurants(latitude, longitude);
+      },
+      (error) => {
+        console.error("위치 정보를 가져올 수 없습니다:", error);
+      }
+    );
+  }, []);
+
+  const fetchRestaurants = async (latitude, longitude) => {
+    try {
+      const response = await axios.get("http://localhost:8080/restaurants/nearby", {
+        params: {
+          latitude,
+          longitude,
+          distance: 5, // 기본 반경 5km
+          page: 0,
+          size: 50 //,
+          // sort: "distance,asc",
+        },
+      });
+
+      const data = response.data?.result ?? [];
+      setRestaurants(data);
+    } catch (error) {
+      console.error("식당 데이터를 불러오는 중 오류 발생:", error);
+    }
+  };
 
   const handleFilterChange = (type, value) => {
     setFilter((prevFilter) => ({ ...prevFilter, [type]: value }));
