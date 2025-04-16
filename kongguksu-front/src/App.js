@@ -15,7 +15,6 @@ function App() {
   const [location, setLocation] = useState({ latitude: null, longitude: null });
 
   useEffect(() => {
-    // 사용자의 현재 위치 받아오기
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
@@ -34,14 +33,13 @@ function App() {
         params: {
           latitude,
           longitude,
-          distance: 5, // 기본 반경 5km
+          distance: 5,
           page: 0,
-          size: 50 //,
-          // sort: "distance,asc",
+          size: 50,
         },
       });
 
-      const data = response.data?.result ?? [];
+      const data = response.data?.data ?? [];
       setRestaurants(data);
     } catch (error) {
       console.error("식당 데이터를 불러오는 중 오류 발생:", error);
@@ -52,32 +50,30 @@ function App() {
     setFilter((prevFilter) => ({ ...prevFilter, [type]: value }));
   };
 
-  // 필터된 식당 리스트
   const filteredRestaurants = restaurants.filter((restaurant) => {
-    const currentMonth = new Date().getMonth() + 1; // 현재 월 (1~12)
+    const currentMonth = new Date().getMonth() + 1;
 
     const isSeasonMatch =
       filter.season === "all" ||
       (filter.season === "open-now" && isCurrentlySelling(restaurant));
 
     const isBeanTypeMatch =
-      filter.beanType === "all" || restaurant.type === filter.beanType;
+      filter.beanType === "all" ||
+      (filter.beanType === "백태콩" && restaurant.beanTypes.includes("SOY_BEAN")) ||
+      (filter.beanType === "검은콩" && restaurant.beanTypes.includes("BLACK_BEAN"));
 
     return isSeasonMatch && isBeanTypeMatch;
   });
 
-  /**
-   * 현재 식당이 콩국수를 판매 중인지 확인하는 함수
-   */
   function isCurrentlySelling(restaurant) {
-    const { startMonth, endMonth } = restaurant;
+    const { startMonth, endMonth, servesAllYear } = restaurant;
     const currentMonth = new Date().getMonth() + 1;
 
+    if (servesAllYear) return true;
+
     if (startMonth <= endMonth) {
-      // 보통의 경우 (예: 6월 ~ 9월)
       return startMonth <= currentMonth && currentMonth <= endMonth;
     } else {
-      // 겨울을 넘겨서 판매하는 경우 (예: 11월 ~ 3월)
       return currentMonth >= startMonth || currentMonth <= endMonth;
     }
   }
@@ -85,21 +81,20 @@ function App() {
   return (
     <Router>
       <div className="flex flex-col min-h-screen bg-[#FCEBB6]">
-
         <header className="bg-[#5C5C5C] text-white py-4 text-xl md:text-2xl font-bold flex justify-end items-center px-4 relative">
           <h1 className="absolute left-1/2 transform -translate-x-1/2">
             🍜 콩국수 사전 🍜
           </h1>
-          <Link to="/login" className="bg-[#57B4BA] text-white bg-blue-500 px-3 py-1 rounded-md text-sm">
+          <Link to="/login" className="bg-[#57B4BA] text-white px-3 py-1 rounded-md text-sm">
             로그인
           </Link>
         </header>
+
         <Routes>
-          {/* 홈 페이지 */}
           <Route path="/" element={
             <>
               <div className="flex justify-center my-4">
-                <KakaoMap />
+                <KakaoMap restaurants={filteredRestaurants} />
               </div>
 
               {/* 필터 메뉴 */}
@@ -149,12 +144,20 @@ function App() {
               {/* 추천 식당 리스트 */}
               <div className="mx-4 mt-4">
                 {filteredRestaurants.map((restaurant, index) => (
-                  <Link key={index} to={`/restaurant/${index}`} className="block">
+                  <Link key={restaurant.id} to={`/restaurant/${restaurant.id}`} className="block">
                     <div className="bg-white p-4 mb-2 rounded-lg shadow-md">
-                      <p className="font-bold">{restaurant.name}</p>
-                      <p>{restaurant.distance}</p>
-                      <p>{restaurant.type}</p>
-                      <p>{restaurant.startMonth}월~{restaurant.endMonth}월</p>
+                      <p className="font-bold text-lg">{restaurant.name}</p>
+                      <p className="text-sm text-gray-600">{restaurant.address}</p>
+                      <p className="text-sm">
+                        거리: {restaurant.distance?.toFixed(1)}km
+                      </p>
+                      <p className="text-sm">
+                        콩 종류: {restaurant.beanTypes.includes("SOY_BEAN") && "백태콩 "}
+                        {restaurant.beanTypes.includes("BLACK_BEAN") && "검은콩"}
+                      </p>
+                      <p className="text-sm">
+                        판매 기간: {restaurant.servesAllYear ? "사계절 판매" : `${restaurant.startMonth}월 ~ ${restaurant.endMonth}월`}
+                      </p>
                     </div>
                   </Link>
                 ))}
@@ -162,15 +165,12 @@ function App() {
             </>
           } />
 
-          {/* 식당 상세 페이지 */}
           <Route path="/restaurant/:id" element={<RestaurantDetail restaurants={restaurants} />} />
-          {/* ✅ 식당 등록 요청 페이지 추가 */}
           <Route path="/submit-restaurant" element={<RestaurantSubmissionForm />} />
           <Route path="/admin/restaurant-submissions" element={<AdminRestaurantSubmissions />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
         </Routes>
-
 
         {/* 네비게이션 바 */}
         <nav className="bg-[#5C5C5C] text-white p-4 flex justify-around text-sm md:text-lg fixed bottom-0 w-full">
@@ -190,7 +190,6 @@ function App() {
             <span>⚙</span>
             <span>설정</span>
           </button>
-          {/* ✅ 새로운 메뉴 추가 */}
           <Link to="/submit-restaurant" className="flex flex-col items-center">
             <span>📝</span>
             <span>식당 등록</span>
