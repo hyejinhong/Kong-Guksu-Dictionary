@@ -125,14 +125,30 @@ function App() {
 
                 <div className="flex space-x-4 mt-2">
                   <label className="flex items-center">
-                    <input type="radio" name="season" value="all"
+                    <input
+                      type="radio"
+                      name="season"
+                      value="all"
                       checked={filter.season === "all"}
                       onChange={() => handleFilterChange("season", "all")}
+                    />
+                    <span className="ml-2">전체</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="season"
+                      value="always"
+                      checked={filter.season === "always"}
+                      onChange={() => handleFilterChange("season", "always")}
                     />
                     <span className="ml-2">사계절</span>
                   </label>
                   <label className="flex items-center">
-                    <input type="radio" name="season" value="open-now"
+                    <input
+                      type="radio"
+                      name="season"
+                      value="open-now"
                       checked={filter.season === "open-now"}
                       onChange={() => handleFilterChange("season", "open-now")}
                     />
