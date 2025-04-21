@@ -9,7 +9,7 @@ function KakaoMap({ restaurants }) {
       const { kakao } = window;
 
       const options = {
-        center: new kakao.maps.LatLng(37.5665, 126.978), // 기본 중심
+        center: new kakao.maps.LatLng(37.5665, 126.978),
         level: 5,
       };
 
@@ -24,7 +24,7 @@ function KakaoMap({ restaurants }) {
 
           map.setCenter(locPosition);
 
-          const imageSrc = "https://cdn0.iconfinder.com/data/icons/phosphor-fill-vol-3/256/person-fill-512.png"; // 현재 위치 마커 아이콘 (예시)
+          const imageSrc = "https://cdn0.iconfinder.com/data/icons/phosphor-fill-vol-3/256/person-fill-512.png";
           const imageSize = new kakao.maps.Size(36, 36);
           const markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize);
 
@@ -41,12 +41,37 @@ function KakaoMap({ restaurants }) {
         });
       }
 
+      // 콩국수 판매 여부 판단 함수
+      function isCurrentlySelling(restaurant) {
+        const { startMonth, endMonth, servesAllYear } = restaurant;
+        const currentMonth = new Date().getMonth() + 1;
+
+        if (servesAllYear) return true;
+
+        if (startMonth <= endMonth) {
+          return startMonth <= currentMonth && currentMonth <= endMonth;
+        } else {
+          return currentMonth >= startMonth || currentMonth <= endMonth;
+        }
+      }
+
       // 식당 마커
       restaurants.forEach((restaurant) => {
         const position = new kakao.maps.LatLng(restaurant.latitude, restaurant.longitude);
+
+        // 현재 판매 중인지 여부에 따라 마커 이미지 변경
+        const isSelling = isCurrentlySelling(restaurant);
+        const imageSrc = isSelling
+          ? "/images/open.png"   // 현재 판매 중 마커
+          : "/images/closed.png";         // 일반 마커
+
+        const imageSize = new kakao.maps.Size(36, 36);
+        const markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize);
+
         const marker = new kakao.maps.Marker({
           map: map,
           position,
+          image: markerImage,
         });
 
         const iwContent = `<div style="padding:5px;font-size:13px;font-weight:bold;">${restaurant.name}</div>`;
@@ -59,12 +84,12 @@ function KakaoMap({ restaurants }) {
       });
     };
 
-    // Kakao SDK 로드 완료 후 실행
     if (window.kakao && window.kakao.maps) {
       initMap();
     } else {
       const script = document.createElement("script");
-      script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=★여기에_너의_카카오_API_키★&autoload=false&libraries=services`;
+      const kakaoMapApiKey = process.env.REACT_APP_KAKAO_MAP_API_KEY;
+      script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${kakaoMapApiKey}&autoload=false&libraries=services`;
       script.async = true;
       script.onload = () => {
         window.kakao.maps.load(initMap);
