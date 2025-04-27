@@ -62,8 +62,8 @@ function KakaoMap({ restaurants }) {
         // 현재 판매 중인지 여부에 따라 마커 이미지 변경
         const isSelling = isCurrentlySelling(restaurant);
         const imageSrc = isSelling
-          ? "/images/open.png"   // 현재 판매 중 마커
-          : "/images/closed.png";         // 일반 마커
+          ? "/images/on.png"   // 현재 판매 중 마커
+          : "/images/off.png";         // 일반 마커
 
         const imageSize = new kakao.maps.Size(36, 36);
         const markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize);
