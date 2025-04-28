@@ -12,4 +12,5 @@ public class UserResponseDto {
     private String username;
     private String nickname;
     private Date registeredAt;
+    private Date modifiedAt;
 }

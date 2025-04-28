@@ -1,7 +1,5 @@
 package com.kong.kong_dic.domain.auth.controller;
 
-import com.kong.kong_dic.domain.auth.dto.LoginRequestDto;
-import com.kong.kong_dic.domain.auth.dto.LoginResponseDto;
 import com.kong.kong_dic.domain.auth.dto.SignupRequestDto;
 import com.kong.kong_dic.domain.auth.service.AuthService;
 import com.kong.kong_dic.global.response.BaseResponse;
@@ -24,4 +22,5 @@ public class AuthController {
         authService.signup(request);
         return ResponseEntity.ok(BaseResponse.success());
     }
+
 }

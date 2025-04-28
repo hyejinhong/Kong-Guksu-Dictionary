@@ -35,6 +35,9 @@ public class User implements UserDetails {
     @Builder.Default
     private Date registeredAt = new Date(System.currentTimeMillis());
 
+    @Builder.Default
+    private Date modifiedAt = new Date(System.currentTimeMillis());
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(role);
