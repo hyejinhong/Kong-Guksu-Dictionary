@@ -1,20 +1,38 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
+
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
 const LoginPage = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-
-    console.log("ID:", username);
-    console.log("비밀번호:", password);
-
-    // TODO: 실제 로그인 API 연동 필요
-    // 성공 시 홈으로 이동
-    navigate("/");
+  
+    try {
+      const response = await axios.post(`${API_BASE_URL}/login`, {
+        username,
+        password,
+      });
+  
+      const { token } = response.data.data; // ✅ "data" 객체 안의 "token"
+  
+      // 토큰 저장
+      localStorage.setItem("token", token);
+  
+      // 토큰 디코딩해서 role 추출
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      localStorage.setItem("role", payload.role); // 예: "USER" 또는 "ADMIN"
+  
+      // 홈으로 이동
+      navigate("/");
+    } catch (error) {
+      alert("로그인 실패! 아이디 또는 비밀번호를 확인하세요.");
+      console.error("Login error:", error);
+    }
   };
 
   return (
