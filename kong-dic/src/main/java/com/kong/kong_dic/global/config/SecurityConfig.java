@@ -42,7 +42,8 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/login",
-                                "/restaurants/nearby"
+                                "/restaurants/nearby",
+                                "/users/nickname/random"
                                 ).permitAll()
                         .requestMatchers("/admin/**").hasAuthority(Role.ADMIN.getAuthority())
                         .anyRequest().authenticated()

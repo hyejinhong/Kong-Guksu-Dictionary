@@ -1,6 +1,5 @@
 import React, { useState } from "react";
-
-const randomNicknames = ["콩순이", "콩닥콩닥", "콩국수왕", "콩마스터", "콩러버"];
+import axios from "axios";
 
 const SignupPage = () => {
   const [formData, setFormData] = useState({
@@ -9,14 +8,67 @@ const SignupPage = () => {
     password: "",
   });
 
+  const [isLoadingNickname, setIsLoadingNickname] = useState(false); // 필요하다면 주석 해제
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const generateRandomNickname = () => {
-    const randomNickname = randomNicknames[Math.floor(Math.random() * randomNicknames.length)];
-    setFormData((prev) => ({ ...prev, nickname: randomNickname }));
+  const generateRandomNickname = async () => {
+    // if (isLoadingNickname) return; // 로딩 중이면 함수 실행 막기
+
+    try {
+      // setIsLoadingNickname(true); // 로딩 시작
+
+      // API 기본 URL과 엔드포인트를 합쳐 요청 URL 생성
+      const url = `${API_BASE_URL || 'http://localhost:8080'}/users/nickname/random`;
+      console.log("랜덤 닉네임 API 호출:", url);
+
+      // GET 요청 보내기
+      const response = await axios.get(url);
+
+      console.log("랜덤 닉네임 API 응답:", response.data);
+
+      // ✅ 응답 데이터 구조에서 닉네임 추출 (response.data.data)
+      if (response.data && response.data.code === 0 && response.data.data) {
+         const fetchedNickname = response.data.data;
+
+         // 추출한 닉네임으로 nickname 상태 업데이트
+         setFormData((prev) => ({ ...prev, nickname: fetchedNickname }));
+         console.log("닉네임 업데이트 완료:", fetchedNickname);
+
+      } else {
+         // 응답 형식 오류 또는 code가 0이 아닌 경우
+         console.error("랜덤 닉네임 API 응답 오류:", response.data?.message || "응답 형식이 올바르지 않습니다.");
+         alert("랜덤 닉네임을 가져오는데 실패했습니다."); // 사용자에게 알림
+      }
+
+    } catch (error) {
+      // API 호출 자체 실패 (네트워크 문제 등)
+      console.error("랜덤 닉네임 생성 API 호출 오류:", error);
+
+      if (error.response) {
+        // 서버가 응답을 반환했지만 상태 코드가 2xx 범위를 벗어난 경우
+        console.error("Error response data:", error.response.data);
+        console.error("Error response status:", error.response.status);
+        console.error("Error response headers:", error.response.headers);
+        alert(`랜덤 닉네임 API 오류: ${error.response.status}`);
+      } else if (error.request) {
+        // 요청이 만들어졌지만 응답을 받지 못한 경우 (네트워크 문제)
+        console.error("Error request:", error.request);
+        alert("랜덤 닉네임 서버에 연결할 수 없습니다. 네트워크 상태를 확인하세요.");
+      } else {
+        // 요청 설정 중 발생한 오류
+        console.error("Error message:", error.message);
+        alert(`랜덤 닉네임 요청 오류: ${error.message}`);
+      }
+
+      alert("랜덤 닉네임을 가져오는데 실패했습니다."); // 사용자에게 알림
+    } finally {
+      // setIsLoadingNickname(false); // 로딩 종료 (성공/실패와 무관하게)
+    }
   };
 
   const handleSubmit = (e) => {
