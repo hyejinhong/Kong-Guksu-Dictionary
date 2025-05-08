@@ -37,16 +37,16 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers(
+                      /* .requestMatchers(
                                 "/auth/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/login",
                                 "/restaurants/nearby",
                                 "/users/nickname/random"
-                                ).permitAll()
+                                ).permitAll() */
                         .requestMatchers("/admin/**").hasAuthority(Role.ADMIN.getAuthority())
-                        .anyRequest().authenticated()
+                        .anyRequest().permitAll()
                 )
                 .addFilter(new LoginFilter(authenticationManager(authenticationConfiguration), jwtProvider))
                 .sessionManagement(AbstractHttpConfigurer::disable)
