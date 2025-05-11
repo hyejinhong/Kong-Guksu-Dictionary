@@ -1,14 +1,16 @@
 import { useParams } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
+const kakaoMapApiKey = process.env.REACT_APP_KAKAO_MAP_API_KEY;
 
 function RestaurantDetail() {
   const { id } = useParams();
   const [restaurant, setRestaurant] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const mapRef = useRef(null);
 
   useEffect(() => {
     const fetchRestaurant = async () => {
@@ -25,6 +27,51 @@ function RestaurantDetail() {
     fetchRestaurant();
   }, [id]);
 
+  useEffect(() => {
+    if (!restaurant) return;
+
+    // 기존 스크립트 제거 (중복 방지)
+    const existingScript = document.querySelector("script[src*='dapi.kakao.com']");
+    if (existingScript) {
+      existingScript.remove();
+      delete window.kakao;
+    }
+
+    const script = document.createElement("script");
+    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${kakaoMapApiKey}&autoload=false&libraries=services`;
+    script.async = true;
+    document.head.appendChild(script);
+
+    script.onload = () => {
+      window.kakao.maps.load(() => {
+        const container = mapRef.current;
+        const map = new window.kakao.maps.Map(container, {
+          center: new window.kakao.maps.LatLng(33.450701, 126.570667),
+          level: 3,
+        });
+
+        const geocoder = new window.kakao.maps.services.Geocoder();
+        geocoder.addressSearch(restaurant.address, (result, status) => {
+          if (status === window.kakao.maps.services.Status.OK) {
+            const coords = new window.kakao.maps.LatLng(result[0].y, result[0].x);
+            const marker = new window.kakao.maps.Marker({
+              map,
+              position: coords,
+            });
+            map.setCenter(coords);
+          }
+        });
+      });
+    };
+
+    return () => {
+      if (script) {
+        document.head.removeChild(script);
+        delete window.kakao;
+      }
+    };
+  }, [restaurant]);
+
   if (loading) return <div className="text-center mt-10">불러오는 중...</div>;
   if (error) return <div className="text-center mt-10 text-red-600">{error}</div>;
   if (!restaurant) return <div className="text-center mt-10">해당 식당을 찾을 수 없습니다.</div>;
@@ -36,6 +83,8 @@ function RestaurantDetail() {
           {restaurant.name}
         </h1>
         <p className="text-center text-gray-600 mb-4">{restaurant.address}</p>
+
+        <div ref={mapRef} className="w-full h-64 rounded mb-6" />
 
         <div className="space-y-3">
           <div className="flex justify-between">
