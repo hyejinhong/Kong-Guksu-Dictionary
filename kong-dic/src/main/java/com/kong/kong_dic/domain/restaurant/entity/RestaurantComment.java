@@ -1,15 +1,16 @@
 package com.kong.kong_dic.domain.restaurant;
 
 import com.kong.kong_dic.domain.restaurant.entity.Restaurant;
+import com.kong.kong_dic.domain.user.entity.User;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
 @Entity
-@Getter
+@Getter @Setter @Builder
 @NoArgsConstructor
+@AllArgsConstructor
 public class RestaurantComment {
 
     @Id
@@ -17,18 +18,19 @@ public class RestaurantComment {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "restaurant_id", nullable = false)
+    @JoinColumn(name = "restaurant_id")
     private Restaurant restaurant;
 
-    private String author; // 작성자
-    private String content; // 댓글 내용
-    private LocalDateTime createdAt; // 작성 시간
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User author;
 
-    public RestaurantComment(Restaurant restaurant, String author, String content) {
-        this.restaurant = restaurant;
-        this.author = author;
-        this.content = content;
+    private String content;
+
+    private LocalDateTime createdAt;
+
+    @PrePersist
+    protected void onCreate() {
         this.createdAt = LocalDateTime.now();
     }
-
 }
