@@ -10,6 +10,9 @@ function RestaurantDetail() {
   const [restaurant, setRestaurant] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [comments, setComments] = useState([]);
+  const [commentContent, setCommentContent] = useState("");
+  const [commentLoading, setCommentLoading] = useState(false);
   const mapRef = useRef(null);
 
   useEffect(() => {
@@ -30,7 +33,6 @@ function RestaurantDetail() {
   useEffect(() => {
     if (!restaurant) return;
 
-    // 기존 스크립트 제거 (중복 방지)
     const existingScript = document.querySelector("script[src*='dapi.kakao.com']");
     if (existingScript) {
       existingScript.remove();
@@ -54,10 +56,7 @@ function RestaurantDetail() {
         geocoder.addressSearch(restaurant.address, (result, status) => {
           if (status === window.kakao.maps.services.Status.OK) {
             const coords = new window.kakao.maps.LatLng(result[0].y, result[0].x);
-            const marker = new window.kakao.maps.Marker({
-              map,
-              position: coords,
-            });
+            new window.kakao.maps.Marker({ map, position: coords });
             map.setCenter(coords);
           }
         });
@@ -72,13 +71,49 @@ function RestaurantDetail() {
     };
   }, [restaurant]);
 
+  const fetchComments = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/restaurants/${id}/comments?page=0&size=10`);
+      setComments(response.data.data.content);
+    } catch (err) {
+      console.error("댓글을 불러오지 못했습니다", err);
+    }
+  };
+
+  useEffect(() => {
+    if (id) fetchComments();
+  }, [id]);
+
+  const handleCommentSubmit = async () => {
+    if (!commentContent.trim()) return;
+
+    try {
+      setCommentLoading(true);
+      await axios.post(
+        `${API_BASE_URL}/restaurants/${id}/comments`,
+        { content: commentContent },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      setCommentContent("");
+      fetchComments();
+    } catch (err) {
+      alert("댓글 등록에 실패했습니다.");
+    } finally {
+      setCommentLoading(false);
+    }
+  };
+
   if (loading) return <div className="text-center mt-10">불러오는 중...</div>;
   if (error) return <div className="text-center mt-10 text-red-600">{error}</div>;
   if (!restaurant) return <div className="text-center mt-10">해당 식당을 찾을 수 없습니다.</div>;
 
   return (
-    <div className="min-h-screen bg-[#FCEBB6] flex items-center justify-center p-6">
-      <div className="bg-white w-full max-w-md rounded-lg shadow-lg p-6">
+    <div className="min-h-screen bg-[#FCEBB6] flex flex-col items-center p-6">
+      <div className="bg-white w-full max-w-md rounded-lg shadow-lg p-6 mb-6">
         <h1 className="text-2xl font-bold text-center text-[#333333] mb-2">
           {restaurant.name}
         </h1>
@@ -86,7 +121,7 @@ function RestaurantDetail() {
 
         <div ref={mapRef} className="w-full h-64 rounded mb-6" />
 
-        <div className="space-y-3">
+        <div className="space-y-3 mb-6">
           <div className="flex justify-between">
             <span className="font-medium text-gray-700">제공 기간:</span>
             <span className="text-gray-800">
@@ -119,6 +154,44 @@ function RestaurantDetail() {
             onClick={() => window.history.back()}
           >
             🔙 뒤로 가기
+          </button>
+        </div>
+      </div>
+
+      {/* 댓글 영역 */}
+      <div className="bg-white w-full max-w-md rounded-lg shadow p-6">
+        <h2 className="text-xl font-semibold mb-4 text-[#333]">💬 댓글</h2>
+
+        <div className="space-y-3 mb-4">
+          {comments.length === 0 ? (
+            <p className="text-gray-500 text-sm">댓글이 아직 없습니다.</p>
+          ) : (
+            comments.map((c) => (
+              <div key={c.id} className="border-b pb-2">
+                <div className="text-sm font-semibold text-gray-800">{c.nickname}</div>
+                <div className="text-sm text-gray-700">{c.content}</div>
+                <div className="text-xs text-gray-400">
+                  {new Date(c.createdAt).toLocaleString()}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            placeholder="댓글을 입력하세요"
+            value={commentContent}
+            onChange={(e) => setCommentContent(e.target.value)}
+            className="flex-1 border rounded px-3 py-2 text-sm"
+          />
+          <button
+            onClick={handleCommentSubmit}
+            className="bg-[#5C5C5C] text-white px-3 py-2 rounded text-sm hover:bg-[#4a4a4a]"
+            disabled={commentLoading}
+          >
+            등록
           </button>
         </div>
       </div>
