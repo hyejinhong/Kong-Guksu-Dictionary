@@ -1,204 +1,257 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
 
 const RestaurantSubmissionForm = () => {
+  const [map, setMap] = useState(null);
+  const [markers, setMarkers] = useState([]);
+  const [searchKeyword, setSearchKeyword] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     address: "",
-    beanTypes: [],
-    servesAllYear: false,
+    soyType: "",
     startMonth: "",
     endMonth: "",
-    status: "PENDING", // 기본 상태 추가
+    isAllYear: false, // 연중무휴 여부
   });
+  // Kakao SDK 로드 함수
+  const loadKakaoMapScript = () => {
+    return new Promise((resolve, reject) => {
+      if (window.kakao && window.kakao.maps) {
+        resolve(window.kakao);
+        return;
+      }
 
-  const [loading, setLoading] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
+      const script = document.createElement("script");
+      script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${process.env.REACT_APP_KAKAO_MAP_API_KEY}&autoload=false&libraries=services`;
+      script.async = true;
+      script.onload = () => {
+        window.kakao.maps.load(() => {
+          resolve(window.kakao);
+        });
+      };
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+  };
 
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
+  // 지도 초기화
+  useEffect(() => {
+    const initMap = async () => {
+      try {
+        const kakao = await loadKakaoMapScript();
+        const container = document.getElementById("map");
+        const options = {
+          center: new kakao.maps.LatLng(37.5665, 126.9780), // 서울 중심
+          level: 5,
+        };
+        const mapInstance = new kakao.maps.Map(container, options);
+        setMap(mapInstance);
+      } catch (error) {
+        console.error("Kakao Maps 로딩 실패:", error);
+      }
+    };
 
-    if (name === "beanTypes") {
-      setFormData((prev) => ({
-        ...prev,
-        beanTypes: checked
-          ? [...prev.beanTypes, value]
-          : prev.beanTypes.filter((bean) => bean !== value),
-      }));
-    } else if (type === "checkbox") {
-      setFormData((prev) => ({ ...prev, [name]: checked }));
-    } else {
-      setFormData((prev) => ({ ...prev, [name]: value }));
+    initMap();
+  }, []);
+
+  // 키워드로 검색
+  const searchPlaces = () => {
+    if (!searchKeyword.trim() || !map) return;
+
+    const ps = new window.kakao.maps.services.Places();
+    ps.keywordSearch(searchKeyword, (data, status) => {
+      if (status !== window.kakao.maps.services.Status.OK) {
+        alert("검색 결과가 없습니다.");
+        return;
+      }
+
+      // 이전 마커 제거
+      markers.forEach((marker) => marker.setMap(null));
+      const newMarkers = [];
+
+      const bounds = new window.kakao.maps.LatLngBounds();
+
+      data.forEach((place) => {
+        const position = new window.kakao.maps.LatLng(place.y, place.x);
+        const marker = new window.kakao.maps.Marker({
+          map,
+          position,
+        });
+
+        window.kakao.maps.event.addListener(marker, "click", () => {
+          setFormData({
+            ...formData,
+            address: place.address_name,
+            name: place.place_name,
+          });
+        });
+
+        newMarkers.push(marker);
+        bounds.extend(position);
+      });
+
+      setMarkers(newMarkers);
+      map.setBounds(bounds);
+    });
+  };
+
+  // 엔터키로 검색
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      searchPlaces();
     }
   };
 
+  // 입력 변경 처리
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+  };  // TODO 폼 제출
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setSuccessMessage("");
-
-    // API URL을 환경변수에서 가져오기
-    const apiUrl = `${process.env.REACT_APP_API_BASE_URL}/restaurants/submissions`;
-
-    // 서버로 보낼 데이터 구성
-    const submissionData = {
-      ...formData,
-      startMonth: formData.servesAllYear ? null : formData.startMonth,
-      endMonth: formData.servesAllYear ? null : formData.endMonth,
-    };
-
     try {
-      const response = await axios.post(apiUrl, submissionData, {
-        headers: { "Content-Type": "application/json" },
+      await axios.post("/api/restaurants/submit", formData);
+      alert("제출되었습니다!");
+      setFormData({
+        name: "",
+        address: "",
+        soyType: "",
+        operationPeriod: "",
       });
-
-      if (response.status === 201) {
-        setSuccessMessage("🎉 식당 등록 요청이 성공적으로 제출되었습니다!");
-        setFormData({
-          name: "",
-          address: "",
-          beanTypes: [],
-          servesAllYear: false,
-          startMonth: "",
-          endMonth: "",
-          status: "PENDING",
-        });
-      }
-    } catch (error) {
-      console.error("등록 요청 실패:", error);
-      alert("❌ 등록 요청 중 오류가 발생했습니다.");
-    } finally {
-      setLoading(false);
+    } catch (err) {
+      console.error(err);
+      alert("제출에 실패했습니다.");
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-[#FCEBB6] p-4">
-      <div className="w-full max-w-lg bg-white p-6 rounded-lg shadow-lg">
-        <h2 className="text-2xl font-bold text-center text-gray-800 mb-4">
-          🍜 식당 등록 요청
-        </h2>
-        {successMessage && <p className="text-green-600 text-center">{successMessage}</p>}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* 식당 이름 */}
-          <div>
-            <label className="block text-gray-700 font-semibold mb-1">식당 이름</label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              className="w-full p-2 border border-gray-300 rounded-md"
-              required
-            />
-          </div>
-
-          {/* 주소 입력 */}
-          <div>
-            <label className="block text-gray-700 font-semibold mb-1">주소</label>
-            <input
-              type="text"
-              name="address"
-              value={formData.address}
-              onChange={handleChange}
-              className="w-full p-2 border border-gray-300 rounded-md"
-              required
-            />
-          </div>
-
-          {/* 콩 종류 선택 */}
-          <div>
-            <label className="block text-gray-700 font-semibold mb-1">콩 종류</label>
-            <div className="flex space-x-4">
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  name="beanTypes"
-                  value="SOY_BEAN"
-                  checked={formData.beanTypes.includes("SOY_BEAN")}
-                  onChange={handleChange}
-                  className="mr-2"
-                />
-                백태콩
-              </label>
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  name="beanTypes"
-                  value="BLACK_BEAN"
-                  checked={formData.beanTypes.includes("BLACK_BEAN")}
-                  onChange={handleChange}
-                  className="mr-2"
-                />
-                검은콩
-              </label>
-            </div>
-          </div>
-
-          {/* 연중 판매 여부 */}
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              name="servesAllYear"
-              checked={formData.servesAllYear}
-              onChange={handleChange}
-              className="mr-2"
-            />
-            <label className="text-gray-700 font-semibold">연중 판매</label>
-          </div>
-
-          {/* 판매 기간 선택 */}
-          <div className="flex space-x-4">
-            <div>
-              <label className="block text-gray-700 font-semibold mb-1">시작 월</label>
-              <select
-                name="startMonth"
-                value={formData.startMonth}
-                onChange={handleChange}
-                className="w-full p-2 border border-gray-300 rounded-md"
-                disabled={formData.servesAllYear} // 연중 판매 체크하면 비활성화
-                required={!formData.servesAllYear}
-              >
-                <option value="">선택</option>
-                {[...Array(12)].map((_, i) => (
-                  <option key={i} value={i + 1}>
-                    {i + 1}월
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-gray-700 font-semibold mb-1">종료 월</label>
-              <select
-                name="endMonth"
-                value={formData.endMonth}
-                onChange={handleChange}
-                className="w-full p-2 border border-gray-300 rounded-md"
-                disabled={formData.servesAllYear} // 연중 판매 체크하면 비활성화
-                required={!formData.servesAllYear}
-              >
-                <option value="">선택</option>
-                {[...Array(12)].map((_, i) => (
-                  <option key={i} value={i + 1}>
-                    {i + 1}월
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* 제출 버튼 */}
+    <div className="p-4 sm:p-6 max-w-full sm:max-w-3xl mx-auto space-y-6">
+      <div className="space-y-2">
+        <h2 className="text-lg sm:text-xl font-semibold">위치 검색</h2>
+        <div className="flex gap-2 flex-col sm:flex-row">
+          <input
+            type="text"
+            placeholder="식당 이름 또는 주소를 입력하세요"
+            value={searchKeyword}
+            onChange={(e) => setSearchKeyword(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="w-full border rounded px-3 py-2"
+          />
           <button
-            type="submit"
-            className="w-full bg-[#5C5C5C] text-white py-2 rounded-md font-semibold hover:bg-gray-700 transition disabled:opacity-50"
-            disabled={loading}
+            onClick={searchPlaces}
+            className="w-full sm:w-auto px-4 py-2 bg-yellow-300 hover:bg-yellow-400 rounded"
           >
-            {loading ? "제출 중..." : "등록 요청 제출"}
+            검색
           </button>
-        </form>
+        </div>
       </div>
+
+      <div
+        id="map"
+        className="w-full rounded"
+        style={{ height: "250px", maxHeight: "300px" }}
+      ></div>
+
+      <form
+        onSubmit={handleSubmit}
+        className="border p-4 rounded shadow space-y-4 bg-white"
+      >
+        <h2 className="text-lg sm:text-xl font-semibold">식당 등록</h2>
+
+        <div>
+          <label className="block mb-1 font-medium">식당 이름</label>
+          <input
+            type="text"
+            name="name"
+            value={formData.name}
+            onChange={handleChange}
+            className="w-full border px-3 py-2 rounded"
+            placeholder="예: 콩콩이네"
+          />
+        </div>
+
+        <div>
+          <label className="block mb-1 font-medium">주소</label>
+          <input
+            type="text"
+            name="address"
+            value={formData.address}
+            onChange={handleChange}
+            className="w-full border px-3 py-2 rounded"
+            placeholder="예: 서울시 강남구 ..."
+          />
+        </div>
+
+        <div>
+          <label className="block mb-1 font-medium">콩 종류</label>
+          <select
+            name="soyType"
+            value={formData.soyType}
+            onChange={handleChange}
+            className="w-full border px-3 py-2 rounded"
+          >
+            <option value="">선택하세요</option>
+            <option value="SOY_BEAN">백태</option>
+            <option value="BLACK_BEAN">검은콩</option>
+            <option value="OTHER_BEAN">기타</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block mb-1 font-medium">운영 기간</label>
+
+          <div className="mb-2">
+            <label className="inline-flex items-center">
+              <input
+                type="checkbox"
+                name="isAllYear"
+                checked={formData.isAllYear}
+                onChange={handleChange}
+                className="mr-2"
+              />
+              연중무휴
+            </label>
+          </div>
+
+          <div className="flex gap-2 flex-col sm:flex-row items-center">
+            <input
+              type="number"
+              name="startMonth"
+              value={formData.startMonth}
+              onChange={handleChange}
+              className="w-full sm:w-1/2 border px-3 py-2 rounded"
+              min={1}
+              max={12}
+              placeholder="시작월"
+              disabled={formData.isAllYear}
+            />
+            <span className="mx-0 sm:mx-2">~</span>
+            <input
+              type="number"
+              name="endMonth"
+              value={formData.endMonth}
+              onChange={handleChange}
+              className="w-full sm:w-1/2 border px-3 py-2 rounded"
+              min={1}
+              max={12}
+              placeholder="종료월"
+              disabled={formData.isAllYear}
+            />
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          className="w-full sm:w-auto bg-black text-white px-6 py-2 rounded hover:bg-gray-800"
+        >
+          등록 요청 보내기
+        </button>
+      </form>
     </div>
   );
 };
-
 export default RestaurantSubmissionForm;
