@@ -12,6 +12,8 @@ const RestaurantSubmissionForm = () => {
     startMonth: "",
     endMonth: "",
     isAllYear: false, // 연중무휴 여부
+    latitude: "",
+    longitude: ""
   });
   // Kakao SDK 로드 함수
   const loadKakaoMapScript = () => {
@@ -83,6 +85,8 @@ const RestaurantSubmissionForm = () => {
             ...formData,
             address: place.address_name,
             name: place.place_name,
+            latitude: place.y,
+            longitude: place.x
           });
         });
 
@@ -110,24 +114,45 @@ const RestaurantSubmissionForm = () => {
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
-  };  // TODO 폼 제출
+  }; 
+
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post("/api/restaurants/submit", formData);
-      alert("제출되었습니다!");
-      setFormData({
-        name: "",
-        address: "",
-        soyType: "",
-        operationPeriod: "",
-      });
+      const payload = {
+        name: formData.name,
+        address: formData.address,
+        beanTypes: formData.soyType ? [formData.soyType] : [],
+        servesAllYear: formData.isAllYear,
+        startMonth: formData.isAllYear ? 0 : parseInt(formData.startMonth),
+        endMonth: formData.isAllYear ? 0 : parseInt(formData.endMonth),
+        latitude: formData.latitude,
+        longitude: formData.longitude,
+      };
+
+      const res = await axios.post(`${API_BASE_URL}/restaurants/submissions`, payload);
+      if (res.data.code === 0) {
+        alert("제출되었습니다!");
+        setFormData({
+          name: "",
+          address: "",
+          soyType: "",
+          startMonth: "",
+          endMonth: "",
+          isAllYear: false,
+          latitude: 0,
+          longitude: 0,
+        });
+      } else {
+        alert("제출에 실패했습니다: " + res.data.message);
+      }
     } catch (err) {
       console.error(err);
       alert("제출에 실패했습니다.");
     }
   };
-
   return (
     <div className="p-4 sm:p-6 max-w-full sm:max-w-3xl mx-auto space-y-6">
       <div className="space-y-2">

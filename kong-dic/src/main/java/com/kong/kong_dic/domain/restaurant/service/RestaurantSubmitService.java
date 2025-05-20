@@ -45,6 +45,8 @@ public class RestaurantSubmitService {
                 .servesAllYear(request.getServesAllYear())
                 .startMonth(request.getStartMonth())
                 .endMonth(request.getEndMonth())
+                .latitude(request.getLatitude())
+                .longitude(request.getLongitude())
                 .build();
         submitRepository.save(submission);
     }
@@ -55,13 +57,14 @@ public class RestaurantSubmitService {
         submission.approved();
         submitRepository.save(submission);
 
-        Coordinates coordinate = kakaoMapUtil.addressToCoordinates(submission.getAddress());
+        // Search Coordinates via KakaoMap
+        // Coordinates coordinate = kakaoMapUtil.addressToCoordinates(submission.getAddress());
 
         Restaurant restaurant = Restaurant.builder()
                 .name(submission.getName())
                 .address(submission.getAddress())
-                .latitude(coordinate.getLatitude())
-                .longitude(coordinate.getLongitude())
+                .latitude(submission.getLatitude())
+                .longitude(submission.getLongitude())
                 .beanTypes(submission.getBeanTypes())
                 .startMonth(submission.getStartMonth())
                 .endMonth(submission.getEndMonth())
@@ -86,7 +89,7 @@ public class RestaurantSubmitService {
                 .servesAllYear(submission.getServesAllYear())
                 .startMonth(submission.getStartMonth())
                 .endMonth(submission.getEndMonth())
-                .status(submission.getStatus())
+                // .status(submission.getStatus())
                 .build();
     }
 

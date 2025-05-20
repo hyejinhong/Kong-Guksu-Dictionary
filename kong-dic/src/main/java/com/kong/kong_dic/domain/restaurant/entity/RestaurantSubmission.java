@@ -29,6 +29,9 @@ public class RestaurantSubmission {
     private Integer startMonth;
     private Integer endMonth;
 
+    private Double latitude;
+    private Double longitude;
+
     @Builder.Default
     private SubmissionStatus status = SubmissionStatus.PENDING;
 

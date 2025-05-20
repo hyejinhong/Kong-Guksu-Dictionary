@@ -23,5 +23,7 @@ public class RestaurantSubmitRequestDto {
     private Integer startMonth;
     private Integer endMonth;
 
-    private SubmissionStatus status;
+    private Double latitude;
+    private Double longitude;
+    // private SubmissionStatus status;
 }
