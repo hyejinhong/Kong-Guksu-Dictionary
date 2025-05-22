@@ -9,8 +9,6 @@ const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 const LoginPage = ({ onLoginSuccess }) => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  // ✅ useNavigate는 여기서 더 이상 필요 없습니다.
-  // const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
