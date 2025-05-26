@@ -1,6 +1,7 @@
 package com.kong.kong_dic.domain.restaurant.entity;
 
 import com.kong.kong_dic.domain.bean.BeanType;
+import com.kong.kong_dic.domain.bean.domain.BeanPrice;
 import com.kong.kong_dic.domain.restaurant.RestaurantComment;
 import jakarta.persistence.*;
 import lombok.*;
@@ -34,4 +35,7 @@ public class Restaurant {
 
     private Integer startMonth;
     private Integer endMonth;
+
+    @ElementCollection
+    private List<BeanPrice> prices = new ArrayList<>();
 }

@@ -18,7 +18,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -51,6 +50,7 @@ public class RestaurantService {
                 .servesAllYear(request.getServesAllYear())
                 .startMonth(request.getStartMonth())
                 .endMonth(request.getEndMonth())
+                .prices(request.getPrices())
                 .build();
         restaurantRepository.save(restaurant);
         return entityToResponseDto(restaurant);
@@ -70,6 +70,7 @@ public class RestaurantService {
         restaurant.setBeanTypes(request.getBeanTypes());
         restaurant.setStartMonth(request.getStartMonth());
         restaurant.setEndMonth(request.getEndMonth());
+        restaurant.setPrices(request.getPrices());
 
         return entityToResponseDto(restaurant);
     }
@@ -103,6 +104,7 @@ public class RestaurantService {
                 .servesAllYear(restaurant.getServesAllYear())
                 .startMonth(restaurant.getStartMonth())
                 .endMonth(restaurant.getEndMonth())
+                .prices(restaurant.getPrices())
                 .distance(calculateDistance(restaurant, latitude, longitude))
                 .build();
     }
