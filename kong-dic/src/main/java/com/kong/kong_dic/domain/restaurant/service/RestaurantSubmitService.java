@@ -83,6 +83,7 @@ public class RestaurantSubmitService {
 
     private RestaurantSubmitRequestDto entityToRequestDto(RestaurantSubmission submission) {
         return RestaurantSubmitRequestDto.builder()
+                .id(submission.getId())
                 .name(submission.getName())
                 .address(submission.getAddress())
                 .beanTypes(submission.getBeanTypes())
