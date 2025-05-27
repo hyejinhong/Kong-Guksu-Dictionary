@@ -89,7 +89,7 @@ public class RestaurantSubmitService {
                 .servesAllYear(submission.getServesAllYear())
                 .startMonth(submission.getStartMonth())
                 .endMonth(submission.getEndMonth())
-                // .status(submission.getStatus())
+                .status(submission.getStatus())
                 .build();
     }
 

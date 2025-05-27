@@ -25,5 +25,5 @@ public class RestaurantSubmitRequestDto {
 
     private Double latitude;
     private Double longitude;
-    // private SubmissionStatus status;
+    private SubmissionStatus status;
 }

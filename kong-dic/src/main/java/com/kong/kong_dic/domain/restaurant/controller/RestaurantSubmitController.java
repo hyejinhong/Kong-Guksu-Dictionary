@@ -40,7 +40,7 @@ public class RestaurantSubmitController {
         return ResponseEntity.ok(BaseResponse.success());
     }
 
-    @PatchMapping("/{id}/reject)")
+    @PatchMapping("/{id}/reject")
     @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<BaseResponse<Void>> rejectRestaurantSubmission(@PathVariable Long id) {
         submitService.rejectSubmission(id);
