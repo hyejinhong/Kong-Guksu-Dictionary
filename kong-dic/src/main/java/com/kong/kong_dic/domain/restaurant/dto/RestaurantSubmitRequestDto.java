@@ -14,6 +14,7 @@ import java.util.List;
 @AllArgsConstructor
 public class RestaurantSubmitRequestDto {
 
+    private Long id;
     private String name;
     private String address;
     private List<BeanType> beanTypes;
