@@ -8,10 +8,12 @@ import com.kong.kong_dic.domain.user.repository.UserRepository;
 import com.kong.kong_dic.global.exception.BaseException;
 import com.kong.kong_dic.global.jwt.JwtProvider;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -34,5 +36,15 @@ public class AuthService {
                 .build();
 
         userRepository.save(newUser);
+    }
+
+    public boolean verifyToken(String token) {
+        try {
+            jwtProvider.validateToken(token);
+        } catch (Exception e) {
+            log.error(">>> Token verify fail", e);
+            return false;
+        }
+        return true;
     }
 }
