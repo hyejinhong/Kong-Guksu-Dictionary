@@ -21,7 +21,7 @@ public class AuthController {
     }
 
     @GetMapping("/verify-token")
-    public ResponseEntity<BaseResponse<Boolean>> veifyToken(@RequestParam String token) {
+    public ResponseEntity<BaseResponse<Boolean>> verifyToken(@RequestParam String token) {
         return ResponseEntity.ok(BaseResponse.success(authService.verifyToken(token)));
     }
 }

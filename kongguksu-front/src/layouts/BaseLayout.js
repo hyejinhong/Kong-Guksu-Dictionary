@@ -1,18 +1,52 @@
 // src/layouts/BaseLayout.js
-import React from "react";
-import { Link } from "react-router-dom";
-import { useNavigate } from "react-router-dom"; // useNavigate 추가
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom"; // useNavigate 추가
+import axios from "axios";
 
 function BaseLayout({ children }) {
-  const isLoggedIn = localStorage.getItem("token");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate(); // useNavigate 훅 사용
+
+  useEffect(() => {
+    const checkTokenValidity = async () => {
+      const token = localStorage.getItem("token");
+      if (token) {
+        try {
+          const response = await axios.get(`/auth/verify-token?token=${token}`);
+          if (response.data.code === 0 && response.data.data === true) {
+            setIsLoggedIn(true);
+          } else {
+            setIsLoggedIn(false);
+            localStorage.removeItem("token");
+            localStorage.removeItem("role");
+          }
+        } catch (error) {
+          console.error("토큰 유효성 검사 실패:", error);
+          setIsLoggedIn(false);
+          localStorage.removeItem("token");
+          localStorage.removeItem("role");
+        }
+      } else {
+        setIsLoggedIn(false);
+      }
+      setLoading(false);
+    };
+
+    checkTokenValidity();
+  }, []);
 
   const handleLogout = () => {
     console.log("Logout called from BaseLayout");
     localStorage.removeItem("token");
     localStorage.removeItem("role");
+    setIsLoggedIn(false);
     navigate("/login"); // navigate 사용
   };
+
+  if (loading) {
+    return <div>로딩 중...</div>; // 초기 로딩 화면 표시
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-[#FCEBB6]">
@@ -59,7 +93,7 @@ function BaseLayout({ children }) {
           <span>📝</span>
           <span>식당 등록</span>
         </Link>
-        {localStorage.getItem("role") === "ADMIN" && (
+        {localStorage.getItem("role") === "ADMIN" && isLoggedIn && ( // 관리자 링크도 로그인 상태에 따라 보이도록 수정
           <Link to="/admin/restaurant-submissions" className="flex flex-col items-center">
             <span>🔒</span>
             <span>관리자</span>
