@@ -1,30 +1,27 @@
 // src/layouts/BaseLayout.js
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom"; // useNavigate 추가
-import axios from "axios";
+import { Link, useNavigate } from "react-router-dom";
 
 function BaseLayout({ children }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate(); // useNavigate 훅 사용
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const checkTokenValidity = async () => {
+    const checkTokenValidity = () => {
       const token = localStorage.getItem("token");
-      if (token) {
-        try {
-          const response = await axios.get(`/auth/verify-token?token=${token}`);
-          if (response.data.code === 0 && response.data.data === true) {
-            setIsLoggedIn(true);
-          } else {
-            setIsLoggedIn(false);
-            localStorage.removeItem("token");
-            localStorage.removeItem("role");
-          }
-        } catch (error) {
-          console.error("토큰 유효성 검사 실패:", error);
+      const tokenExpiry = localStorage.getItem("exp");
+
+      if (token && tokenExpiry) {
+        const currentTime = Math.floor(Date.now() / 1000); // 현재 시간을 초 단위로
+        const expiryTimeInSeconds = Math.floor(parseInt(tokenExpiry) / 1000); // 밀리초를 초 단위로 변환
+
+        if (expiryTimeInSeconds > currentTime) {
+          setIsLoggedIn(true);
+        } else {
           setIsLoggedIn(false);
           localStorage.removeItem("token");
+          localStorage.removeItem("exp");
           localStorage.removeItem("role");
         }
       } else {
@@ -39,13 +36,14 @@ function BaseLayout({ children }) {
   const handleLogout = () => {
     console.log("Logout called from BaseLayout");
     localStorage.removeItem("token");
+    localStorage.removeItem("exp");
     localStorage.removeItem("role");
     setIsLoggedIn(false);
-    navigate("/login"); // navigate 사용
+    navigate("/login");
   };
 
   if (loading) {
-    return <div>로딩 중...</div>; // 초기 로딩 화면 표시
+    return <div>로딩 중...</div>;
   }
 
   return (
@@ -93,7 +91,7 @@ function BaseLayout({ children }) {
           <span>📝</span>
           <span>식당 등록</span>
         </Link>
-        {localStorage.getItem("role") === "ADMIN" && isLoggedIn && ( // 관리자 링크도 로그인 상태에 따라 보이도록 수정
+        {localStorage.getItem("role") === "ADMIN" && isLoggedIn && (
           <Link to="/admin/restaurant-submissions" className="flex flex-col items-center">
             <span>🔒</span>
             <span>관리자</span>

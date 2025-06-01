@@ -59,13 +59,11 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
                                             FilterChain chain, Authentication authResult) throws IOException, ServletException {
         log.info("### Login success");
 
-        String token = jwtProvider.generateToken((User) authResult.getPrincipal());
+        LoginResponseDto loginResponse = jwtProvider.generateToken((User) authResult.getPrincipal());
 
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
 
-        LoginResponseDto loginResponse = LoginResponseDto.builder()
-                .token(token).build();
         response.getWriter().write(objectMapper.writeValueAsString(BaseResponse.success("Login Success.", loginResponse)));
         response.getWriter().flush();
     }

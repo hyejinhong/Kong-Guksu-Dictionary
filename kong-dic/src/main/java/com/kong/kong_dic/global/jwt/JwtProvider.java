@@ -1,5 +1,6 @@
 package com.kong.kong_dic.global.jwt;
 
+import com.kong.kong_dic.domain.auth.dto.LoginResponseDto;
 import com.kong.kong_dic.domain.user.entity.User;
 import com.kong.kong_dic.domain.user.service.CustomUserDetailsService;
 import io.jsonwebtoken.Claims;
@@ -36,17 +37,21 @@ public class JwtProvider {
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
-    public String generateToken(User user) {
+    public LoginResponseDto generateToken(User user) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + expirationTime);
 
-        return Jwts.builder()
+        String token = Jwts.builder()
                 .setSubject(user.getUsername())
                 .claim("role", user.getRole())
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
+        return LoginResponseDto.builder()
+                .token(token)
+                .exp(expiryDate)
+                .build();
     }
 
     public Claims getClaimsFromToken(String token) {
