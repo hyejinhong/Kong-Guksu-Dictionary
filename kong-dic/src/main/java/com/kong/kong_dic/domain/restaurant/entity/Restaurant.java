@@ -3,6 +3,7 @@ package com.kong.kong_dic.domain.restaurant.entity;
 import com.kong.kong_dic.domain.bean.BeanType;
 import com.kong.kong_dic.domain.bean.domain.BeanPrice;
 import com.kong.kong_dic.domain.restaurant.RestaurantComment;
+import com.kong.kong_dic.domain.user.entity.UserRestaurantVisit;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -38,4 +39,8 @@ public class Restaurant {
 
     @ElementCollection
     private List<BeanPrice> prices = new ArrayList<>();
+
+    @OneToMany(mappedBy = "restaurant", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<UserRestaurantVisit> userVisits = new ArrayList<>(); // 이 식당을 방문한 사용자 목록
 }
