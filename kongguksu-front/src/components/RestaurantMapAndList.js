@@ -76,7 +76,6 @@ function RestaurantMapAndList({ filteredRestaurants, handleFilterChange, filter 
           </label>
         </div>
       </div>
-      {/* 추천 식당 리스트 */}
       <div className="mx-4 mt-4">
         {filteredRestaurants.map((restaurant) => (
           <Link key={restaurant.id} to={`/restaurant/${restaurant.id}`} className="block">
