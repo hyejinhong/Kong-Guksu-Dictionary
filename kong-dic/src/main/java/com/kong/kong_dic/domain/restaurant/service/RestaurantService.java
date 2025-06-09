@@ -13,6 +13,7 @@ import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.web.client.RestTemplateAutoConfiguration;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -58,7 +59,7 @@ public class RestaurantService {
 
     @Transactional
     public RestaurantResponseDto updateRestaurant(Long id, RestaurantRequestDto request) {
-        Restaurant restaurant = restaurantRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("식당을 찾을 수 없습니다: " + id));
+        Restaurant restaurant = restaurantRepository.findById(id).orElseThrow(() -> new BaseException(RestaurantExceptionType.RESTAURANT_NOT_FOUND));
 
         Coordinates coordinate = kakaoMapUtil.addressToCoordinates(request.getAddress());
 
@@ -93,7 +94,7 @@ public class RestaurantService {
         return page.map(restaurant -> entityToResponseDto(restaurant, latitude, longitude)).toList();
     }
 
-    private RestaurantResponseDto entityToResponseDto(Restaurant restaurant, Double latitude, Double longitude) {
+    private static RestaurantResponseDto entityToResponseDto(Restaurant restaurant, Double latitude, Double longitude) {
         return RestaurantResponseDto.builder()
                 .id(restaurant.getId())
                 .name(restaurant.getName())
@@ -115,11 +116,11 @@ public class RestaurantService {
      * @param restaurant
      * @return
      */
-    private RestaurantResponseDto entityToResponseDto(Restaurant restaurant) {
+    public static RestaurantResponseDto entityToResponseDto(Restaurant restaurant) {
         return entityToResponseDto(restaurant, null, null);
     }
 
-    private double calculateDistance(Restaurant restaurant, Double curLatitude, Double curLongitude) {
+    private static double calculateDistance(Restaurant restaurant, Double curLatitude, Double curLongitude) {
         if (curLatitude == null && curLongitude == null) {
             return -1;
         }

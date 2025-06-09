@@ -3,6 +3,7 @@ package com.kong.kong_dic.domain.user.dto;
 import com.kong.kong_dic.domain.restaurant.dto.RestaurantResponseDto;
 import lombok.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 // 필요하다면 다른 시간 관련 import 추가 (예: java.time.LocalDateTime)
@@ -15,7 +16,7 @@ public class UserRestaurantVisitResponseDto {
     private Long id;
     private RestaurantResponseDto restaurant;
 
-    private LocalDateTime visitedAt;
+    private LocalDate visitedDate;
     private Integer rating;
     private String memo;
 }
