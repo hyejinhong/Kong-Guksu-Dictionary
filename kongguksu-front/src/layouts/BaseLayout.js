@@ -75,18 +75,10 @@ function BaseLayout({ children }) {
           <span>🏠</span>
           <span>홈</span>
         </Link>
-        <button className="flex flex-col items-center">
-          <span>📌</span>
-          <span>찜한 식당</span>
-        </button>
-        <button className="flex flex-col items-center">
-          <span>💬</span>
-          <span>커뮤니티</span>
-        </button>
-        <button className="flex flex-col items-center">
-          <span>⚙</span>
-          <span>설정</span>
-        </button>
+        <Link to="/visited-restaurants" className="flex flex-col items-center">
+          <span>⭐</span>
+          <span>나의 사전</span>
+        </Link>
         <Link to="/submit-restaurant" className="flex flex-col items-center">
           <span>📝</span>
           <span>식당 등록</span>

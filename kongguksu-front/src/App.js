@@ -8,6 +8,7 @@ import RestaurantSubmissionForm from "./components/RestaurantSubmissionForm";
 import AdminRestaurantSubmissions from "./pages/AdminRestaurantSubmissions";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
+import MyDictionary from "./pages/MyDictionary";
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
         <Route path="/" element={<MainLayout />}> {/* MainLayout으로 감싸기 */}
           <Route index element={<HomePage />} /> {/* index 라우트로 홈페이지 설정 */}
           <Route path="/restaurant/:id" element={<RestaurantDetailPage />} />
+          <Route path="/visited-restaurants" element={<MyDictionary/>}/>
           <Route path="/submit-restaurant" element={<RestaurantSubmissionForm />} />
           <Route path="/admin/restaurant-submissions" element={<AdminRestaurantSubmissions />} />
         </Route>

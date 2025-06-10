@@ -11,10 +11,10 @@ import com.kong.kong_dic.domain.user.entity.UserRestaurantVisit;
 import com.kong.kong_dic.domain.user.repository.UserRestaurantVisitRepository;
 import com.kong.kong_dic.global.exception.BaseException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -23,8 +23,8 @@ public class UserRestaurantVisitService {
     private final UserRestaurantVisitRepository visitRepository;
     private final RestaurantRepository restaurantRepository;
 
-    public List<UserRestaurantVisitResponseDto> getVisitedRestaurants(User user) {
-        List<UserRestaurantVisit> entityList = visitRepository.findByUserId(user.getId());
+    public List<UserRestaurantVisitResponseDto> getVisitedRestaurants(User user, Pageable pageable) {
+        List<UserRestaurantVisit> entityList = visitRepository.findByUserId(user.getId(), pageable);
         return entityList.stream().map(this::entityToResponseDto).toList();
     }
 
