@@ -6,15 +6,14 @@ import com.kong.kong_dic.domain.user.entity.User;
 import com.kong.kong_dic.domain.user.service.UserRestaurantVisitService;
 import com.kong.kong_dic.domain.user.service.UserService;
 import com.kong.kong_dic.global.response.BaseResponse;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -27,7 +26,7 @@ public class UserRestaurantVisitController {
 
     @GetMapping("/visited-restaurants")
     public ResponseEntity<BaseResponse<List<UserRestaurantVisitResponseDto>>> getVisitedRestaurants(@AuthenticationPrincipal User user,
-                                                                                                    @PageableDefault(size = 10, page = 0, sort = "visitDate,desc") Pageable pageable) {
+                                                                                                    @PageableDefault(size = 10, page = 0, sort = "visitDate", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(BaseResponse.success(visitService.getVisitedRestaurants(user, pageable)));
     }
 
@@ -37,4 +36,10 @@ public class UserRestaurantVisitController {
         return ResponseEntity.ok(BaseResponse.success());
     }
 
+    @Transactional
+    @DeleteMapping("/visited-restaurants/{id}")
+    public ResponseEntity<BaseResponse<Void>> deleteVisitedRestaurant(@AuthenticationPrincipal User user, @PathVariable Long id) {
+        visitService.deleteVisitedRestaurant(user, id);
+        return ResponseEntity.ok(BaseResponse.success());
+    }
 }

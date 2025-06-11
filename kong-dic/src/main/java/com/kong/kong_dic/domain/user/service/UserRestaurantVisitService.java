@@ -51,4 +51,8 @@ public class UserRestaurantVisitService {
                 .build();
         visitRepository.save(entity);
     }
+
+    public void deleteVisitedRestaurant(User user, Long id) {
+        visitRepository.deleteByIdAndUserId(id, user.getId());
+    }
 }
