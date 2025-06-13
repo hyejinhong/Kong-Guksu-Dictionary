@@ -8,6 +8,7 @@ import com.kong.kong_dic.domain.user.dto.UserRestaurantVisitRequestDto;
 import com.kong.kong_dic.domain.user.dto.UserRestaurantVisitResponseDto;
 import com.kong.kong_dic.domain.user.entity.User;
 import com.kong.kong_dic.domain.user.entity.UserRestaurantVisit;
+import com.kong.kong_dic.domain.user.exception.UserExceptionType;
 import com.kong.kong_dic.domain.user.repository.UserRestaurantVisitRepository;
 import com.kong.kong_dic.global.exception.BaseException;
 import lombok.RequiredArgsConstructor;
@@ -42,6 +43,10 @@ public class UserRestaurantVisitService {
         Restaurant restaurant = restaurantRepository.findById(request.getRestaurantId())
                 .orElseThrow(() -> new BaseException(RestaurantExceptionType.RESTAURANT_NOT_FOUND));
 
+        visitRepository.findByUserIdAndRestaurantId(user.getId(), request.getRestaurantId())
+                .ifPresent(visit -> {
+                    throw new BaseException(UserExceptionType.ALREADY_VISITED_RESTAURANT);
+                });
         UserRestaurantVisit entity = UserRestaurantVisit.builder()
                 .user(user)
                 .restaurant(restaurant)

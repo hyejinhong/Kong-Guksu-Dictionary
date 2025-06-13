@@ -1,5 +1,5 @@
 import { useParams } from "react-router-dom";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react"; // useCallback 추가
 import axios from "axios";
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
@@ -14,6 +14,18 @@ function RestaurantDetail() {
   const [commentContent, setCommentContent] = useState("");
   const [commentLoading, setCommentLoading] = useState(false);
   const mapRef = useRef(null);
+
+  // ✅ '나의 사전' 관련 상태 추가
+  const [showVisitModal, setShowVisitModal] = useState(false);
+  const [userRating, setUserRating] = useState(0); // 사용자가 선택한 별점 (0~5)
+  const [userMemo, setUserMemo] = useState(""); // 사용자가 입력한 메모
+  const [isSubmittingVisit, setIsSubmittingVisit] = useState(false); // 방문 기록 저장 중 여부
+
+  // JWT를 포함하는 Authorization 헤더를 반환하는 헬퍼 함수
+  const getAuthHeader = useCallback(() => {
+    const token = localStorage.getItem("token");
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }, []);
 
   useEffect(() => {
     const fetchRestaurant = async () => {
@@ -33,10 +45,11 @@ function RestaurantDetail() {
   useEffect(() => {
     if (!restaurant) return;
 
+    // 카카오 맵 스크립트 중복 로드 방지 및 초기화
     const existingScript = document.querySelector("script[src*='dapi.kakao.com']");
     if (existingScript) {
       existingScript.remove();
-      delete window.kakao;
+      delete window.kakao; // 기존 kakao 객체 삭제
     }
 
     const script = document.createElement("script");
@@ -48,18 +61,13 @@ function RestaurantDetail() {
       window.kakao.maps.load(() => {
         const container = mapRef.current;
         const map = new window.kakao.maps.Map(container, {
-          center: new window.kakao.maps.LatLng(33.450701, 126.570667),
+          center: new window.kakao.maps.LatLng(restaurant.latitude, restaurant.longitude), // 식당 위치를 중심으로
           level: 3,
         });
 
-        const geocoder = new window.kakao.maps.services.Geocoder();
-        geocoder.addressSearch(restaurant.address, (result, status) => {
-          if (status === window.kakao.maps.services.Status.OK) {
-            const coords = new window.kakao.maps.LatLng(result[0].y, result[0].x);
-            new window.kakao.maps.Marker({ map, position: coords });
-            map.setCenter(coords);
-          }
-        });
+        const coords = new window.kakao.maps.LatLng(restaurant.latitude, restaurant.longitude);
+        new window.kakao.maps.Marker({ map, position: coords });
+        map.setCenter(coords);
       });
     };
 
@@ -70,6 +78,7 @@ function RestaurantDetail() {
       }
     };
   }, [restaurant]);
+
 
   const fetchComments = async () => {
     try {
@@ -89,23 +98,73 @@ function RestaurantDetail() {
 
     try {
       setCommentLoading(true);
+      const headers = getAuthHeader(); // JWT 헤더 사용
       await axios.post(
         `${API_BASE_URL}/restaurants/${id}/comments`,
         { content: commentContent },
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
+        { headers }
       );
       setCommentContent("");
       fetchComments();
     } catch (err) {
-      alert("댓글 등록에 실패했습니다.");
+      alert("댓글 등록에 실패했습니다. 로그인했는지 확인해주세요.");
     } finally {
       setCommentLoading(false);
     }
   };
+
+  // ✅ '나의 사전' 저장 핸들러 함수
+  const handleSaveVisit = async () => {
+    if (!localStorage.getItem("token")) {
+      alert("로그인이 필요합니다.");
+      return;
+    }
+    if (userRating === 0) {
+      alert("별점을 선택해주세요.");
+      return;
+    }
+
+    setIsSubmittingVisit(true);
+    try {
+      const headers = getAuthHeader();
+      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD 형식
+      
+      const requestBody = {
+        restaurantId: restaurant.id,
+        visitDate: today,
+        rating: userRating,
+        memo: userMemo.trim() || null, // 메모가 비어있으면 null로 전송
+      };
+
+      const response = await axios.post(`${API_BASE_URL}/visited-restaurants`, requestBody, { headers });
+
+      if (response.data.code === 0) {
+        alert("식당이 나의 사전에 성공적으로 등록되었습니다!");
+        setShowVisitModal(false); // 모달 닫기
+        // 저장 후, 홈 페이지의 별 아이콘 업데이트를 위해 savedRestaurantIds를 다시 불러오거나 상태를 업데이트해야 할 수 있습니다.
+        // 여기서는 간단히 성공 알림만 띄웁니다.
+      } else {
+        alert(`저장 실패: ${response.data.message || "알 수 없는 오류가 발생했습니다."}`);
+      }
+    } catch (err) {
+      console.error("나의 사전 저장 실패:", err.response?.data || err.message);
+      if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+        alert("로그인이 필요하거나 세션이 만료되었습니다.");
+        localStorage.removeItem("token");
+        localStorage.removeItem("exp");
+        localStorage.removeItem("role");
+        // navigate('/login'); // 필요하다면 로그인 페이지로 리다이렉트
+      } else if (err.response && err.response.status === 409) { // 409 Conflict - 이미 저장됨
+          alert("이미 나의 사전에 저장된 식당입니다.");
+          setShowVisitModal(false);
+      } else {
+        alert(`저장 중 오류가 발생했습니다: ${err.response?.data?.message || err.message}`);
+      }
+    } finally {
+      setIsSubmittingVisit(false);
+    }
+  };
+
 
   if (loading) return <div className="text-center mt-10">불러오는 중...</div>;
   if (error) return <div className="text-center mt-10 text-red-600">{error}</div>;
@@ -141,25 +200,55 @@ function RestaurantDetail() {
           <div className="flex justify-between">
             <span className="font-medium text-gray-700">거리:</span>
             <span className="text-gray-800">
-              {restaurant.distance >= 0
+              {restaurant.distance != null && restaurant.distance >= 0
                 ? `${restaurant.distance.toFixed(2)} km`
                 : "정보 없음"}
             </span>
           </div>
+          {/* 가격 정보 표시 */}
+          {restaurant.prices && restaurant.prices.length > 0 && (
+            <div className="flex justify-between">
+              <span className="font-medium text-gray-700">가격:</span>
+              <span className="text-gray-800">
+                {restaurant.prices.map((bp, idx) => (
+                  <span key={bp.beanType}>
+                    {bp.beanType === "SOY_BEAN" ? "백태콩" : bp.beanType === "BLACK_BEAN" ? "검은콩" : bp.beanType}: {bp.price}원
+                    {idx < restaurant.prices.length - 1 ? ", " : ""}
+                  </span>
+                ))}
+              </span>
+            </div>
+          )}
         </div>
 
-        <div className="mt-6 flex justify-center">
+        <div className="mt-6 flex justify-center gap-2"> {/* 버튼들 간 간격 추가 */}
           <button
             className="bg-[#5C5C5C] text-white px-4 py-2 rounded hover:bg-[#4a4a4a]"
             onClick={() => window.history.back()}
           >
             🔙 뒤로 가기
           </button>
+          {/* ✅ 나의 사전 등록 버튼 */}
+          <button
+            className="bg-[#57B4BA] text-white px-4 py-2 rounded hover:bg-[#439ca2]"
+            onClick={() => {
+                if (!localStorage.getItem("token")) {
+                    alert("로그인이 필요합니다.");
+                    // navigate('/login'); // 필요하다면 로그인 페이지로 리다이렉트
+                    return;
+                }
+                setShowVisitModal(true);
+                setUserRating(0); // 모달 열 때 별점 초기화
+                setUserMemo(""); // 모달 열 때 메모 초기화
+            }}
+          >
+            ⭐ 나의 사전 등록
+          </button>
         </div>
       </div>
 
-      {/* 댓글 영역 */}
-      <div className="bg-white w-full max-w-md rounded-lg shadow p-6">
+      {/* 댓글 영역 (기존과 동일) */}
+      <div className="bg-white w-full max-w-md rounded-lg shadow p-6 mt-6"> {/* 상단 마진 추가 */}
         <h2 className="text-xl font-semibold mb-4 text-[#333]">💬 댓글</h2>
 
         <div className="space-y-3 mb-4">
@@ -167,7 +256,7 @@ function RestaurantDetail() {
             <p className="text-gray-500 text-sm">댓글이 아직 없습니다.</p>
           ) : (
             comments.map((c) => (
-              <div key={c.id} className="border-b pb-2">
+              <div key={c.id} className="border-b last:border-0 pb-2 mb-2"> {/* last:border-0 추가 */}
                 <div className="text-sm font-semibold text-gray-800">{c.nickname}</div>
                 <div className="text-sm text-gray-700">{c.content}</div>
                 <div className="text-xs text-gray-400">
@@ -195,6 +284,60 @@ function RestaurantDetail() {
           </button>
         </div>
       </div>
+
+      {/* ✅ 나의 사전 등록 팝업 모달 */}
+      {showVisitModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm">
+            <h2 className="text-xl font-bold mb-4 text-center">나의 사전 등록</h2>
+            
+            {/* 별점 선택 */}
+            <div className="mb-4 text-center">
+              <span className="font-medium text-gray-700 mr-2">별점:</span>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <span
+                  key={star}
+                  className={`text-3xl cursor-pointer ${star <= userRating ? 'text-yellow-400' : 'text-gray-300'}`}
+                  onClick={() => setUserRating(star)}
+                >
+                  ★
+                </span>
+              ))}
+            </div>
+
+            {/* 메모 입력 */}
+            <div className="mb-6">
+              <label htmlFor="userMemo" className="block text-sm font-medium text-gray-700 mb-1">메모:</label>
+              <textarea
+                id="userMemo"
+                value={userMemo}
+                onChange={(e) => setUserMemo(e.target.value)}
+                className="w-full p-2 border rounded resize-none focus:ring-blue-500 focus:border-blue-500"
+                rows="4"
+                placeholder="간단한 메모를 남겨주세요."
+              ></textarea>
+            </div>
+
+            {/* 버튼 그룹 */}
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setShowVisitModal(false)}
+                className="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400"
+                disabled={isSubmittingVisit}
+              >
+                취소
+              </button>
+              <button
+                onClick={handleSaveVisit}
+                className="bg-[#57B4BA] text-white px-4 py-2 rounded hover:bg-[#439ca2]"
+                disabled={isSubmittingVisit}
+              >
+                {isSubmittingVisit ? "저장 중..." : "저장"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
