@@ -22,4 +22,5 @@ public class RestaurantResponseDto {
     private Integer endMonth;
     private Double distance;
     private List<BeanPrice> prices;
+    private Boolean isSaved;
 }

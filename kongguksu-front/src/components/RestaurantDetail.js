@@ -20,6 +20,7 @@ function RestaurantDetail() {
   const [userRating, setUserRating] = useState(0); // 사용자가 선택한 별점 (0~5)
   const [userMemo, setUserMemo] = useState(""); // 사용자가 입력한 메모
   const [isSubmittingVisit, setIsSubmittingVisit] = useState(false); // 방문 기록 저장 중 여부
+  const [isSaved, setIsSaved] = useState(false);
 
   // JWT를 포함하는 Authorization 헤더를 반환하는 헬퍼 함수
   const getAuthHeader = useCallback(() => {
@@ -30,8 +31,11 @@ function RestaurantDetail() {
   useEffect(() => {
     const fetchRestaurant = async () => {
       try {
-        const response = await axios.get(`${API_BASE_URL}/restaurants/${id}`);
+        const response = await axios.get(`${API_BASE_URL}/restaurants/${id}`, {
+          headers: getAuthHeader()
+        });
         setRestaurant(response.data.data);
+        setIsSaved(response.data.data.isSaved);
       } catch (err) {
         setError("식당 정보를 불러오지 못했습니다.");
       } finally {
@@ -128,7 +132,7 @@ function RestaurantDetail() {
     try {
       const headers = getAuthHeader();
       const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD 형식
-      
+
       const requestBody = {
         restaurantId: restaurant.id,
         visitDate: today,
@@ -141,8 +145,7 @@ function RestaurantDetail() {
       if (response.data.code === 0) {
         alert("식당이 나의 사전에 성공적으로 등록되었습니다!");
         setShowVisitModal(false); // 모달 닫기
-        // 저장 후, 홈 페이지의 별 아이콘 업데이트를 위해 savedRestaurantIds를 다시 불러오거나 상태를 업데이트해야 할 수 있습니다.
-        // 여기서는 간단히 성공 알림만 띄웁니다.
+        setIsSaved(true);
       } else {
         alert(`저장 실패: ${response.data.message || "알 수 없는 오류가 발생했습니다."}`);
       }
@@ -155,8 +158,8 @@ function RestaurantDetail() {
         localStorage.removeItem("role");
         // navigate('/login'); // 필요하다면 로그인 페이지로 리다이렉트
       } else if (err.response && err.response.status === 409) { // 409 Conflict - 이미 저장됨
-          alert("이미 나의 사전에 저장된 식당입니다.");
-          setShowVisitModal(false);
+        alert("이미 나의 사전에 저장된 식당입니다.");
+        setShowVisitModal(false);
       } else {
         alert(`저장 중 오류가 발생했습니다: ${err.response?.data?.message || err.message}`);
       }
@@ -229,21 +232,31 @@ function RestaurantDetail() {
             🔙 뒤로 가기
           </button>
           {/* ✅ 나의 사전 등록 버튼 */}
-          <button
-            className="bg-[#57B4BA] text-white px-4 py-2 rounded hover:bg-[#439ca2]"
-            onClick={() => {
+          {isSaved ? (
+            <button
+              className="bg-gray-400 text-white px-4 py-2 rounded cursor-not-allowed"
+              disabled
+            >
+              ✅ 나의 사전 등록됨
+            </button>
+          ) : (
+            <button
+              className="bg-[#57B4BA] text-white px-4 py-2 rounded hover:bg-[#439ca2]"
+              onClick={() => {
+                // 로그인 여부만 여기서 1차 확인 (모달 띄우기 전)
                 if (!localStorage.getItem("token")) {
-                    alert("로그인이 필요합니다.");
-                    // navigate('/login'); // 필요하다면 로그인 페이지로 리다이렉트
-                    return;
+                  alert("로그인이 필요합니다.");
+                  // navigate('/login'); // 필요하다면 로그인 페이지로 리다이렉트
+                  return;
                 }
                 setShowVisitModal(true);
-                setUserRating(0); // 모달 열 때 별점 초기화
-                setUserMemo(""); // 모달 열 때 메모 초기화
-            }}
-          >
-            ⭐ 나의 사전 등록
-          </button>
+                setUserRating(0);
+                setUserMemo("");
+              }}
+            >
+              ⭐ 나의 사전 등록
+            </button>
+          )}
         </div>
       </div>
 
@@ -290,7 +303,7 @@ function RestaurantDetail() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm">
             <h2 className="text-xl font-bold mb-4 text-center">나의 사전 등록</h2>
-            
+
             {/* 별점 선택 */}
             <div className="mb-4 text-center">
               <span className="font-medium text-gray-700 mr-2">별점:</span>

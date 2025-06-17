@@ -4,11 +4,13 @@ import com.kong.kong_dic.domain.bean.BeanType;
 import com.kong.kong_dic.domain.restaurant.dto.RestaurantRequestDto;
 import com.kong.kong_dic.domain.restaurant.dto.RestaurantResponseDto;
 import com.kong.kong_dic.domain.restaurant.service.RestaurantService;
+import com.kong.kong_dic.domain.user.entity.User;
 import com.kong.kong_dic.global.response.BaseResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -43,8 +45,9 @@ public class RestaurantController {
      * @return
      */
     @GetMapping("/{id}")
-    public ResponseEntity<BaseResponse<RestaurantResponseDto>> getRestaurantById(@PathVariable Long id) {
-        return ResponseEntity.ok(BaseResponse.success(restaurantService.getRestaurantById(id)));
+    public ResponseEntity<BaseResponse<RestaurantResponseDto>> getRestaurantById(@PathVariable Long id,
+                                                                                 @AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(BaseResponse.success(restaurantService.getRestaurantById(id, user)));
     }
 
     /**

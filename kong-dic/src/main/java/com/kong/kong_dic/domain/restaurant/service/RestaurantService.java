@@ -6,6 +6,9 @@ import com.kong.kong_dic.domain.restaurant.dto.RestaurantResponseDto;
 import com.kong.kong_dic.domain.restaurant.entity.Restaurant;
 import com.kong.kong_dic.domain.restaurant.exception.RestaurantExceptionType;
 import com.kong.kong_dic.domain.restaurant.repository.RestaurantRepository;
+import com.kong.kong_dic.domain.user.entity.User;
+import com.kong.kong_dic.domain.user.entity.UserRestaurantVisit;
+import com.kong.kong_dic.domain.user.repository.UserRestaurantVisitRepository;
 import com.kong.kong_dic.global.exception.BaseException;
 import com.kong.kong_dic.global.model.Coordinates;
 import com.kong.kong_dic.global.util.KakaoMapUtil;
@@ -26,6 +29,7 @@ import java.util.List;
 public class RestaurantService {
 
     private final RestaurantRepository restaurantRepository;
+    private final UserRestaurantVisitRepository visitRepository;
     private final KakaoMapUtil kakaoMapUtil;
 
     public List<RestaurantResponseDto> getAllRestaurants(Double lan, Double lon, Pageable pageable) {
@@ -33,10 +37,19 @@ public class RestaurantService {
         return page.map(restaurant -> entityToResponseDto(restaurant, lan, lon)).toList();
     }
 
-    public RestaurantResponseDto getRestaurantById(Long id) {
+    public RestaurantResponseDto getRestaurantById(Long id, User user) {
         Restaurant restaurant = restaurantRepository.findById(id)
                 .orElseThrow(() -> new BaseException(RestaurantExceptionType.RESTAURANT_NOT_FOUND));
-        return entityToResponseDto(restaurant);
+
+        // 로그인 한 경우, 이미 저장 여부
+        boolean isSaved = false;
+        if (user != null) {
+            isSaved = visitRepository.findByUserIdAndRestaurantId(user.getId(), id).isPresent();
+        }
+
+        RestaurantResponseDto responseDto = entityToResponseDto(restaurant);
+        responseDto.setIsSaved(isSaved);
+        return responseDto;
     }
 
     public RestaurantResponseDto addRestaurant(RestaurantRequestDto request) {
