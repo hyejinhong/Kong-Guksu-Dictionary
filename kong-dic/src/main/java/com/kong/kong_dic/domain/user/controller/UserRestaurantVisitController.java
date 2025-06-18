@@ -36,6 +36,14 @@ public class UserRestaurantVisitController {
         return ResponseEntity.ok(BaseResponse.success());
     }
 
+    @PatchMapping("/visited-restaurants/{id}")
+    public ResponseEntity<BaseResponse<Void>> updateVisitedRestaurant(@AuthenticationPrincipal User user,
+                                                                      @RequestBody UserRestaurantVisitRequestDto request,
+                                                                      @PathVariable Long id) {
+        visitService.updateVisitedRestaurant(user, request, id);
+        return ResponseEntity.ok(BaseResponse.success());
+    }
+
     @Transactional
     @DeleteMapping("/visited-restaurants/{id}")
     public ResponseEntity<BaseResponse<Void>> deleteVisitedRestaurant(@AuthenticationPrincipal User user, @PathVariable Long id) {

@@ -8,7 +8,9 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum UserExceptionType implements BaseExceptionType {
 
-    ALREADY_VISITED_RESTAURANT(1, 400, "이미 저장된 정보입니다.");
+    ALREADY_VISITED_RESTAURANT(1, 400, "이미 저장된 정보입니다."),
+    VISIT_NOT_FOUND(2, 404, "No visit found."),
+    FORBIDDEN(3, 403, "Forbidden");
 
     private final int code;
     private final int httpStatusCode;
