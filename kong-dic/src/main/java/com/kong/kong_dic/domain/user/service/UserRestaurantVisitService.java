@@ -11,6 +11,7 @@ import com.kong.kong_dic.domain.user.entity.UserRestaurantVisit;
 import com.kong.kong_dic.domain.user.exception.UserExceptionType;
 import com.kong.kong_dic.domain.user.repository.UserRestaurantVisitRepository;
 import com.kong.kong_dic.global.exception.BaseException;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -59,5 +60,20 @@ public class UserRestaurantVisitService {
 
     public void deleteVisitedRestaurant(User user, Long id) {
         visitRepository.deleteByIdAndUserId(id, user.getId());
+    }
+
+    @Transactional
+    public void updateVisitedRestaurant(User user, UserRestaurantVisitRequestDto request, Long id) {
+        UserRestaurantVisit visit = visitRepository.findById(id)
+                .orElseThrow(() -> new BaseException(UserExceptionType.VISIT_NOT_FOUND));
+
+        if (!visit.getUser().getId().equals(user.getId())) {
+            throw new BaseException(UserExceptionType.FORBIDDEN);
+        }
+
+        if (request.getRating() != null)
+            visit.setRating(request.getRating());
+        if (request.getMemo() != null)
+            visit.setMemo(request.getMemo());
     }
 }

@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
+import VisitModal from "../components/VisitModal";
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080';
 const ITEMS_PER_PAGE = 10;
@@ -13,6 +14,9 @@ const MyDictionary = () => {
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState(null);
+  const [editingVisit, setEditingVisit] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+
   const navigate = useNavigate();
 
   const getAuthHeader = useCallback(() => {
@@ -31,7 +35,7 @@ const MyDictionary = () => {
     try {
       const headers = getAuthHeader();
       const url = `${API_BASE_URL}/visited-restaurants?page=${pageNumber}&size=${ITEMS_PER_PAGE}`;
-      
+
       const response = await axios.get(url, { headers });
 
       if (response.data.code === 0 && Array.isArray(response.data.data)) {
@@ -41,7 +45,7 @@ const MyDictionary = () => {
           const filteredNewItems = newItems.filter(item => !existingIds.has(item.id));
           return [...prevItems, ...filteredNewItems];
         });
-        setHasMore(newItems.length === ITEMS_PER_PAGE); 
+        setHasMore(newItems.length === ITEMS_PER_PAGE);
       } else {
         setError(response.data.message || "데이터를 불러오는데 실패했습니다.");
         setHasMore(false);
@@ -64,13 +68,13 @@ const MyDictionary = () => {
     }
   }, [getAuthHeader, navigate]);
 
-  // ✅ 삭제 핸들러 함수 추가
+  // 삭제 핸들러 함수 추가
   const handleDeleteVisit = useCallback(async (visitId, restaurantName) => {
     if (window.confirm(`"${restaurantName}" 식당을 나의 사전에서 삭제할까요?`)) {
       try {
         const headers = getAuthHeader();
         const url = `${API_BASE_URL}/visited-restaurants/${visitId}`; // API 엔드포인트: /visited-restaurants/{id}
-        
+
         const response = await axios.delete(url, { headers });
 
         if (response.data.code === 0) {
@@ -103,12 +107,12 @@ const MyDictionary = () => {
     const token = localStorage.getItem('token');
     if (!token) {
       navigate('/login');
-      return; 
+      return;
     }
     setLoading(true);
-    setPage(0); 
-    setHasMore(true); 
-    setVisitedRestaurants([]); 
+    setPage(0);
+    setHasMore(true);
+    setVisitedRestaurants([]);
     fetchVisitedRestaurants(0);
   }, [fetchVisitedRestaurants, navigate]);
 
@@ -179,55 +183,98 @@ const MyDictionary = () => {
               &times; {/* HTML 엔티티로 'x' 표시 */}
             </button>
 
+            {/* 수정 버튼 */}
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setEditingVisit(visit); // 수정 대상 설정
+                setShowModal(true);     // 모달 열기
+              }}
+              className="absolute top-2 right-10 text-gray-500 hover:text-blue-500 text-lg font-bold"
+              aria-label="수정"
+            >
+              ✏️
+            </button>
+
+<VisitModal
+  editingVisit={editingVisit}
+  onChange={setEditingVisit}
+  onClose={() => setShowModal(false)}
+  onSave={async () => {
+    try {
+      const headers = getAuthHeader();
+      const url = `${API_BASE_URL}/visited-restaurants/${editingVisit.id}`;
+      const payload = {
+        visitedDate: editingVisit.visitedDate,
+        rating: editingVisit.rating,
+        memo: editingVisit.memo,
+      };
+      const response = await axios.patch(url, payload, { headers });
+      if (response.data.code === 0) {
+        alert("수정이 완료되었습니다.");
+        // 목록에서 수정된 방문 기록 반영
+        setVisitedRestaurants(prev =>
+          prev.map(v => (v.id === editingVisit.id ? editingVisit : v))
+        );
+        setShowModal(false);
+      } else {
+        alert("수정 실패: " + response.data.message);
+      }
+    } catch (err) {
+      alert("수정 중 오류 발생: " + err.message);
+    }
+  }}
+/>
             {/* 나머지 내용은 Link로 감싸서 상세 페이지 이동 */}
             <Link to={`/restaurant/${visit.restaurant.id}`} className="block">
-                <p className="font-bold text-lg">{visit.restaurant.name}</p>
-                <p className="text-sm text-gray-600">{visit.restaurant.address}</p>
-                
-                {visit.restaurant.distance != null && visit.restaurant.distance !== -1 && (
-                    <p className="text-sm">거리: {visit.restaurant.distance?.toFixed(1)}km</p>
-                )}
+              <p className="font-bold text-lg">{visit.restaurant.name}</p>
+              <p className="text-sm text-gray-600">{visit.restaurant.address}</p>
 
-                <p className="text-sm mt-1">
-                    콩 종류:{" "}
-                    {visit.restaurant.beanTypes && visit.restaurant.beanTypes.length > 0 ? (
-                        visit.restaurant.beanTypes.map((type, index) => (
-                            <span key={type}>
-                                {type === "SOY_BEAN" ? "백태콩" : type === "BLACK_BEAN" ? "검은콩" : type}
-                                {index < visit.restaurant.beanTypes.length - 1 ? ", " : ""}
-                            </span>
-                        ))
-                    ) : (
-                        <span>정보 없음</span>
-                    )}
-                </p>
+              {visit.restaurant.distance != null && visit.restaurant.distance !== -1 && (
+                <p className="text-sm">거리: {visit.restaurant.distance?.toFixed(1)}km</p>
+              )}
+
+              <p className="text-sm mt-1">
+                콩 종류:{" "}
+                {visit.restaurant.beanTypes && visit.restaurant.beanTypes.length > 0 ? (
+                  visit.restaurant.beanTypes.map((type, index) => (
+                    <span key={type}>
+                      {type === "SOY_BEAN" ? "백태콩" : type === "BLACK_BEAN" ? "검은콩" : type}
+                      {index < visit.restaurant.beanTypes.length - 1 ? ", " : ""}
+                    </span>
+                  ))
+                ) : (
+                  <span>정보 없음</span>
+                )}
+              </p>
+              <p className="text-sm">
+                판매 기간:{" "}
+                {visit.restaurant.servesAllYear
+                  ? "사계절 판매"
+                  : visit.restaurant.startMonth && visit.restaurant.endMonth
+                    ? `${visit.restaurant.startMonth}월 ~ ${visit.restaurant.endMonth}월`
+                    : "정보 없음"}
+              </p>
+              {visit.restaurant.prices && visit.restaurant.prices.length > 0 && (
                 <p className="text-sm">
-                    판매 기간:{" "}
-                    {visit.restaurant.servesAllYear
-                        ? "사계절 판매"
-                        : visit.restaurant.startMonth && visit.restaurant.endMonth
-                            ? `${visit.restaurant.startMonth}월 ~ ${visit.restaurant.endMonth}월`
-                            : "정보 없음"}
+                  가격:{" "}
+                  {visit.restaurant.prices.map((bp, idx) => (
+                    <span key={bp.beanType}>
+                      {bp.beanType === "SOY_BEAN" ? "백태콩" : bp.beanType === "BLACK_BEAN" ? "검은콩" : bp.beanType}: {bp.price}원
+                      {idx < visit.restaurant.prices.length - 1 ? ", " : ""}
+                    </span>
+                  ))}
                 </p>
-                {visit.restaurant.prices && visit.restaurant.prices.length > 0 && (
-                    <p className="text-sm">
-                        가격:{" "}
-                        {visit.restaurant.prices.map((bp, idx) => (
-                            <span key={bp.beanType}>
-                                {bp.beanType === "SOY_BEAN" ? "백태콩" : bp.beanType === "BLACK_BEAN" ? "검은콩" : bp.beanType}: {bp.price}원
-                                {idx < visit.restaurant.prices.length - 1 ? ", " : ""}
-                            </span>
-                        ))}
-                    </p>
-                )}
+              )}
 
-                <div className="mt-2 text-sm text-gray-700 border-t border-gray-200 pt-2">
-                    {visit.visitDate && <p>방문일: {visit.visitDate}</p>}
-                    {visit.rating != null && (
-                        <p>별점: {"⭐".repeat(visit.rating) + "☆".repeat(5 - visit.rating)}</p>
-                    )}
-                    {visit.memo && <p>메모: {visit.memo}</p>}
-                </div>
+              <div className="mt-2 text-sm text-gray-700 border-t border-gray-200 pt-2">
+                {visit.visitedDate && <p>방문일: {visit.visitedDate}</p>}
+                {visit.rating != null && (
+                  <p>별점: {"⭐".repeat(visit.rating) + "☆".repeat(5 - visit.rating)}</p>
+                )}
+                {visit.memo && <p>메모: {visit.memo}</p>}
+              </div>
             </Link>
           </div>
         ))}
@@ -240,5 +287,6 @@ const MyDictionary = () => {
     </div>
   );
 };
+
 
 export default MyDictionary;
