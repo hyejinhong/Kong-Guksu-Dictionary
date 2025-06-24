@@ -1,4 +1,4 @@
-package com.kong.kong_dic.global.config;
+package com.kong.kong_dic.domain.notification.websocket;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
@@ -11,13 +11,16 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
-    public void configureMessageBroker(MessageBrokerRegistry config) {
-        config.enableSimpleBroker("/topic"); // 클라이언트 구독 경로
-        config.setApplicationDestinationPrefixes("/app"); // 메시지 전송 경로
+    public void configureMessageBroker(MessageBrokerRegistry registry) {
+        registry.enableSimpleBroker("/queue");  // 1:1 메시지용
+        registry.setApplicationDestinationPrefixes("/app");
+        registry.setUserDestinationPrefix("/user"); // 사용자별 메시지 라우팅
     }
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        registry.addEndpoint("/ws").setAllowedOriginPatterns("*").withSockJS(); // 프론트에서 연결할 엔드포인트
+        registry.addEndpoint("/ws")
+                .setAllowedOriginPatterns("*")
+                .withSockJS(); // 프론트에서 연결
     }
 }
