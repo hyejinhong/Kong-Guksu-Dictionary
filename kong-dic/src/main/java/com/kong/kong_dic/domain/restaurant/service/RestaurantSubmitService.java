@@ -128,7 +128,7 @@ public class RestaurantSubmitService {
                 .startMonth(submission.getStartMonth())
                 .endMonth(submission.getEndMonth())
                 .status(submission.getStatus())
-                .userId(submission.getUser().getId())
+                .userId(submission.getUser() == null ? null : submission.getUser().getId())
                 .build();
     }
 
