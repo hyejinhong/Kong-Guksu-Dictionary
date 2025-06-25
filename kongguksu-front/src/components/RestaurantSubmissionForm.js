@@ -132,7 +132,14 @@ const RestaurantSubmissionForm = () => {
         longitude: formData.longitude,
       };
 
-      const res = await axios.post(`${API_BASE_URL}/restaurants/submissions`, payload);
+      const token = localStorage.getItem('token');
+
+      const res = await axios.post(`${API_BASE_URL}/restaurants/submissions`, payload, {
+        headers : {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        }
+      });
       if (res.data.code === 0) {
         alert("제출되었습니다!");
         setFormData({

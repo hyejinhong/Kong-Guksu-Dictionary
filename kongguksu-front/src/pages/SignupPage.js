@@ -71,12 +71,43 @@ const SignupPage = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     console.log("회원가입 정보:", formData);
-    // TODO: 서버로 회원가입 요청 보내기
-  };
+  
+    try {
+      const url = `${API_BASE_URL || 'http://localhost:8080'}/auth/signup`;
 
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: formData.username,
+          password: formData.password,
+          nickname: formData.nickname,
+        }),
+      });
+  
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+  
+      const result = await response.json();
+      if (result.code === 0) {
+        console.log("회원가입 성공:", result.message);
+        // TODO: 회원가입 성공 후 처리 (예: 로그인 페이지 이동 등)
+      } else {
+        console.error("회원가입 실패:", result.message);
+        // TODO: 실패 시 사용자에게 에러 메시지 보여주기
+      }
+    } catch (error) {
+      console.error("서버 요청 실패:", error);
+      // TODO: 네트워크 오류 등 처리
+    }
+  };
+  
   return (
     <div className="flex justify-center items-center min-h-screen bg-[#FCEBB6]">
       <div className="bg-white p-6 rounded-lg shadow-md w-80">
