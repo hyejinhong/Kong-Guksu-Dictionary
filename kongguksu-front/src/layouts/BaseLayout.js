@@ -1,10 +1,14 @@
 // src/layouts/BaseLayout.js
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import NotificationModal from "../components/NotificationModal";
+import axios from "axios";
 
 function BaseLayout({ children }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
+  const [notifications, setNotifications] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -42,6 +46,28 @@ function BaseLayout({ children }) {
     navigate("/login");
   };
 
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
+
+  const handleNotificationClick = async () => {
+    const token = localStorage.getItem("token");
+    try {
+      const res = await axios.get(`${API_BASE_URL}/notifications`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (res.data.code === 0) {
+        setNotifications(res.data.data || []);
+        setShowNotificationModal(true);
+      } else {
+        alert("알림 불러오기 실패: " + res.data.message);
+      }
+    } catch (err) {
+      console.error("알림 요청 실패", err);
+      alert("알림 요청 실패");
+    }
+  };
+
   if (loading) {
     return <div>로딩 중...</div>;
   }
@@ -52,6 +78,11 @@ function BaseLayout({ children }) {
         <h1 className="absolute left-1/2 transform -translate-x-1/2">
           🍜 콩국수 사전 🍜
         </h1>
+        {isLoggedIn && (
+          <button onClick={handleNotificationClick} className="mr-2 text-2xl">
+            🔔
+          </button>
+        )}
         {isLoggedIn ? (
           <button
             onClick={handleLogout}
@@ -63,8 +94,7 @@ function BaseLayout({ children }) {
           <Link to="/login" className="bg-[#57B4BA] text-white px-3 py-1 rounded-md text-sm">
             로그인
           </Link>
-        )}
-      </header>
+        )}      </header>
 
       <main className="flex-grow pb-16 md:pb-12">
         {children}
@@ -90,6 +120,13 @@ function BaseLayout({ children }) {
           </Link>
         )}
       </nav>
+      {/* 알림 모달 */}
+      {showNotificationModal && (
+        <NotificationModal
+          notifications={notifications}
+          onClose={() => setShowNotificationModal(false)}
+        />
+      )}
     </div>
   );
 }
