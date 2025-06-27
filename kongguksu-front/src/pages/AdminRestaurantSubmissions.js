@@ -57,8 +57,8 @@ const AdminRestaurantSubmissions = () => {
   const handleReject = async (submissionId) => {
     try {
       const response = await axios.patch(
-        `${process.env.REACT_APP_API_BASE_URL}/restaurants/submissions/${submissionId}/reject`,
-        { headers: getAuthHeader() } // ✅ 헤더 추가
+        `${process.env.REACT_APP_API_BASE_URL}/restaurants/submissions/${submissionId}/reject`, {},
+        { headers: getAuthHeader() } 
       );
       if (response.data.code === 0) {
         setSubmissions(prevSubmissions => prevSubmissions.filter(sub => sub.id !== submissionId));
