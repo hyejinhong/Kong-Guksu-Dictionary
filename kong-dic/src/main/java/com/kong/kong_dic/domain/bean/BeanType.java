@@ -1,7 +1,7 @@
 package com.kong.kong_dic.domain.bean;
 
 public enum BeanType {
-    OTEHR_BEAN("Other Bean"),
+    OTHER_BEAN("Other Bean"),
     SOY_BEAN("Soy Bean"),
     BLACK_BEAN("Black Bean");
 

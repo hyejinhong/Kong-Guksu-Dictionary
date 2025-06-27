@@ -3,6 +3,7 @@ package com.kong.kong_dic.domain.notification.redis;
 import com.google.gson.Gson;
 import com.kong.kong_dic.domain.notification.dto.NotificationMessage;
 import jakarta.annotation.PostConstruct;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.connection.stream.*;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -14,6 +15,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Component
 public class RedisStreamListener implements StreamListener<String, MapRecord<String, Object, Object>> {
 
@@ -67,7 +69,9 @@ public class RedisStreamListener implements StreamListener<String, MapRecord<Str
         String json = body.get("message").toString();
         NotificationMessage notification = gson.fromJson(json, NotificationMessage.class);
 
+        log.info("> 발행 경로 : {}", "/topic/notifications/" + notification.getUsername());
+        log.info("> 발행 메시지 : {}", notification.toString());
         // WebSocket으로 전송
-        messagingTemplate.convertAndSend("/topic/notifications/" + notification.getUserId(), notification);
+        messagingTemplate.convertAndSend("/topic/notifications/" + notification.getUsername(), notification);
     }
 }

@@ -82,9 +82,9 @@ public class RestaurantSubmitService {
 
         // 알림 메시지 생성
         NotificationMessage notification = NotificationMessage.builder()
-                .userId(submission.getUser().getId())
+                .username(submission.getUser().getUsername())
                 .title("Approve")
-                .content("요청하신 식당 등록이 승인되었습니다.")
+                .content("❤️ 요청하신 " + submission.getName() + " 등록이 승인되었습니다.")
                 .build();
 
         // Json 변환
@@ -103,9 +103,9 @@ public class RestaurantSubmitService {
 
         // 알림 메시지 생성
         NotificationMessage notification = NotificationMessage.builder()
-                .userId(submission.getUser().getId())
+                .username(submission.getUser().getUsername())
                 .title("Reject")
-                .content("요청하신 식당 등록이 거절되었습니다.")
+                .content("💔 요청하신 " + submission.getName() + "식당 등록이 거절되었습니다.")
                 .build();
 
         // Json 변환

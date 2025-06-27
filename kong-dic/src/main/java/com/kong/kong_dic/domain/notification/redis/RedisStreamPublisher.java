@@ -19,10 +19,10 @@ public class RedisStreamPublisher {
 
     public void publish(NotificationMessage message) {
         Map<String, String> map = new HashMap<>();
-        map.put("userId", message.getUserId().toString());
+        map.put("username", message.getUsername());
         map.put("content", message.getContent());
         map.put("type", message.getType());
 
-        redisTemplate.opsForStream().add("notifications:" + message.getUserId(), map);
+        redisTemplate.opsForStream().add("notifications:" + message.getUsername(), map);
     }
 }

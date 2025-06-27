@@ -9,7 +9,7 @@ function NotificationModal({ notifications, onClose }) {
           {notifications.length > 0 ? (
             notifications.map((note, index) => (
               <li key={index} className="border-b py-2">
-                {note.message || "내용 없음"}
+                {note.content || "내용 없음"}
               </li>
             ))
           ) : (
