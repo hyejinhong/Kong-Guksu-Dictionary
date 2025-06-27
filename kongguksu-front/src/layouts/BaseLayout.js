@@ -10,6 +10,8 @@ function BaseLayout({ children }) {
   const [loading, setLoading] = useState(true);
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [popupNotification, setPopupNotification] = useState(null);
+  const [showPopup, setShowPopup] = useState(false);
   const navigate = useNavigate();
 
   const stompClientRef = useRef(null);
@@ -88,6 +90,13 @@ function BaseLayout({ children }) {
           const notification = JSON.parse(message.body);
           console.log("📨 알림 도착!", notification);
           setNotifications((prev) => [...prev, notification]);
+
+          // 팝업 알림 표시
+          setPopupNotification(notification);
+          setShowPopup(true);
+
+          // 5초 후 팝업 자동 닫기
+          setTimeout(() => setShowPopup(false), 5000);
         });
       },
       onStompError: (frame) => {
@@ -109,6 +118,8 @@ function BaseLayout({ children }) {
       }
     };
   }, [isLoggedIn]);
+
+  const closePopup = () => setShowPopup(false);
 
   const handleLogout = () => {
     console.log("Logout called from BaseLayout");
@@ -177,12 +188,25 @@ function BaseLayout({ children }) {
         )}
       </nav>
 
+      {showPopup && popupNotification && (
+        <div
+          className="fixed top-5 right-5 bg-[#57B4BA] text-white p-4 rounded shadow-lg cursor-pointer z-50"
+          onClick={closePopup}
+        >
+          <strong>{popupNotification.title || "새 알림"}</strong>
+          <p>{popupNotification.content || popupNotification.message || "내용이 없습니다."}</p>
+          <small className="block mt-1 text-xs opacity-80 cursor-pointer">✕ 닫기</small>
+        </div>
+      )}
+
       {showNotificationModal && (
         <NotificationModal
           notifications={notifications}
           onClose={() => setShowNotificationModal(false)}
         />
       )}
+
+      
     </div>
   );
 }

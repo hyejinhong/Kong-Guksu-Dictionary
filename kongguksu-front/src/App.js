@@ -9,9 +9,11 @@ import AdminRestaurantSubmissions from "./pages/AdminRestaurantSubmissions";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import MyDictionary from "./pages/MyDictionary";
+import { Toaster } from 'react-hot-toast';
 
 function App() {
   return (
+    <>
     <Router>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
@@ -25,6 +27,8 @@ function App() {
         </Route>
       </Routes>
     </Router>
+    <Toaster position="top-right" reverseOrder={false} />
+    </>
   );
 }
 
