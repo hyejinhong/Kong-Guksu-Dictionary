@@ -2,6 +2,7 @@ package com.kong.kong_dic.domain.restaurant.service;
 
 import com.google.gson.Gson;
 import com.kong.kong_dic.domain.notification.dto.NotificationMessage;
+import com.kong.kong_dic.domain.notification.redis.RedisStreamPublisher;
 import com.kong.kong_dic.domain.restaurant.dto.RestaurantSubmitRequestDto;
 import com.kong.kong_dic.domain.restaurant.entity.Restaurant;
 import com.kong.kong_dic.domain.restaurant.entity.RestaurantSubmission;
@@ -29,6 +30,7 @@ public class RestaurantSubmitService {
 
     private final StringRedisTemplate redisTemplate;
     private final Gson gson = new Gson();
+    private final RedisStreamPublisher redisStreamPublisher;
 
     public List<RestaurantSubmitRequestDto> getAllSubmissions() {
         return submitRepository.findAll().stream()
@@ -84,15 +86,12 @@ public class RestaurantSubmitService {
         NotificationMessage notification = NotificationMessage.builder()
                 .username(submission.getUser().getUsername())
                 .title("Approve")
+                .type("alert")
                 .content("❤️ 요청하신 " + submission.getName() + " 등록이 승인되었습니다.")
                 .build();
 
-        // Json 변환
-        String json = gson.toJson(notification);
-
         // Redis Stream 발행
-        Map<String, String> message = Map.of("message", json);
-        redisTemplate.opsForStream().add("notifications", message);
+        redisStreamPublisher.publish(notification);
         restaurantRepository.save(restaurant);
     }
 
@@ -105,15 +104,12 @@ public class RestaurantSubmitService {
         NotificationMessage notification = NotificationMessage.builder()
                 .username(submission.getUser().getUsername())
                 .title("Reject")
+                .type("alert")
                 .content("💔 요청하신 " + submission.getName() + "식당 등록이 거절되었습니다.")
                 .build();
 
-        // Json 변환
-        String json = gson.toJson(notification);
-
         // Redis Stream 발행
-        Map<String, String> message = Map.of("message", json);
-        redisTemplate.opsForStream().add("notifications", message);
+        redisStreamPublisher.publish(notification);
 
         submitRepository.save(submission);
     }

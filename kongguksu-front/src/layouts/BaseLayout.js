@@ -13,7 +13,7 @@ function BaseLayout({ children }) {
   const [popupNotification, setPopupNotification] = useState(null);
   const [showPopup, setShowPopup] = useState(false);
   const navigate = useNavigate();
-
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
   const stompClientRef = useRef(null);
 
   useEffect(() => {
@@ -64,8 +64,6 @@ function BaseLayout({ children }) {
         return null;
       }
     }
-
-    const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
     if (stompClientRef.current) {
       // 이미 연결되어 있으면 재활용
@@ -118,6 +116,47 @@ function BaseLayout({ children }) {
       }
     };
   }, [isLoggedIn]);
+
+  useEffect(() => {
+    if (showNotificationModal) {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      function getUsernameFromToken(token) {
+        try {
+          const decoded = jwtDecode(token);
+          return decoded.sub;
+        } catch (error) {
+          console.error("Invalid token", error);
+          return null;
+        }
+      }
+      const username = getUsernameFromToken(token);
+
+      if (!username) {
+        console.error("Username not found in token for fetching notifications.");
+        return;
+      }
+
+      fetch(`${API_BASE_URL}/notifications`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json',
+        },
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (Array.isArray(data.data)) {
+            setNotifications(data.data);
+          } else {
+            console.warn('알림 데이터 형식이 배열이 아님:', data);
+          }
+        })
+        .catch((err) => {
+          console.error('알림 불러오기 실패:', err);
+        });
+    }
+  }, [showNotificationModal]);
 
   const closePopup = () => setShowPopup(false);
 
@@ -193,8 +232,9 @@ function BaseLayout({ children }) {
           className="fixed top-5 right-5 bg-[#57B4BA] text-white p-4 rounded shadow-lg cursor-pointer z-50"
           onClick={closePopup}
         >
-          <strong>{popupNotification.title || "새 알림"}</strong>
-          <p>{popupNotification.content || popupNotification.message || "내용이 없습니다."}</p>
+          {/* 여기서 popupNotification.title 대신 popupNotification.type을 사용합니다. */}
+          <strong>{popupNotification.type || "새 알림"}</strong>
+          <p>{popupNotification.content || "내용이 없습니다."}</p>
           <small className="block mt-1 text-xs opacity-80 cursor-pointer">✕ 닫기</small>
         </div>
       )}
@@ -205,8 +245,6 @@ function BaseLayout({ children }) {
           onClose={() => setShowNotificationModal(false)}
         />
       )}
-
-      
     </div>
   );
 }
