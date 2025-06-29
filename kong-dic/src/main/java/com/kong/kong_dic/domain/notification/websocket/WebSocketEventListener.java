@@ -28,6 +28,7 @@ public class WebSocketEventListener {
         log.info("🔗 WebSocket 연결 감지됨");
         StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
         Principal principal = headerAccessor.getUser(); // 현재 WebSocket 세션의 사용자 인증 정보
+        log.info("📎 Principal 확인: {}", principal);
 
         if (principal != null) {
             String username = principal.getName(); // 인증된 사용자 이름 가져오기
@@ -35,9 +36,7 @@ public class WebSocketEventListener {
             // 해당 사용자의 Redis Stream 리스너 시작
             redisStreamManager.startListening(username);
         } else {
-            // TODO 토큰 검증하여 username 삽입
             log.warn("WebSocket connected without a principal. Cannot start user-specific stream listener.");
-            redisStreamManager.startListening("admin");
         }
     }
 }
