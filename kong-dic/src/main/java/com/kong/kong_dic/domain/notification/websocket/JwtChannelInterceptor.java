@@ -33,8 +33,7 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
             if (jwtProvider.validateToken(token)) {
                 String username = jwtProvider.getUsernameFromToken(token);
                 Authentication authentication = jwtProvider.getAuthentication(token);
-                authentication.getPrincipal();
-                accessor.setUser(authentication.getPrincipal());
+                accessor.setUser((Principal) authentication.getPrincipal());
                 log.info("✅ Principal 설정 완료: {}", username);
             }
         }

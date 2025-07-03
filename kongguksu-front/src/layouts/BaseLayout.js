@@ -75,7 +75,7 @@ function BaseLayout({ children }) {
     const client = new Client({
       webSocketFactory: () => socket,
       connectHeaders: {
-        Authorization: `${token}`,
+        Authorization: `Bearer ${token}`,
       },
       debug: (str) => console.log('[STOMP]', str),
       reconnectDelay: 5000,
