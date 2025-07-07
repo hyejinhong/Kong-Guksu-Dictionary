@@ -70,7 +70,7 @@ function BaseLayout({ children }) {
       return;
     }
 
-    const socket = new SockJS(`${API_BASE_URL}/ws`);
+    const socket = new SockJS(`${API_BASE_URL}/ws?token=${token}`);
 
     const client = new Client({
       webSocketFactory: () => socket,

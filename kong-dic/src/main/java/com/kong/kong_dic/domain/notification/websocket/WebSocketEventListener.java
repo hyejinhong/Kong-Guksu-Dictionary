@@ -1,15 +1,13 @@
 package com.kong.kong_dic.domain.notification.websocket;
 
 import com.kong.kong_dic.domain.notification.redis.RedisStreamManager;
+import com.kong.kong_dic.domain.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.stereotype.Component;
-import org.springframework.web.socket.messaging.SessionConnectedEvent;
 import org.springframework.web.socket.messaging.SessionSubscribeEvent;
-
-import java.security.Principal;
 
 @Slf4j
 @Component
@@ -21,25 +19,24 @@ public class WebSocketEventListener {
     @EventListener
     public void handleSessionSubscribeEvent(SessionSubscribeEvent event) {
         log.info("🔔 구독 감지됨: {}", event.getMessage());
-    }
 
-    @EventListener
-    public void handleSessionConnected(SessionConnectedEvent event) {
-        log.info("🔗 WebSocket 연결 감지됨");
         StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
+        Object principalObject = headerAccessor.getSessionAttributes().get("principal");
+        log.info("###principalObject instance {}", principalObject.getClass().getName());
+        if (principalObject instanceof User principal) {
+            log.info("📎 Principal 확인 (from SessionSubscribeEvent Session Attributes): {}", principal);
 
-        // HandshakeInterceptor에서 "principal"이라는 이름으로 저장한 Principal 객체를 가져옵니다.
-        Principal principal = (Principal) headerAccessor.getSessionAttributes().get("principal");
+            if (principal.getUsername() != null && !principal.getUsername().isEmpty() && !principal.getUsername().equals("anonymousUser")) {
+                String username = principal.getUsername();
+                log.info("Redis Stream listener starting for user: {}", username);
 
-        log.info("📎 Principal 확인 (from Session Attributes): {}", principal);
-
-        // Principal이 유효하고 실제 사용자 이름이 있다면 리스너 시작
-        if (principal != null && principal.getName() != null && !principal.getName().isEmpty() && !principal.getName().equals("anonymousUser")) {
-            String username = principal.getName();
-            log.info("WebSocket connected for user: {}", username);
-            redisStreamManager.startListening(username);
+                // 구독 이벤트 시점에 Redis Stream 리스너 시작
+                redisStreamManager.startListening(username);
+            } else {
+                log.warn("Subscription event received without a valid principal in session attributes. Cannot start user-specific stream listener. Principal: {}", principal);
+            }
         } else {
-            log.warn("WebSocket connected without a valid principal in session attributes. Cannot start user-specific stream listener.");
+            log.warn("Subscription event received without a valid Principal object in session attributes. Found: {}", principalObject);
         }
     }
 }

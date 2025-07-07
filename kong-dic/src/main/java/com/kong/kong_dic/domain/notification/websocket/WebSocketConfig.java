@@ -17,7 +17,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final JwtProvider jwtProvider;
     //  private final JwtChannelInterceptor jwtChannelInterceptor;
-    private final JwtHandshakeInterceptor handshakeInterceptor;
+    // private final JwtHandshakeInterceptor handshakeInterceptor;
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
@@ -29,7 +29,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws")
-                .addInterceptors(handshakeInterceptor)
+//                .addInterceptors(handshakeInterceptor)
                 .setHandshakeHandler(new CustomHandshakeHandler(jwtProvider))
                 .setAllowedOriginPatterns("*")
                 .withSockJS(); // 프론트에서 연결
