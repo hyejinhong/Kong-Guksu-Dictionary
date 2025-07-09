@@ -5,6 +5,7 @@ import com.kong.kong_dic.domain.notification.dto.NotificationMessage;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.connection.stream.*;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -44,32 +45,36 @@ public class RedisStreamManager { // 클래스 이름 변경 제안: Listener �
      */
     public void startListening(String username) {
         String streamKey = "notifications:" + username;
-        String consumerName = "consumer-" + username; // 각 사용자별로 고유한 컨슈머 이름
+        String consumerName = "consumer-" + username;
 
-        // 이미 해당 사용자 리스너가 실행 중인지 확인
         if (consumerRunners.containsKey(username)) {
             log.warn("User {} already has an active stream listener.", username);
             return;
         }
 
-        // 컨슈머 그룹 생성 (이미 존재하면 예외 무시)
         try {
             redisTemplate.opsForStream().createGroup(streamKey, ReadOffset.from("0-0"), GROUP);
             log.info("Created Redis Stream group '{}' for stream '{}'", GROUP, streamKey);
-        } catch (Exception e) {
-            if (e.getMessage() != null && e.getMessage().contains("BUSYGROUP Consumer Group name already exists")) {
-                log.info("Redis Stream group '{}' for stream '{}' already exists.", GROUP, streamKey);
+        } catch (DataAccessException e) {
+            Throwable rootCause = e.getRootCause();
+
+            if (rootCause instanceof io.lettuce.core.RedisBusyException) {
+                log.info("Redis Stream group '{}' for stream '{}' already exists. (Caught RedisBusyException)", GROUP, streamKey);
             } else {
-                log.error("Error creating Redis Stream group for stream {}: {}", streamKey, e.getMessage());
+                // 다른 종류의 Redis 관련 예외 처리
+                String errorMessage = rootCause != null ? rootCause.getMessage() : e.getMessage();
+                log.error("Unhandled Redis error creating Stream group for stream '{}': {}. Original exception: {}",
+                        streamKey, errorMessage, e.getClass().getSimpleName(), e); // 전체 스택 트레이스도 다시 찍기
             }
+        } catch (Exception e) { // 혹시 DataAccessException 외의 다른 예외가 발생할 경우를 대비
+            log.error("Unexpected error creating Redis Stream group for stream '{}': {}", streamKey, e.getMessage(), e);
         }
 
         StreamConsumerRunner runner = new StreamConsumerRunner(streamKey, GROUP, consumerName);
-        executorService.submit(runner); // 스레드 풀에서 실행
+        executorService.submit(runner);
         consumerRunners.put(username, runner);
         log.info("Started Redis Stream listener for user: {}", username);
     }
-
     /**
      * 특정 사용자를 위한 Redis Stream 리스너를 중지합니다.
      * @param username 중지할 사용자의 이름

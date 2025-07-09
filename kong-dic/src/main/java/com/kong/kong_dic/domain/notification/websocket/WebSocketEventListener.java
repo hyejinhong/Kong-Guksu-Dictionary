@@ -9,6 +9,8 @@ import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.messaging.SessionSubscribeEvent;
 
+import java.util.Objects;
+
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -21,7 +23,7 @@ public class WebSocketEventListener {
         log.info("🔔 구독 감지됨: {}", event.getMessage());
 
         StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
-        Object principalObject = headerAccessor.getSessionAttributes().get("principal");
+        Object principalObject = Objects.requireNonNull(headerAccessor.getSessionAttributes()).get("principal");
         log.info("###principalObject instance {}", principalObject.getClass().getName());
         if (principalObject instanceof User principal) {
             log.info("📎 Principal 확인 (from SessionSubscribeEvent Session Attributes): {}", principal);
