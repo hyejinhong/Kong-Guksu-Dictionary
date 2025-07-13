@@ -24,7 +24,6 @@ public class RedisStreamManager { // 클래스 이름 변경 제안: Listener �
 
     private final StringRedisTemplate redisTemplate;
     private final SimpMessagingTemplate messagingTemplate;
-    private final Gson gson = new Gson();
 
     // 사용자별 스트림 리스너 스레드를 관리할 맵
     private final Map<String, StreamConsumerRunner> consumerRunners = new ConcurrentHashMap<>();
