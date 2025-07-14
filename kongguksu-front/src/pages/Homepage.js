@@ -1,10 +1,16 @@
 // src/pages/HomePage.js
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react"; // useCallback 추가
 import RestaurantMapAndList from "../components/RestaurantMapAndList";
 import axios from "axios";
 
 function HomePage() {
-  const [filter, setFilter] = useState({ season: "all", beanType: "all" });
+  const [filter, setFilter] = useState({
+    searchTerm: "", // 검색어
+    beanType: "all",
+    season: "all",
+    minPrice: 5000, // 가격대 최소
+    maxPrice: 20000, // 가격대 최대
+  });
   const [restaurants, setRestaurants] = useState([]);
   const [location, setLocation] = useState({ latitude: null, longitude: null });
 
@@ -36,14 +42,23 @@ function HomePage() {
     }
   };
 
-  const handleFilterChange = (type, value) => {
+  const handleFilterChange = useCallback((type, value) => {
     setFilter((prevFilter) => ({ ...prevFilter, [type]: value }));
-  };
+  }, []); // filter 자체를 의존성으로 두면 무한 루프 가능성
 
+  // 기존 필터링 로직 유지 (HomePage에서 필터링)
   const filteredRestaurants = restaurants.filter((restaurant) => {
     const isSeasonMatch = filter.season === "all" || (filter.season === "open-now" && isCurrentlySelling(restaurant)) || (filter.season === "always" && restaurant.servesAllYear);
     const isBeanTypeMatch = filter.beanType === "all" || (filter.beanType === "백태콩" && restaurant.beanTypes.includes("SOY_BEAN")) || (filter.beanType === "검은콩" && restaurant.beanTypes.includes("BLACK_BEAN"));
-    return isSeasonMatch && isBeanTypeMatch;
+    
+    const isSearchTermMatch = !filter.searchTerm || 
+                              restaurant.name.toLowerCase().includes(filter.searchTerm.toLowerCase()) ||
+                              restaurant.address.toLowerCase().includes(filter.searchTerm.toLowerCase());
+
+    const isPriceMatch = (filter.minPrice === 5000 && filter.maxPrice === 20000) ||
+                         (restaurant.price >= filter.minPrice && restaurant.price <= filter.maxPrice);
+
+    return isSeasonMatch && isBeanTypeMatch && isSearchTermMatch && isPriceMatch;
   });
 
   function isCurrentlySelling(restaurant) {
@@ -59,7 +74,7 @@ function HomePage() {
     <RestaurantMapAndList
       filteredRestaurants={filteredRestaurants}
       handleFilterChange={handleFilterChange}
-      filter={filter}
+      filter={filter} // 모든 필터 상태를 그대로 전달
     />
   );
 }
