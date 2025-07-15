@@ -2,21 +2,30 @@
 import React from "react";
 import KakaoMap from "./KakaoMap";
 import { Link } from "react-router-dom";
-import Slider from 'rc-slider'; // rc-slider 임포트
-import 'rc-slider/assets/index.css'; // rc-slider 기본 CSS 임포트 (전역 CSS에 넣는게 일반적)
+import Slider from 'rc-slider';
+import 'rc-slider/assets/index.css'; 
 
-
-function RestaurantMapAndList({ filteredRestaurants, handleFilterChange, filter }) {
-  // `handleSearchTermChange`는 이제 `handleFilterChange`를 통해 `searchTerm`을 업데이트합니다.
+function RestaurantMapAndList({ restaurants, handleFilterChange, filter, loading, error }) {
   const handleSearchTermInput = (e) => {
     handleFilterChange("searchTerm", e.target.value);
   };
 
-  // `rc-slider` 가격대 슬라이더 변경 핸들러
-  const handlePriceChange = (values) => { // rc-slider는 [min, max] 배열을 반환
+  const handlePriceChange = (values) => {
     handleFilterChange("minPrice", values[0]);
     handleFilterChange("maxPrice", values[1]);
   };
+
+  if (loading) {
+    return <p className="text-center mt-8 text-lg font-semibold text-gray-700">🔍 콩국수 맛집을 찾고 있어요...</p>;
+  }
+
+  if (error) {
+    return <p className="text-center mt-8 text-red-500">❌ {error}</p>;
+  }
+
+  // ⭐ restaurants prop이 유효한 배열인지 확인
+  // 만약 restaurants가 undefined 또는 null 이라면 빈 배열로 처리하여 length 에러 방지
+  const displayRestaurants = restaurants || []; 
 
   return (
     <>
@@ -25,20 +34,19 @@ function RestaurantMapAndList({ filteredRestaurants, handleFilterChange, filter 
           type="text"
           placeholder="🍜 식당 이름이나 주소를 검색해보세요"
           className="p-3 border border-gray-300 rounded-lg w-full max-w-md focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg"
-          value={filter.searchTerm} // filter prop에서 searchTerm 가져오기
-          onChange={handleSearchTermInput} // 새로운 핸들러 연결
+          value={filter.searchTerm}
+          onChange={handleSearchTermInput}
         />
       </div>
 
       <div className="flex justify-center my-4">
-        <KakaoMap restaurants={filteredRestaurants} />
+        <KakaoMap restaurants={displayRestaurants} /> {/* 수정된 변수 사용 */}
       </div>
 
       {/* 필터 메뉴 디자인 개선 및 가격 슬라이더 적용 */}
       <div className="bg-white p-6 rounded-xl shadow-lg mx-4 mb-6">
-        <h3 className="text-xl font-bold text-gray-800 mb-4 text-center">✨ 검색 ✨</h3>
+        <h3 className="text-xl font-bold text-gray-800 mb-4 text-center">✨ 콩국수 필터 ✨</h3>
 
-        {/* 콩 종류 필터 */}
         <div className="mb-6 border-b pb-4 border-gray-200">
           <p className="text-md font-semibold text-gray-700 mb-2">🌱 콩 종류:</p>
           <div className="flex flex-wrap gap-3">
@@ -62,7 +70,6 @@ function RestaurantMapAndList({ filteredRestaurants, handleFilterChange, filter 
           </div>
         </div>
 
-        {/* 판매 기간 필터 */}
         <div className="mb-6 border-b pb-4 border-gray-200">
           <p className="text-md font-semibold text-gray-700 mb-2">🗓️ 판매 기간:</p>
           <div className="flex flex-wrap gap-3">
@@ -95,12 +102,12 @@ function RestaurantMapAndList({ filteredRestaurants, handleFilterChange, filter 
             <span>{filter.maxPrice.toLocaleString()}원</span>
           </div>
           <Slider
-            range // 범위 슬라이더로 사용
+            range
             min={5000}
             max={20000}
-            step={1000} // 1000원 단위로 조절
-            value={[filter.minPrice, filter.maxPrice]} // filter prop에서 minPrice, maxPrice 가져오기
-            onChange={handlePriceChange} // 새로운 핸들러 연결
+            step={1000}
+            value={[filter.minPrice, filter.maxPrice]}
+            onChange={handlePriceChange}
             trackStyle={[{ backgroundColor: '#FCD34D' }, { backgroundColor: '#FCD34D' }]}
             handleStyle={[{ borderColor: '#D97706', backgroundColor: '#F59E0B' }, { borderColor: '#D97706', backgroundColor: '#F59E0B' }]}
             railStyle={{ backgroundColor: '#E2E8F0' }}
@@ -109,8 +116,9 @@ function RestaurantMapAndList({ filteredRestaurants, handleFilterChange, filter 
       </div>
 
       <div className="mx-4 mt-4">
-        {filteredRestaurants.length > 0 ? (
-          filteredRestaurants.map((restaurant) => (
+        {/* ⭐ displayRestaurants 변수 사용 ⭐ */}
+        {displayRestaurants.length > 0 ? (
+          displayRestaurants.map((restaurant) => (
             <Link key={restaurant.id} to={`/restaurant/${restaurant.id}`} className="block">
               <div className="bg-white p-4 mb-2 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200">
                 <p className="font-bold text-xl text-gray-800">{restaurant.name}</p>

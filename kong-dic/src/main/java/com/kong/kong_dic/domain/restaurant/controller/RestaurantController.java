@@ -23,15 +23,22 @@ public class RestaurantController {
     private final RestaurantService restaurantService;
 
     /**
-     * 모든 식당 조회
-     *
-     * @return
+     * 모든 식당 조회 및 검색/필터링
      */
     @GetMapping
-    public ResponseEntity<BaseResponse<List<RestaurantResponseDto>>> getAllRestaurants(@RequestParam(required = false) Double lan,
-                                                                                       @RequestParam(required = false) Double lon,
-                                                                                       Pageable pageable) {
-        List<RestaurantResponseDto> result = restaurantService.getAllRestaurants(lan, lon, pageable);
+    public ResponseEntity<BaseResponse<List<RestaurantResponseDto>>> getAllRestaurants(
+            @RequestParam(required = false) Double lan,
+            @RequestParam(required = false) Double lon,
+            @RequestParam(required = false) String searchTerm,
+            @RequestParam(required = false) String beanType,
+            @RequestParam(required = false) String season,
+            @RequestParam(required = false) Integer minPrice,
+            @RequestParam(required = false) Integer maxPrice,
+            Pageable pageable) { // Pageable은 거리 계산 및 정렬에 활용될 수 있음
+
+        List<RestaurantResponseDto> result = restaurantService.searchAndFilterRestaurants(
+                lan, lon, searchTerm, beanType, season, minPrice, maxPrice, pageable);
+
         if (result.isEmpty()) {
             return ResponseEntity.ok(BaseResponse.success("조회 결과가 없습니다.", result));
         }

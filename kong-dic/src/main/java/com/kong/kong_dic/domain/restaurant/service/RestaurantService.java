@@ -1,6 +1,7 @@
 package com.kong.kong_dic.domain.restaurant.service;
 
 import com.kong.kong_dic.domain.bean.BeanType;
+import com.kong.kong_dic.domain.bean.domain.BeanPrice;
 import com.kong.kong_dic.domain.restaurant.dto.RestaurantRequestDto;
 import com.kong.kong_dic.domain.restaurant.dto.RestaurantResponseDto;
 import com.kong.kong_dic.domain.restaurant.entity.Restaurant;
@@ -13,15 +14,23 @@ import com.kong.kong_dic.global.exception.BaseException;
 import com.kong.kong_dic.global.model.Coordinates;
 import com.kong.kong_dic.global.util.KakaoMapUtil;
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.web.client.RestTemplateAutoConfiguration;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -37,6 +46,86 @@ public class RestaurantService {
         return page.map(restaurant -> entityToResponseDto(restaurant, lan, lon)).toList();
     }
 
+    public List<RestaurantResponseDto> searchAndFilterRestaurants(
+            Double lan, Double lon, String searchTerm, String beanType, String season,
+            Integer minPrice, Integer maxPrice, Pageable pageable) {
+
+        // Specification 동적 생성
+        Specification<Restaurant> spec = (root, query, criteriaBuilder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            // 1. 텍스트 검색어 필터링 (이름 또는 주소)
+            if (StringUtils.hasText(searchTerm)) {
+                String lowerCaseSearchTerm = "%" + searchTerm.toLowerCase() + "%";
+                Predicate nameLike = criteriaBuilder.like(criteriaBuilder.lower(root.get("name")), lowerCaseSearchTerm);
+                Predicate addressLike = criteriaBuilder.like(criteriaBuilder.lower(root.get("address")), lowerCaseSearchTerm);
+                predicates.add(criteriaBuilder.or(nameLike, addressLike));
+            }
+
+            // 2. 콩 종류 필터링 (beanTypes 필드가 String이고 콤마로 구분되어 있다고 가정)
+            // 정확한 enum 값 (SOY_BEAN, BLACK_BEAN)으로 프론트에서 넘어온다고 가정
+            if (StringUtils.hasText(beanType) && !"all".equalsIgnoreCase(beanType)) {
+                BeanType enumBeanType = BeanType.valueOf(beanType.toUpperCase());
+                predicates.add(criteriaBuilder.isMember(enumBeanType, root.get("beanTypes")));
+                // 만약 beanTypes가 @ElementCollection이나 다른 방식으로 List/Set으로 저장된다면 쿼리가 달라짐
+            }
+
+            // 3. 판매 기간 필터링
+            if (StringUtils.hasText(season)) {
+                if ("always".equalsIgnoreCase(season)) {
+                    predicates.add(criteriaBuilder.isTrue(root.get("servesAllYear")));
+                } else if ("open-now".equalsIgnoreCase(season)) {
+                    int currentMonth = LocalDate.now().getMonthValue();
+                    // 사계절 판매 OR (현재 월이 판매 시작 월 >= 현재 월 <= 판매 종료 월)
+                    // 계절이 연도를 걸쳐서 판매되는 경우 (예: 11월~2월) 추가 로직 필요
+                    Predicate isSeasonalOpen = criteriaBuilder.and(
+                            criteriaBuilder.isFalse(root.get("servesAllYear")),
+                            criteriaBuilder.greaterThanOrEqualTo(root.get("endMonth"), currentMonth), // 현재 월이 종료 월 이전이거나
+                            criteriaBuilder.lessThanOrEqualTo(root.get("startMonth"), currentMonth)   // 현재 월이 시작 월 이후이거나
+                    );
+                    Predicate isYearRound = criteriaBuilder.isTrue(root.get("servesAllYear"));
+                    predicates.add(criteriaBuilder.or(isYearRound, isSeasonalOpen));
+                }
+            }
+
+            if (minPrice != null && maxPrice != null) {
+                // prices 컬렉션에 대한 Join을 수행합니다.
+                // JoinType.INNER는 해당 조건에 맞는 BeanPrice가 하나라도 있는 식당만 포함합니다.
+                // 만약 prices 컬렉션 자체가 없는 식당은 배제됩니다.
+                Join<Restaurant, BeanPrice> pricesJoin = root.join("prices", JoinType.INNER);
+
+                // prices 컬렉션 내의 각 BeanPrice 객체의 'price' 필드에 대해 범위 조건 적용
+                predicates.add(criteriaBuilder.between(pricesJoin.get("price"), minPrice, maxPrice));
+
+                // 참고: 만약 특정 beanType (예: 백태콩)의 가격만 필터링하고 싶다면,
+                // 여기에 추가 조건을 넣을 수 있습니다:
+                // predicates.add(criteriaBuilder.equal(pricesJoin.get("beanType"), BeanType.SOY_BEAN));
+            }
+
+            // 모든 조건을 AND 연산으로 결합
+            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+        };
+
+        // Specification과 Pageable을 사용하여 DB에서 직접 필터링된 결과 조회
+        List<Restaurant> filteredRestaurants = restaurantRepository.findAll(spec, pageable).getContent();
+
+        // 거리 계산 (이전과 동일하게 서비스 단에서 수행)
+        // 사용자의 lan, lon이 있을 경우에만 거리 계산
+        if (lan != null && lon != null) {
+            return filteredRestaurants.stream()
+                    .map(restaurant -> {
+                        RestaurantResponseDto dto = entityToResponseDto(restaurant, lan, lon);
+                        return dto;
+                    })
+                    .sorted((d1, d2) -> Double.compare(d1.getDistance(), d2.getDistance())) // 거리순 정렬
+                    .collect(Collectors.toList());
+        } else {
+            // 위치 정보가 없으면 거리 없이 DTO로 변환
+            return filteredRestaurants.stream()
+                    .map(RestaurantService::entityToResponseDto)
+                    .collect(Collectors.toList());
+        }
+    }
     public RestaurantResponseDto getRestaurantById(Long id, User user) {
         Restaurant restaurant = restaurantRepository.findById(id)
                 .orElseThrow(() -> new BaseException(RestaurantExceptionType.RESTAURANT_NOT_FOUND));
