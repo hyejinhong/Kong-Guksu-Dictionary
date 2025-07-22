@@ -8,12 +8,13 @@ const RestaurantSubmissionForm = () => {
   const [formData, setFormData] = useState({
     name: "",
     address: "",
-    soyType: "",
+    // soyType: "",
     startMonth: "",
     endMonth: "",
     isAllYear: false, // 연중무휴 여부
     latitude: "",
-    longitude: ""
+    longitude: "",
+    prices: [{ beanType: "", price: "" }],
   });
   // Kakao SDK 로드 함수
   const loadKakaoMapScript = () => {
@@ -55,6 +56,35 @@ const RestaurantSubmissionForm = () => {
 
     initMap();
   }, []);
+
+  // 가격 입력 필드 변경 처리 핸들러
+  const handlePriceItemChange = (index, event) => {
+    const { name, value } = event.target;
+    const newPrices = [...formData.prices];
+    newPrices[index][name] = value;
+    setFormData((prev) => ({
+      ...prev,
+      prices: newPrices,
+    }));
+  };
+
+  // 가격 입력 필드 추가 핸들러
+  const handleAddPriceItem = () => {
+    setFormData((prev) => ({
+      ...prev,
+      prices: [...prev.prices, { beanType: "", price: "" }],
+    }));
+  };
+
+  // 가격 입력 필드 삭제 핸들러
+  const handleRemovePriceItem = (index) => {
+    const newPrices = formData.prices.filter((_, i) => i !== index);
+    setFormData((prev) => ({
+      ...prev,
+      prices: newPrices,
+    }));
+  };
+
 
   // 키워드로 검색
   const searchPlaces = () => {
@@ -114,7 +144,7 @@ const RestaurantSubmissionForm = () => {
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
-  }; 
+  };
 
   const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
@@ -124,18 +154,22 @@ const RestaurantSubmissionForm = () => {
       const payload = {
         name: formData.name,
         address: formData.address,
-        beanTypes: formData.soyType ? [formData.soyType] : [],
+        // beanTypes: formData.soyType ? [formData.soyType] : [],
         servesAllYear: formData.isAllYear,
         startMonth: formData.isAllYear ? 0 : parseInt(formData.startMonth),
         endMonth: formData.isAllYear ? 0 : parseInt(formData.endMonth),
         latitude: formData.latitude,
         longitude: formData.longitude,
+        prices: formData.prices.map(item => ({
+          beanType: item.beanType,
+          price: parseInt(item.price),
+        })).filter(item => item.beanType && item.price),
       };
 
       const token = localStorage.getItem('token');
 
       const res = await axios.post(`${API_BASE_URL}/restaurants/submissions`, payload, {
-        headers : {
+        headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         }
@@ -218,19 +252,53 @@ const RestaurantSubmissionForm = () => {
           />
         </div>
 
+        {/* 콩 종류별 가격 입력 섹션 */}
         <div>
-          <label className="block mb-1 font-medium">콩 종류</label>
-          <select
-            name="soyType"
-            value={formData.soyType}
-            onChange={handleChange}
-            className="w-full border px-3 py-2 rounded"
+          <label className="block mb-2 font-medium text-gray-700">콩 종류 및 가격</label>
+          {formData.prices.map((priceItem, index) => (
+            <div key={index} className="flex flex-col sm:flex-row gap-2 mb-2 items-center">
+              <select
+                name="beanType"
+                value={priceItem.beanType}
+                onChange={(e) => handlePriceItemChange(index, e)}
+                className="w-full sm:w-1/2 border px-3 py-2 rounded focus:ring-yellow-500 focus:border-transparent"
+                required // 최소 하나는 필수
+              >
+                <option value="">콩 종류 선택</option>
+                <option value="SOY_BEAN">백태콩</option>
+                <option value="BLACK_BEAN">검은콩</option>
+                <option value="OTHER_BEAN">기타콩</option>
+              </select>
+              <input
+                type="number"
+                name="price"
+                value={priceItem.price}
+                onChange={(e) => handlePriceItemChange(index, e)}
+                className="w-full sm:w-1/2 border px-3 py-2 rounded focus:ring-yellow-500 focus:border-transparent"
+                placeholder="가격 (원)"
+                min="0"
+                required // 최소 하나는 필수
+              />
+              {formData.prices.length > 1 && ( // 가격 항목이 1개 이상일 때만 삭제 버튼 표시
+                <button
+                  type="button"
+                  onClick={() => handleRemovePriceItem(index)}
+                  className="p-2 bg-red-400 hover:bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-xl"
+                  aria-label="가격 항목 삭제"
+                >
+                  ➖
+                </button>
+              )}
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={handleAddPriceItem}
+            className="mt-2 p-2 bg-green-400 hover:bg-green-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-xl"
+            aria-label="가격 항목 추가"
           >
-            <option value="">선택하세요</option>
-            <option value="SOY_BEAN">백태</option>
-            <option value="BLACK_BEAN">검은콩</option>
-            <option value="OTHER_BEAN">기타</option>
-          </select>
+            ➕
+          </button>
         </div>
 
         <div>
