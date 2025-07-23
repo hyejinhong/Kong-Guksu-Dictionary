@@ -38,6 +38,8 @@ public class Restaurant {
     private Integer endMonth;
 
     @ElementCollection
+    @Builder.Default
+    // @CollectionTable(name = "restaurant_prices", joinColumns = @JoinColumn(name = "restaurant_id"))
     private List<BeanPrice> prices = new ArrayList<>();
 
     @OneToMany(mappedBy = "restaurant", cascade = CascadeType.ALL, orphanRemoval = true)
