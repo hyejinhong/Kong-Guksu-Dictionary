@@ -89,6 +89,7 @@ public class RestaurantSubmitService {
                 .prices(newPrices)
                 .startMonth(submission.getStartMonth())
                 .endMonth(submission.getEndMonth())
+                .servesAllYear(submission.getServesAllYear())
                 .build();
 
         log.debug("### inserted Entity : {}", restaurant.toString());
