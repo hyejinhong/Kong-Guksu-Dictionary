@@ -1,6 +1,7 @@
 package com.kong.kong_dic.domain.restaurant.service;
 
 import com.google.gson.Gson;
+import com.kong.kong_dic.domain.bean.domain.BeanPrice;
 import com.kong.kong_dic.domain.notification.dto.NotificationMessage;
 import com.kong.kong_dic.domain.notification.redis.RedisStreamPublisher;
 import com.kong.kong_dic.domain.restaurant.dto.RestaurantSubmitRequestDto;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -50,7 +52,7 @@ public class RestaurantSubmitService {
         RestaurantSubmission submission = RestaurantSubmission.builder()
                 .name(request.getName())
                 .address(request.getAddress())
-                .beanTypes(request.getBeanTypes())
+                .prices(request.getPrices())
                 .servesAllYear(request.getServesAllYear())
                 .startMonth(request.getStartMonth())
                 .endMonth(request.getEndMonth())
@@ -70,14 +72,24 @@ public class RestaurantSubmitService {
         // Search Coordinates via KakaoMap
         // Coordinates coordinate = kakaoMapUtil.addressToCoordinates(submission.getAddress());
 
+        // JPA shared child - Deep Copy
+        List<BeanPrice> newPrices = submission.getPrices().stream()
+                .map(p -> BeanPrice.builder()
+                        .beanType(p.getBeanType())
+                        .price(p.getPrice())
+                        .build())
+                .collect(Collectors.toList());
+
         Restaurant restaurant = Restaurant.builder()
                 .name(submission.getName())
                 .address(submission.getAddress())
                 .latitude(submission.getLatitude())
                 .longitude(submission.getLongitude())
-                .beanTypes(submission.getBeanTypes())
+                .beanTypes(submission.getPrices().stream().map(BeanPrice::getBeanType).toList())
+                .prices(newPrices)
                 .startMonth(submission.getStartMonth())
                 .endMonth(submission.getEndMonth())
+                .servesAllYear(submission.getServesAllYear())
                 .build();
 
         log.debug("### inserted Entity : {}", restaurant.toString());
@@ -119,7 +131,7 @@ public class RestaurantSubmitService {
                 .id(submission.getId())
                 .name(submission.getName())
                 .address(submission.getAddress())
-                .beanTypes(submission.getBeanTypes())
+                .prices(submission.getPrices())
                 .servesAllYear(submission.getServesAllYear())
                 .startMonth(submission.getStartMonth())
                 .endMonth(submission.getEndMonth())

@@ -1,6 +1,7 @@
 package com.kong.kong_dic.domain.restaurant.dto;
 
 import com.kong.kong_dic.domain.bean.BeanType;
+import com.kong.kong_dic.domain.bean.domain.BeanPrice;
 import com.kong.kong_dic.domain.restaurant.entity.SubmissionStatus;
 import lombok.*;
 
@@ -17,12 +18,14 @@ public class RestaurantSubmitRequestDto {
     private Long id;
     private String name;
     private String address;
-    private List<BeanType> beanTypes;
+    // private List<BeanType> beanTypes;
 
     private Boolean servesAllYear;
 
     private Integer startMonth;
     private Integer endMonth;
+
+    private List<BeanPrice> prices;
 
     private Double latitude;
     private Double longitude;

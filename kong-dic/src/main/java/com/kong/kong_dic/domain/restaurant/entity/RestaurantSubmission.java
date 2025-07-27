@@ -1,6 +1,7 @@
 package com.kong.kong_dic.domain.restaurant.entity;
 
 import com.kong.kong_dic.domain.bean.BeanType;
+import com.kong.kong_dic.domain.bean.domain.BeanPrice;
 import com.kong.kong_dic.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -22,8 +23,10 @@ public class RestaurantSubmission {
     private String name;
     private String address;
 
-    @Enumerated(EnumType.STRING)
-    private List<BeanType> beanTypes;
+    // @Enumerated(EnumType.STRING)
+    // private List<BeanType> beanTypes;
+    @ElementCollection
+    private List<BeanPrice> prices;
 
     private Boolean servesAllYear;
 
