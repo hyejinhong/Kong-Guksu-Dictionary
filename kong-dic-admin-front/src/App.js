@@ -1,6 +1,7 @@
 // src/App.js
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import AdminRestaurantSubmissions from './pages/AdminRestaurantSubmissions'; 
 
 // 홈 페이지 컴포넌트
 const HomePage = () => (
@@ -9,10 +10,10 @@ const HomePage = () => (
     <p className="text-lg mb-8 text-center">환영합니다! 관리 기능을 선택해주세요.</p>
     <nav className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
       <Link 
-        to="/restaurants" 
+        to="/restaurants/submissions"
         className="px-6 py-3 bg-yellow-500 text-white font-semibold rounded-lg shadow-md hover:bg-yellow-600 transition-colors duration-200 text-center"
       >
-        🍽️ 식당 관리
+        🍽️ 식당 등록 요청 관리
       </Link>
       <Link 
         to="/users" 
@@ -59,7 +60,7 @@ function App() {
       <div className="App">
         <Routes>
           <Route path="/" element={<HomePage />} />
-          <Route path="/restaurants" element={<RestaurantManagementPage />} />
+          <Route path="/restaurants/submissions" element={<AdminRestaurantSubmissions />} />
           <Route path="/users" element={<UserManagementPage />} />
         </Routes>
       </div>
