@@ -1,6 +1,7 @@
 package com.kong.kong_dic.domain.restaurant.service;
 
 import com.google.gson.Gson;
+import com.kong.kong_dic.common.util.KakaoMapUtil;
 import com.kong.kong_dic.domain.bean.domain.BeanPrice;
 import com.kong.kong_dic.domain.notification.dto.NotificationMessage;
 import com.kong.kong_dic.domain.notification.redis.RedisStreamPublisher;
@@ -10,7 +11,6 @@ import com.kong.kong_dic.domain.restaurant.entity.RestaurantSubmission;
 import com.kong.kong_dic.domain.restaurant.repository.RestaurantRepository;
 import com.kong.kong_dic.domain.restaurant.repository.RestaurantSubmitRepository;
 import com.kong.kong_dic.domain.user.entity.User;
-import com.kong.kong_dic.global.util.KakaoMapUtil;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
