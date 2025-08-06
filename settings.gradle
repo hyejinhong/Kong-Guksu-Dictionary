@@ -2,3 +2,4 @@ rootProject.name = 'kongguksu-dictionary'
 
 include 'kong-dic'
 include 'kong-dic-common'
+include 'kong-dic-admin'

@@ -1,5 +1,6 @@
 package com.kong.kong_dic.domain.user.service;
 
+import com.kong.kong_dic.common.exception.BaseException;
 import com.kong.kong_dic.domain.restaurant.entity.Restaurant;
 import com.kong.kong_dic.domain.restaurant.exception.RestaurantExceptionType;
 import com.kong.kong_dic.domain.restaurant.repository.RestaurantRepository;
@@ -10,7 +11,6 @@ import com.kong.kong_dic.domain.user.entity.User;
 import com.kong.kong_dic.domain.user.entity.UserRestaurantVisit;
 import com.kong.kong_dic.domain.user.exception.UserExceptionType;
 import com.kong.kong_dic.domain.user.repository.UserRestaurantVisitRepository;
-import com.kong.kong_dic.global.exception.BaseException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
