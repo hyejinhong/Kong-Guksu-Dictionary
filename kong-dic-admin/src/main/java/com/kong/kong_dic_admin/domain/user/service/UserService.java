@@ -1,14 +1,14 @@
 package com.kong.kong_dic_admin.domain.user.service;
 
-import com.kong.kong_dic.domain.user.dto.UserResponseDto;
-import com.kong.kong_dic.domain.user.dto.UserUpdateRequestDto;
-import com.kong.kong_dic.domain.user.entity.User;
-import com.kong.kong_dic.domain.user.repository.UserRepository;
-import com.kong.kong_dic.domain.user.util.NicknameGenerator;
+import com.kong.kong_dic_admin.domain.user.dto.UserResponseDto;
+import com.kong.kong_dic_admin.domain.user.dto.UserUpdateRequestDto;
+import com.kong.kong_dic_admin.domain.user.entity.User;
+import com.kong.kong_dic_admin.domain.user.repository.UserRepository;
+import com.kong.kong_dic_admin.domain.user.util.NicknameGenerator;
 import lombok.RequiredArgsConstructor;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.sql.Date;
 

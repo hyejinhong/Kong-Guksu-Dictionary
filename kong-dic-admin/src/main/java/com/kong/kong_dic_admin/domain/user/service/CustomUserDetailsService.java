@@ -1,6 +1,6 @@
 package com.kong.kong_dic_admin.domain.user.service;
 
-import com.kong.kong_dic.domain.user.repository.UserRepository;
+import com.kong.kong_dic_admin.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;

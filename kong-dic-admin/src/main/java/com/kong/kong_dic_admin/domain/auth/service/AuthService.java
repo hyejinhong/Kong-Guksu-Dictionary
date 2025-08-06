@@ -1,12 +1,12 @@
 package com.kong.kong_dic_admin.domain.auth.service;
 
 import com.kong.kong_dic.common.exception.BaseException;
-import com.kong.kong_dic.domain.auth.dto.SignupRequestDto;
-import com.kong.kong_dic.domain.auth.exception.AuthExceptionType;
-import com.kong.kong_dic.domain.user.entity.Role;
-import com.kong.kong_dic.domain.user.entity.User;
-import com.kong.kong_dic.domain.user.repository.UserRepository;
-import com.kong.kong_dic.global.jwt.JwtProvider;
+import com.kong.kong_dic_admin.domain.auth.dto.SignupRequestDto;
+import com.kong.kong_dic_admin.domain.auth.exception.AuthExceptionType;
+import com.kong.kong_dic_admin.domain.user.entity.Role;
+import com.kong.kong_dic_admin.domain.user.entity.User;
+import com.kong.kong_dic_admin.domain.user.repository.UserRepository;
+import com.kong.kong_dic_admin.global.jwt.JwtProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;

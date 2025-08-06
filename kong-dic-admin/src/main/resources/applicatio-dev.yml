@@ -1,0 +1,47 @@
+# MariaDB ?? ??
+spring:
+  datasource:
+    url: jdbc:mariadb://localhost:3306/kong_dic
+    username: root
+    password: kong
+    driver-class-name: org.mariadb.jdbc.Driver
+
+  # JPA ??
+  jpa:
+    hibernate:
+      ddl-auto: update  # ?????? ??? ?? ????
+    # database-platform: org.hibernate.dialect.MariaDB103Dialect
+
+    # ?? ?? (SQL ?? ??? ?? ??)
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comment: true
+        highlight_sql: true
+
+kakao:
+  map:
+    api:
+      key: 008b198104d35b6e4a5e98ed31d8e21f
+jwt:
+  secret: rGfbL2nIA1XGy9ned/bMEY8IFpuo1mwuUdJEBHTA4ys=
+  expiration: 600000
+
+front:
+  urls:
+    - http://localhost:3000
+    - http://localhost:3001
+
+logging:
+  level:
+    org:
+      springframework:
+        security: INFO
+      hibernate:
+        orm:
+          jdbc:
+            bind: TRACE
+
+server:
+  port: 8081

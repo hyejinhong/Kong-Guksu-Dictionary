@@ -1,6 +1,5 @@
 package com.kong.kong_dic_admin.domain.user.entity;
 
-import com.kong.kong_dic.domain.user.entity.Role;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
@@ -39,10 +38,6 @@ public class User implements UserDetails {
 
     @Builder.Default
     private Date modifiedAt = new Date(System.currentTimeMillis());
-
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Builder.Default
-    private List<UserRestaurantVisit> visitedRestaurants = new ArrayList<>();
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

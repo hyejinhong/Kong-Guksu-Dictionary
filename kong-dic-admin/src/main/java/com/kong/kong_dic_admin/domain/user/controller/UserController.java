@@ -1,10 +1,10 @@
 package com.kong.kong_dic_admin.domain.user.controller;
 
-import com.kong.kong_dic.domain.user.dto.UserResponseDto;
-import com.kong.kong_dic.domain.user.dto.UserUpdateRequestDto;
-import com.kong.kong_dic.domain.user.entity.User;
-import com.kong.kong_dic.domain.user.service.UserService;
-import com.kong.kong_dic.global.response.BaseResponse;
+import com.kong.kong_dic.common.response.BaseResponse;
+import com.kong.kong_dic_admin.domain.user.dto.UserResponseDto;
+import com.kong.kong_dic_admin.domain.user.dto.UserUpdateRequestDto;
+import com.kong.kong_dic_admin.domain.user.entity.User;
+import com.kong.kong_dic_admin.domain.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
