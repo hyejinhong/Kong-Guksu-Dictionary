@@ -1,8 +1,8 @@
 package com.kong.kong_dic.domain.auth.controller;
 
+import com.kong.kong_dic.common.response.BaseResponse;
 import com.kong.kong_dic.domain.auth.dto.SignupRequestDto;
 import com.kong.kong_dic.domain.auth.service.AuthService;
-import com.kong.kong_dic.global.response.BaseResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

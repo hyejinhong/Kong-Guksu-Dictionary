@@ -1,11 +1,11 @@
 package com.kong.kong_dic.domain.user.controller;
 
+import com.kong.kong_dic.common.response.BaseResponse;
 import com.kong.kong_dic.domain.user.dto.UserRestaurantVisitRequestDto;
 import com.kong.kong_dic.domain.user.dto.UserRestaurantVisitResponseDto;
 import com.kong.kong_dic.domain.user.entity.User;
 import com.kong.kong_dic.domain.user.service.UserRestaurantVisitService;
 import com.kong.kong_dic.domain.user.service.UserService;
-import com.kong.kong_dic.global.response.BaseResponse;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;

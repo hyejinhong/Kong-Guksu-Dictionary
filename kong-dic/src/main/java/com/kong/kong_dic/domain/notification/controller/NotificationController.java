@@ -1,9 +1,9 @@
 package com.kong.kong_dic.domain.notification.controller;
 
+import com.kong.kong_dic.common.response.BaseResponse;
 import com.kong.kong_dic.domain.notification.dto.NotificationMessage;
 import com.kong.kong_dic.domain.notification.service.NotificationService;
 import com.kong.kong_dic.domain.user.entity.User;
-import com.kong.kong_dic.global.response.BaseResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
