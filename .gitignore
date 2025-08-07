@@ -20,3 +20,4 @@ yarn-error.log*
 *.yml
 kong-dic-admin/src/main/resources/application-dev.yml
 /.gradle
+/.idea
