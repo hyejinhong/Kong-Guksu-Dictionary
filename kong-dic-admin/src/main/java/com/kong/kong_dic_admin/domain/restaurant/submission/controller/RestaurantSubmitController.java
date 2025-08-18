@@ -1,9 +1,6 @@
-package com.kong.kong_dic.domain.restaurant.controller;
+package com.kong.kong_dic_admin.domain.restaurant.submission.controller;
 
 import com.kong.kong_dic.common.response.BaseResponse;
-import com.kong.kong_dic.domain.restaurant.dto.RestaurantSubmitRequestDto;
-import com.kong.kong_dic.domain.restaurant.service.RestaurantSubmitService;
-import com.kong.kong_dic.domain.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
