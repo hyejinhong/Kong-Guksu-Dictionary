@@ -1,4 +1,4 @@
-package com.kong.kong_dic.domain.bean;
+package com.kong.kong_dic.common.model;
 
 public enum BeanType {
     OTHER_BEAN("Other Bean"),

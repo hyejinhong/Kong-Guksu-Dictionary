@@ -1,5 +1,8 @@
 package com.kong.kong_dic_admin.domain.restaurant.submission.entity;
 
+import com.kong.kong_dic.common.model.BeanPrice;
+import com.kong.kong_dic_admin.domain.restaurant.submission.model.SubmissionStatus;
+import com.kong.kong_dic_admin.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
 

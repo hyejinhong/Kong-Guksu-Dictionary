@@ -1,7 +1,7 @@
 package com.kong.kong_dic.domain.restaurant.dto;
 
-import com.kong.kong_dic.domain.bean.BeanType;
-import com.kong.kong_dic.domain.bean.domain.BeanPrice;
+import com.kong.kong_dic.common.model.BeanType;
+import com.kong.kong_dic.common.model.BeanPrice;
 import lombok.*;
 
 import java.util.List;

@@ -2,6 +2,10 @@ package com.kong.kong_dic_admin.domain.restaurant.submission.service;
 
 import com.google.gson.Gson;
 import com.kong.kong_dic.common.util.KakaoMapUtil;
+import com.kong.kong_dic_admin.domain.restaurant.submission.dto.RestaurantSubmitRequestDto;
+import com.kong.kong_dic_admin.domain.restaurant.submission.entity.RestaurantSubmission;
+import com.kong.kong_dic_admin.domain.restaurant.submission.repository.RestaurantSubmitRepository;
+import com.kong.kong_dic_admin.domain.user.entity.User;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

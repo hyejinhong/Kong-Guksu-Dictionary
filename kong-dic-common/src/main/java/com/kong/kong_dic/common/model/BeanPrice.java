@@ -1,6 +1,5 @@
-package com.kong.kong_dic.domain.bean.domain;
+package com.kong.kong_dic.common.model;
 
-import com.kong.kong_dic.domain.bean.BeanType;
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
