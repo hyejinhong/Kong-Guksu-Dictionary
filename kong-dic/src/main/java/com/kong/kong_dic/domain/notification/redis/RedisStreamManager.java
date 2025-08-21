@@ -1,7 +1,6 @@
 package com.kong.kong_dic.domain.notification.redis;
 
-import com.google.gson.Gson;
-import com.kong.kong_dic.domain.notification.dto.NotificationMessage;
+import com.kong.kong_dic.common.dto.NotificationMessage;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,7 +19,7 @@ import java.util.concurrent.Executors;
 
 @Slf4j
 @Component
-public class RedisStreamManager { // 클래스 이름 변경 제안: Listener 대신 Manager
+public class RedisStreamManager {
 
     private final StringRedisTemplate redisTemplate;
     private final SimpMessagingTemplate messagingTemplate;

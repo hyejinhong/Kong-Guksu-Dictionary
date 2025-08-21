@@ -1,4 +1,4 @@
-package com.kong.kong_dic.domain.notification.dto;
+package com.kong.kong_dic.common.dto;
 
 import lombok.*;
 

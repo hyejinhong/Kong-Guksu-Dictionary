@@ -1,7 +1,7 @@
 package com.kong.kong_dic.domain.notification.controller;
 
 import com.kong.kong_dic.common.response.BaseResponse;
-import com.kong.kong_dic.domain.notification.dto.NotificationMessage;
+import com.kong.kong_dic.common.dto.NotificationMessage;
 import com.kong.kong_dic.domain.notification.service.NotificationService;
 import com.kong.kong_dic.domain.user.entity.User;
 import lombok.RequiredArgsConstructor;

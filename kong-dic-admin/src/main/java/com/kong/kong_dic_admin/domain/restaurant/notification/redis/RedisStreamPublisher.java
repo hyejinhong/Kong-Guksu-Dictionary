@@ -1,6 +1,6 @@
-package com.kong.kong_dic.domain.notification.redis;
+package com.kong.kong_dic_admin.domain.restaurant.notification.redis;
 
-import com.kong.kong_dic.domain.notification.dto.NotificationMessage;
+import com.kong.kong_dic.common.dto.NotificationMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
