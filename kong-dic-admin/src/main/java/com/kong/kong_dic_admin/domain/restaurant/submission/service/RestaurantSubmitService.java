@@ -2,6 +2,7 @@ package com.kong.kong_dic_admin.domain.restaurant.submission.service;
 
 import com.google.gson.Gson;
 import com.kong.kong_dic.common.dto.NotificationMessage;
+import com.kong.kong_dic.common.event.RestaurantApprovedEvent;
 import com.kong.kong_dic.common.model.BeanPrice;
 import com.kong.kong_dic.common.util.KakaoMapUtil;
 import com.kong.kong_dic_admin.domain.restaurant.notification.redis.RedisStreamPublisher;
@@ -16,6 +17,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -24,7 +26,6 @@ import java.util.stream.Collectors;
 public class RestaurantSubmitService {
 
     private final RestaurantSubmitRepository submitRepository;
-    private final RestaurantRepository restaurantRepository;
     private final KakaoMapUtil kakaoMapUtil;
 
     private final StringRedisTemplate redisTemplate;
@@ -77,20 +78,23 @@ public class RestaurantSubmitService {
                         .build())
                 .collect(Collectors.toList());
 
-        Restaurant restaurant = Restaurant.builder()
+        RestaurantApprovedEvent event = RestaurantApprovedEvent.builder()
+                .submissionId(submission.getId())
                 .name(submission.getName())
                 .address(submission.getAddress())
                 .latitude(submission.getLatitude())
                 .longitude(submission.getLongitude())
-                .beanTypes(submission.getPrices().stream().map(BeanPrice::getBeanType).toList())
-                .prices(newPrices)
+                .servesAllYear(submission.getServesAllYear())
                 .startMonth(submission.getStartMonth())
                 .endMonth(submission.getEndMonth())
-                .servesAllYear(submission.getServesAllYear())
+                .prices(submission.getPrices())
+                .userId(submission.getUser().getId())
                 .build();
 
-        log.debug("### inserted Entity : {}", restaurant.toString());
+        String payload = gson.toJson(event);
+        redisTemplate.opsForStream().add("restaurant.approved", Map.of("data", payload));
 
+        log.info("### Published RestaurantApprovedEvent: {}", payload);
         // 알림 메시지 생성
         NotificationMessage notification = NotificationMessage.builder()
                 .username(submission.getUser().getUsername())
@@ -101,7 +105,6 @@ public class RestaurantSubmitService {
 
         // Redis Stream 발행
         redisStreamPublisher.publish(notification);
-        restaurantRepository.save(restaurant);
     }
 
     public void rejectSubmission(Long id) {
