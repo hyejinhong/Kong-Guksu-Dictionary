@@ -1,8 +1,7 @@
-package com.kong.kong_dic_admin.domain.restaurant.submission.entity;
+package com.kong.kong_dic.common.domain.restaurant.entity;
 
+import com.kong.kong_dic.common.domain.restaurant.model.SubmissionStatus;
 import com.kong.kong_dic.common.model.BeanPrice;
-import com.kong.kong_dic_admin.domain.restaurant.submission.model.SubmissionStatus;
-import com.kong.kong_dic_admin.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -36,9 +35,9 @@ public class RestaurantSubmission {
     private Double latitude;
     private Double longitude;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
-    private User user;
+    // @ManyToOne(fetch = FetchType.LAZY)
+    // @JoinColumn(name = "user_id")
+    private Long userId;
 
     @Builder.Default
     private SubmissionStatus status = SubmissionStatus.PENDING;

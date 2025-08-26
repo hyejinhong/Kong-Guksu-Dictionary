@@ -1,4 +1,4 @@
-package com.kong.kong_dic_admin.domain.restaurant.submission.model;
+package com.kong.kong_dic.common.domain.restaurant.model;
 
 public enum SubmissionStatus {
     PENDING,

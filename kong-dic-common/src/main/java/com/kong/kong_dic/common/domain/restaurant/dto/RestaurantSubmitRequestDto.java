@@ -1,7 +1,7 @@
-package com.kong.kong_dic_admin.domain.restaurant.submission.dto;
+package com.kong.kong_dic.common.domain.restaurant.dto;
 
 import com.kong.kong_dic.common.model.BeanPrice;
-import com.kong.kong_dic_admin.domain.restaurant.submission.model.SubmissionStatus;
+import com.kong.kong_dic.common.domain.restaurant.model.SubmissionStatus;
 import lombok.*;
 
 import java.util.List;

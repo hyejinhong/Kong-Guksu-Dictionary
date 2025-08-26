@@ -1,15 +1,13 @@
 package com.kong.kong_dic_admin.domain.restaurant.submission.service;
 
 import com.google.gson.Gson;
+import com.kong.kong_dic.common.domain.restaurant.dto.RestaurantSubmitRequestDto;
+import com.kong.kong_dic.common.domain.restaurant.entity.RestaurantSubmission;
 import com.kong.kong_dic.common.dto.NotificationMessage;
 import com.kong.kong_dic.common.event.RestaurantApprovedEvent;
 import com.kong.kong_dic.common.model.BeanPrice;
-import com.kong.kong_dic.common.util.KakaoMapUtil;
 import com.kong.kong_dic_admin.domain.restaurant.notification.redis.RedisStreamPublisher;
-import com.kong.kong_dic_admin.domain.restaurant.submission.dto.RestaurantSubmitRequestDto;
-import com.kong.kong_dic_admin.domain.restaurant.submission.entity.RestaurantSubmission;
-import com.kong.kong_dic_admin.domain.restaurant.submission.repository.RestaurantSubmitRepository;
-import com.kong.kong_dic_admin.domain.user.entity.User;
+import com.kong.kong_dic_admin.domain.restaurant.submission.repository.RestaurantSubmitAdminRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,14 +21,11 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class RestaurantSubmitService {
-
-    private final RestaurantSubmitRepository submitRepository;
-    private final KakaoMapUtil kakaoMapUtil;
-
+public class RestaurantSubmitAdminService {
+    private final RedisStreamPublisher redisStreamPublisher;
     private final StringRedisTemplate redisTemplate;
     private final Gson gson = new Gson();
-    private final RedisStreamPublisher redisStreamPublisher;
+    private final RestaurantSubmitAdminRepository submitRepository;
 
     public List<RestaurantSubmitRequestDto> getAllSubmissions() {
         return submitRepository.findAll().stream()
@@ -42,23 +37,6 @@ public class RestaurantSubmitService {
         RestaurantSubmission submission = submitRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Request not found: " + id));
         return entityToRequestDto(submission);
-    }
-
-    public void addRestaurantSubmission(User user, RestaurantSubmitRequestDto request) {
-        // TODO 로그인 안 한 경우 제한
-        log.info("### Restaurant Submission Requested : {}", request.toString());
-        RestaurantSubmission submission = RestaurantSubmission.builder()
-                .name(request.getName())
-                .address(request.getAddress())
-                .prices(request.getPrices())
-                .servesAllYear(request.getServesAllYear())
-                .startMonth(request.getStartMonth())
-                .endMonth(request.getEndMonth())
-                .latitude(request.getLatitude())
-                .longitude(request.getLongitude())
-                .user(user)
-                .build();
-        submitRepository.save(submission);
     }
 
     public void approveSubmission(Long id) {
@@ -88,7 +66,7 @@ public class RestaurantSubmitService {
                 .startMonth(submission.getStartMonth())
                 .endMonth(submission.getEndMonth())
                 .prices(submission.getPrices())
-                .userId(submission.getUser().getId())
+                .userId(submission.getUserId())
                 .build();
 
         String payload = gson.toJson(event);
@@ -97,7 +75,7 @@ public class RestaurantSubmitService {
         log.info("### Published RestaurantApprovedEvent: {}", payload);
         // 알림 메시지 생성
         NotificationMessage notification = NotificationMessage.builder()
-                .username(submission.getUser().getUsername())
+                .username(submission.getUserId().getUsername())
                 .title("Approve")
                 .type("alert")
                 .content("❤️ 요청하신 " + submission.getName() + " 등록이 승인되었습니다.")
@@ -136,8 +114,9 @@ public class RestaurantSubmitService {
                 .startMonth(submission.getStartMonth())
                 .endMonth(submission.getEndMonth())
                 .status(submission.getStatus())
-                .userId(submission.getUser() == null ? null : submission.getUser().getId())
+                .userId(submission.getUserId())
                 .build();
     }
+
 
 }
