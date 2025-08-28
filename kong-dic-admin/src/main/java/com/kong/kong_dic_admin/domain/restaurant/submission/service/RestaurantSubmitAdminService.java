@@ -8,6 +8,8 @@ import com.kong.kong_dic.common.event.RestaurantApprovedEvent;
 import com.kong.kong_dic.common.model.BeanPrice;
 import com.kong.kong_dic_admin.domain.restaurant.notification.redis.RedisStreamPublisher;
 import com.kong.kong_dic_admin.domain.restaurant.submission.repository.RestaurantSubmitAdminRepository;
+import com.kong.kong_dic_admin.domain.user.entity.User;
+import com.kong.kong_dic_admin.domain.user.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,7 +18,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -26,6 +27,7 @@ public class RestaurantSubmitAdminService {
     private final StringRedisTemplate redisTemplate;
     private final Gson gson = new Gson();
     private final RestaurantSubmitAdminRepository submitRepository;
+    private final UserRepository userRepository;
 
     public List<RestaurantSubmitRequestDto> getAllSubmissions() {
         return submitRepository.findAll().stream()
@@ -54,7 +56,7 @@ public class RestaurantSubmitAdminService {
                         .beanType(p.getBeanType())
                         .price(p.getPrice())
                         .build())
-                .collect(Collectors.toList());
+                .toList();
 
         RestaurantApprovedEvent event = RestaurantApprovedEvent.builder()
                 .submissionId(submission.getId())
@@ -73,9 +75,13 @@ public class RestaurantSubmitAdminService {
         redisTemplate.opsForStream().add("restaurant.approved", Map.of("data", payload));
 
         log.info("### Published RestaurantApprovedEvent: {}", payload);
+
+        // TODO Exception
+        User user = userRepository.findById(submission.getUserId()).orElseThrow();
+
         // 알림 메시지 생성
         NotificationMessage notification = NotificationMessage.builder()
-                .username(submission.getUserId().getUsername())
+                .username(user.getUsername())
                 .title("Approve")
                 .type("alert")
                 .content("❤️ 요청하신 " + submission.getName() + " 등록이 승인되었습니다.")
@@ -90,9 +96,12 @@ public class RestaurantSubmitAdminService {
                 .orElseThrow(() -> new IllegalArgumentException("Submission not found"));
         submission.reject();
 
+        // TODO Exception
+        User user = userRepository.findById(submission.getUserId()).orElseThrow();
+
         // 알림 메시지 생성
         NotificationMessage notification = NotificationMessage.builder()
-                .username(submission.getUser().getUsername())
+                .username(user.getUsername())
                 .title("Reject")
                 .type("alert")
                 .content("💔 요청하신 " + submission.getName() + "식당 등록이 거절되었습니다.")
