@@ -45,7 +45,7 @@ public class SecurityConfig {
                                   "/restaurants/nearby",
                                   "/users/nickname/random"
                                   ).permitAll() */
-                        .requestMatchers("/admin/**").hasAuthority(Role.ADMIN.getAuthority())
+                        // .requestMatchers("/admin/**").hasAuthority(Role.ADMIN.getAuthority())
                         .anyRequest().permitAll()
                 )
                 .addFilter(new LoginFilter(authenticationManager(authenticationConfiguration), jwtProvider))

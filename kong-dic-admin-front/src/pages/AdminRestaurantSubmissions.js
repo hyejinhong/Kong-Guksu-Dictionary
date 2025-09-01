@@ -20,7 +20,7 @@ const AdminRestaurantSubmissions = () => {
     const fetchSubmissions = async () => {
       try {
         const response = await axios.get(
-          `${ADMIN_API_BASE_URL}/restaurants/submissions`, // ⭐ 어드민 백엔드 URL 사용
+          `${ADMIN_API_BASE_URL}/admin/restaurants/submissions`, // ⭐ 어드민 백엔드 URL 사용
           { headers: getAuthHeader() }
         );
         // ⭐ 백엔드 응답 구조에 따라 data.data 또는 data만 사용 ⭐
