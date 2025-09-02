@@ -7,23 +7,20 @@ const AdminRestaurantSubmissions = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 3;
 
-  // ⭐ 어드민 백엔드 API의 기본 URL 사용 ⭐
-  // .env.development 파일에 REACT_APP_ADMIN_API_BASE_URL=http://localhost:8080 (또는 실제 어드민 백엔드 URL) 설정 가정
   const ADMIN_API_BASE_URL = process.env.REACT_APP_ADMIN_API_BASE_URL || 'http://localhost:8080';
 
   const getAuthHeader = () => {
-    const token = localStorage.getItem("admin_token"); // ⭐ 어드민 토큰은 별도로 관리하는 것이 좋습니다.
-    return token ? { Authorization: `Bearer ${token}` } : {};
+    const token = localStorage.getItem("admin_token"); 
   };
 
   useEffect(() => {
     const fetchSubmissions = async () => {
       try {
         const response = await axios.get(
-          `${ADMIN_API_BASE_URL}/admin/restaurants/submissions`, // ⭐ 어드민 백엔드 URL 사용
+          `${ADMIN_API_BASE_URL}/admin/restaurants/submissions`, 
           { headers: getAuthHeader() }
         );
-        // ⭐ 백엔드 응답 구조에 따라 data.data 또는 data만 사용 ⭐
+        
         setSubmissions(response.data?.data || []);
       } catch (error) {
         console.error("❌ 데이터 불러오기 실패:", error);
