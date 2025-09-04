@@ -11,6 +11,7 @@ const AdminRestaurantSubmissions = () => {
 
   const getAuthHeader = () => {
     const token = localStorage.getItem("admin_token"); 
+    return token ? { Authorization: `Bearer ${token}` } : {};
   };
 
   useEffect(() => {
@@ -36,7 +37,7 @@ const AdminRestaurantSubmissions = () => {
   const handleApprove = async (submissionId) => {
     try {
       const response = await axios.patch(
-        `${ADMIN_API_BASE_URL}/restaurants/submissions/${submissionId}/approve`, // ⭐ 어드민 백엔드 URL 사용
+        `${ADMIN_API_BASE_URL}/admin/restaurants/submissions/${submissionId}/approve`, 
         {},
         { headers: getAuthHeader() }
       );
@@ -60,7 +61,7 @@ const AdminRestaurantSubmissions = () => {
   const handleReject = async (submissionId) => {
     try {
       const response = await axios.patch(
-        `${ADMIN_API_BASE_URL}/restaurants/submissions/${submissionId}/reject`, {},
+        `${ADMIN_API_BASE_URL}/admin/restaurants/submissions/${submissionId}/reject`, {},
         { headers: getAuthHeader() }
       );
       if (response.data.code === 0) {

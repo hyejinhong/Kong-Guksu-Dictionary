@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_ADMIN_API_BASE_URL || 'http://localhost:8080';
+const API_BASE_URL = process.env.REACT_APP_ADMIN_API_BASE_URL || 'http://localhost:8081';
 
 const Login = ({ onLogin }) => {
   const [username, setUsername] = useState('');
@@ -18,7 +18,7 @@ const Login = ({ onLogin }) => {
         password,
       });
       if (response.status === 200 && response.data) {
-        onLogin(response.data); // 부모 컴포넌트로 토큰 전달
+        onLogin(response.data.data.token); // 부모 컴포넌트로 토큰 전달
       } else {
         setError('로그인에 실패했습니다. 다시 시도해주세요.');
       }
