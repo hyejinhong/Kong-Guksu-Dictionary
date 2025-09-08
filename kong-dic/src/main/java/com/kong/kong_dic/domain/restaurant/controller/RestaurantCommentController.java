@@ -1,10 +1,10 @@
 package com.kong.kong_dic.domain.restaurant.controller;
 
+import com.kong.kong_dic.common.response.BaseResponse;
 import com.kong.kong_dic.domain.restaurant.dto.RestaurantCommentRequestDto;
 import com.kong.kong_dic.domain.restaurant.dto.RestaurantCommentResponseDto;
 import com.kong.kong_dic.domain.restaurant.service.RestaurantCommentService;
 import com.kong.kong_dic.domain.user.entity.User;
-import com.kong.kong_dic.global.response.BaseResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;

@@ -1,7 +1,7 @@
 package com.kong.kong_dic.global.jwt;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.kong.kong_dic.global.response.BaseResponse;
+import com.kong.kong_dic.common.response.BaseResponse;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;

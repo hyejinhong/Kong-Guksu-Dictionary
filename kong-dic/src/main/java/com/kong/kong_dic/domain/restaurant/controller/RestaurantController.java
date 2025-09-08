@@ -1,11 +1,11 @@
 package com.kong.kong_dic.domain.restaurant.controller;
 
-import com.kong.kong_dic.domain.bean.BeanType;
+import com.kong.kong_dic.common.response.BaseResponse;
+import com.kong.kong_dic.common.model.BeanType;
 import com.kong.kong_dic.domain.restaurant.dto.RestaurantRequestDto;
 import com.kong.kong_dic.domain.restaurant.dto.RestaurantResponseDto;
 import com.kong.kong_dic.domain.restaurant.service.RestaurantService;
 import com.kong.kong_dic.domain.user.entity.User;
-import com.kong.kong_dic.global.response.BaseResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;

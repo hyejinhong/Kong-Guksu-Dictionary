@@ -1,6 +1,6 @@
 package com.kong.kong_dic.domain.user.exception;
 
-import com.kong.kong_dic.global.exception.BaseExceptionType;
+import com.kong.kong_dic.common.exception.BaseExceptionType;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 

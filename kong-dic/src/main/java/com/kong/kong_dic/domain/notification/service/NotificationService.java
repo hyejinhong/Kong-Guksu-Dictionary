@@ -1,6 +1,6 @@
 package com.kong.kong_dic.domain.notification.service;
 
-import com.kong.kong_dic.domain.notification.dto.NotificationMessage;
+import com.kong.kong_dic.common.dto.NotificationMessage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Range;
 import org.springframework.data.redis.connection.stream.MapRecord;
