@@ -221,7 +221,11 @@ public class RestaurantService {
     }
 
     private static double calculateDistance(Restaurant restaurant, Double curLatitude, Double curLongitude) {
-        if (curLatitude == null && curLongitude == null) {
+        if (curLatitude == null || curLongitude == null) {
+            return -1;
+        }
+
+        if (restaurant.getLatitude() == null || restaurant.getLongitude() == null) {
             return -1;
         }
 

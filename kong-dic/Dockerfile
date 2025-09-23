@@ -8,9 +8,9 @@ COPY gradle gradle
 COPY settings.gradle .
 
 # 모든 모듈 복사
-COPY kong-dic kong-dic
-COPY kong-dic-admin kong-dic-admin
-COPY kong-dic-common kong-dic-common
+COPY kong-dic ./kong-dic
+COPY kong-dic-admin ./kong-dic-admin
+COPY kong-dic-common ./kong-dic-common
 
 # 실행 권한 부여
 RUN chmod +x gradlew

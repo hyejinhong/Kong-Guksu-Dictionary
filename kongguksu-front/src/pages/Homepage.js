@@ -88,7 +88,7 @@ function HomePage() {
         console.error("위치 정보를 가져올 수 없습니다:", error);
         // 위치 정보를 가져오지 못했을 때도 필터링된 식당 목록을 가져오기 위해
         // location을 기본값으로 남겨두고 fetchRestaurants가 호출되게 합니다.
-        setLocation({ latitude: null, longitude: null }); 
+        setLocation({ latitude: 37.5665, longitude: 126.9780 }); 
       }
     );
   }, []); // 컴포넌트 마운트 시 한 번만 실행
