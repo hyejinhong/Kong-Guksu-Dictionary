@@ -17,7 +17,7 @@ public class RedisStreamConfig {
         RedisStandaloneConfiguration redisStandaloneConfiguration = new RedisStandaloneConfiguration();
         redisStandaloneConfiguration.setHostName(redisHost);
         redisStandaloneConfiguration.setPort(redisPort);
-        return new LettuceConnectionFactory();
+        return new LettuceConnectionFactory(redisStandaloneConfiguration);
     }
 
     @Value("${spring.redis.host}")
