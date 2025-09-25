@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const SignupPage = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     username: "",
     nickname: "",
@@ -90,21 +92,17 @@ const SignupPage = () => {
         }),
       });
   
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-  
       const result = await response.json();
       if (result.code === 0) {
         console.log("회원가입 성공:", result.message);
-        // TODO: 회원가입 성공 후 처리 (예: 로그인 페이지 이동 등)
+        navigate("/login");
       } else {
         console.error("회원가입 실패:", result.message);
-        // TODO: 실패 시 사용자에게 에러 메시지 보여주기
+        alert(result.message || "회원가입에 실패했습니다.");
       }
     } catch (error) {
       console.error("서버 요청 실패:", error);
-      // TODO: 네트워크 오류 등 처리
+      alert("회원가입에 실패했습니다. " + error);
     }
   };
   
