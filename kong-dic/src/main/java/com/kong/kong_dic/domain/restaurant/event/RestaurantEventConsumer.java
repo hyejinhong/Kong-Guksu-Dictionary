@@ -8,6 +8,7 @@ import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.connection.stream.MapRecord;
+import org.springframework.data.redis.connection.stream.ReadOffset;
 import org.springframework.data.redis.connection.stream.StreamOffset;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
@@ -22,13 +23,21 @@ import java.util.Map;
 public class RestaurantEventConsumer {
 
     private static final String STREAM_KEY = "restaurant.approved";
+    private static final String LAST_ID_KEY = "restaurant:lastProcessedId";
 
     private final RedisTemplate<String, String> redisTemplate;
     private final RestaurantRepository restaurantRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    private String lastProcessedId = "0-0"; // 마지막으로 처리한 Stream ID
+
     @PostConstruct
     public void listen() {
+        // Redis에서 마지막 처리 ID 복구
+        String savedId = redisTemplate.opsForValue().get(LAST_ID_KEY);
+        if (savedId != null) {
+            lastProcessedId = savedId;
+        }
         new Thread(this::consume).start(); // 별도 스레드에서 계속 읽기
     }
 
@@ -39,7 +48,7 @@ public class RestaurantEventConsumer {
             try {
                 List<MapRecord<String, Object, Object>> messages =
                         redisTemplate.opsForStream().read(
-                                StreamOffset.fromStart(STREAM_KEY) // 처음부터 읽기, 운영에선 lastConsumed 추천
+                                StreamOffset.create(STREAM_KEY, ReadOffset.from(lastProcessedId)) // 처음부터 읽기, 운영에선 lastConsumed 추천
                         );
 
                 if (messages == null || messages.isEmpty()) {
@@ -72,6 +81,10 @@ public class RestaurantEventConsumer {
                     restaurantRepository.save(restaurant);
 
                     log.info("### Saved Restaurant entity id={}", restaurant.getId());
+
+                    // 마지막 처리 ID 갱신
+                    lastProcessedId = message.getId().getValue();
+                    redisTemplate.opsForValue().set(LAST_ID_KEY, lastProcessedId);
                 }
 
             } catch (Exception e) {

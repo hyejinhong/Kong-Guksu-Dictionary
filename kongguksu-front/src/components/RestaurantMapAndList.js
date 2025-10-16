@@ -1,14 +1,11 @@
-// src/components/RestaurantMapAndList.js
 import React from "react";
 import KakaoMap from "./KakaoMap";
 import { Link } from "react-router-dom";
 import Slider from 'rc-slider';
-import 'rc-slider/assets/index.css'; 
+import 'rc-slider/assets/index.css';
+import SearchInput from "./SearchInput";
 
 function RestaurantMapAndList({ restaurants, handleFilterChange, filter, loading, error }) {
-  const handleSearchTermInput = (e) => {
-    handleFilterChange("searchTerm", e.target.value);
-  };
 
   const handlePriceChange = (values) => {
     handleFilterChange("minPrice", values[0]);
@@ -23,20 +20,16 @@ function RestaurantMapAndList({ restaurants, handleFilterChange, filter, loading
     return <p className="text-center mt-8 text-red-500">❌ {error}</p>;
   }
 
-  // ⭐ restaurants prop이 유효한 배열인지 확인
-  // 만약 restaurants가 undefined 또는 null 이라면 빈 배열로 처리하여 length 에러 방지
-  const displayRestaurants = restaurants || []; 
+  const displayRestaurants = restaurants || [];
 
   return (
     <>
       <div className="flex justify-center my-4 px-4">
-        <input
-          type="text"
-          placeholder="🍜 식당 이름이나 주소를 검색해보세요"
-          className="p-3 border border-gray-300 rounded-lg w-full max-w-md focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg"
-          value={filter.searchTerm}
-          onChange={handleSearchTermInput}
+        <SearchInput
+          searchTerm={filter.searchTerm}
+          handleFilterChange={handleFilterChange}
         />
+
       </div>
 
       <div className="flex justify-center my-4">
@@ -116,7 +109,6 @@ function RestaurantMapAndList({ restaurants, handleFilterChange, filter, loading
       </div>
 
       <div className="mx-4 mt-4">
-        {/* ⭐ displayRestaurants 변수 사용 ⭐ */}
         {displayRestaurants.length > 0 ? (
           displayRestaurants.map((restaurant) => (
             <Link key={restaurant.id} to={`/restaurant/${restaurant.id}`} className="block">
