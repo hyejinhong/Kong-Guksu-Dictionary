@@ -46,6 +46,8 @@ const RestaurantSubmissionForm = () => {
         const options = {
           center: new kakao.maps.LatLng(37.5665, 126.9780), // 서울 중심
           level: 5,
+          draggable: true, // 드래그 허용
+          scrollwheel: true, // 마우스 휠로 확대/축소 허용
         };
         const mapInstance = new kakao.maps.Map(container, options);
         setMap(mapInstance);
@@ -126,6 +128,9 @@ const RestaurantSubmissionForm = () => {
 
       setMarkers(newMarkers);
       map.setBounds(bounds);
+
+      map.setZoomable(true);
+      map.setDraggable(true);
     });
   };
 
