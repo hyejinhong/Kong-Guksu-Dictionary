@@ -7,7 +7,9 @@ import com.kong.kong_dic.domain.restaurant.dto.RestaurantResponseDto;
 import com.kong.kong_dic.domain.restaurant.service.RestaurantService;
 import com.kong.kong_dic.domain.user.entity.User;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -22,11 +24,21 @@ public class RestaurantController {
 
     private final RestaurantService restaurantService;
 
-    /**
-     * 모든 식당 조회 및 검색/필터링
-     */
     @GetMapping
-    public ResponseEntity<BaseResponse<List<RestaurantResponseDto>>> getAllRestaurants(
+    public ResponseEntity<BaseResponse<Page<RestaurantResponseDto>>> getAllRestaurants(@PageableDefault(size = 10) Pageable pageable) {
+        Page<RestaurantResponseDto> resultPage = restaurantService.getAllRestaurants(pageable);
+
+        if (resultPage.isEmpty()) {
+            return ResponseEntity.ok(BaseResponse.success("No registered restaurants found.", resultPage));
+        }
+        return ResponseEntity.ok(BaseResponse.success("Successfully fetched all registered restaurants.", resultPage));
+    }
+
+    /**
+     * 식당 검색/필터링
+     */
+    @GetMapping("/filter")
+    public ResponseEntity<BaseResponse<List<RestaurantResponseDto>>> getFilteredRestaurants(
             @RequestParam(required = false) Double lan,
             @RequestParam(required = false) Double lon,
             @RequestParam(required = false) String searchTerm,
@@ -34,7 +46,7 @@ public class RestaurantController {
             @RequestParam(required = false) String season,
             @RequestParam(required = false) Integer minPrice,
             @RequestParam(required = false) Integer maxPrice,
-            Pageable pageable) { // Pageable은 거리 계산 및 정렬에 활용될 수 있음
+            Pageable pageable) {
 
         List<RestaurantResponseDto> result = restaurantService.searchAndFilterRestaurants(
                 lan, lon, searchTerm, beanType, season, minPrice, maxPrice, pageable);

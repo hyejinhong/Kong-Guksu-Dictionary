@@ -39,9 +39,11 @@ public class RestaurantService {
     private final UserRestaurantVisitRepository visitRepository;
     private final KakaoMapUtil kakaoMapUtil;
 
-    public List<RestaurantResponseDto> getAllRestaurants(Double lan, Double lon, Pageable pageable) {
+    public Page<RestaurantResponseDto> getAllRestaurants(Pageable pageable) {
+        Page<Restaurant> restaurantPage = restaurantRepository.findAll(pageable);
+
         Page<Restaurant> page = restaurantRepository.findAll(pageable);
-        return page.map(restaurant -> entityToResponseDto(restaurant, lan, lon)).toList();
+        return page.map(restaurant -> entityToResponseDto(restaurant, null, null));
     }
 
     public List<RestaurantResponseDto> searchAndFilterRestaurants(
