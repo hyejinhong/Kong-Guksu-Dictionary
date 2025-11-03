@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
 import AdminRestaurantSubmissions from './pages/AdminRestaurantSubmissions'; 
 import Login from './pages/Login';
-import AdminRestaurantList from './pages/AdminRestaurantList'; // ⭐ AdminRestaurantList 임포트
+import AdminRestaurantList from './pages/AdminRestaurantList';
+import AdminRestaurantEdit from './pages/AdminRestaurantEdit';
 
 // 헤더 컴포넌트 (홈 버튼 및 로그아웃 버튼 포함)
 const Header = ({ onLogout }) => {
@@ -111,8 +112,9 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/restaurants/submissions" element={<AdminRestaurantSubmissions />} />
-        <Route path="/restaurants/list" element={<AdminRestaurantList />} /> {/* ⭐ 새 라우팅 추가 ⭐ */}
+        <Route path="/restaurants/list" element={<AdminRestaurantList />} />
         <Route path="/users" element={<UserManagementPage />} />
+        <Route path="/restaurants/edit/:id" element={<AdminRestaurantEdit />} /> 
       </Routes>
     </div>
   );

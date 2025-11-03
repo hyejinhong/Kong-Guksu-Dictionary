@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
+import { Link } from "react-router-dom";
 
 const ITEMS_PER_PAGE = 10;
 const ADMIN_API_BASE_URL = process.env.REACT_APP_ADMIN_API_BASE_URL || 'http://localhost:8081';
@@ -145,12 +146,12 @@ const AdminRestaurantList = () => {
                     {restaurant.servesAllYear ? '연중무휴' : `${restaurant.startMonth}~${restaurant.endMonth}월`}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex space-x-2 justify-center">
-                    <button 
-                        // TODO: 수정 페이지로 이동 로직 추가
+                    <Link 
+                        to={`/restaurants/edit/${restaurant.id}`}
                         className="text-indigo-600 hover:text-indigo-900"
                     >
                         수정
-                    </button>
+                    </Link>
                     <button 
                         onClick={() => handleDelete(restaurant.id)}
                         className="text-red-600 hover:text-red-900"
