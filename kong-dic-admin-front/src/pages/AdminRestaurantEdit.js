@@ -132,8 +132,7 @@ const AdminRestaurantEdit = () => {
                     .map(item => ({ beanType: item.beanType, price: parseInt(item.price) })),
             };
             
-            // TODO: 백엔드에 식당 수정 API 구현 필요
-            const res = await axios.patch(`${ADMIN_API_BASE_URL}/api/admin/restaurants/${restaurantId}`, payload, {
+            const res = await axios.put(`${API_BASE_URL}/restaurants/${restaurantId}`, payload, {
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem('admin_token')}`,
                     'Content-Type': 'application/json',
