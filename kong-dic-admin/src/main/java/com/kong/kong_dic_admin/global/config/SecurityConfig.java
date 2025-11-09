@@ -1,7 +1,6 @@
 package com.kong.kong_dic_admin.global.config;
 
 import com.kong.kong_dic_admin.domain.auth.filter.LoginFilter;
-import com.kong.kong_dic_admin.domain.user.entity.Role;
 import com.kong.kong_dic_admin.domain.user.service.CustomUserDetailsService;
 import com.kong.kong_dic_admin.global.jwt.JwtAuthenticationFilter;
 import com.kong.kong_dic_admin.global.jwt.JwtProvider;
@@ -20,6 +19,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfigurationSource;
 
 @Configuration
 @EnableWebSecurity
@@ -30,11 +30,12 @@ public class SecurityConfig {
     private final JwtProvider jwtProvider;
     private final CustomUserDetailsService userDetailsService;
     private final AuthenticationConfiguration authenticationConfiguration;
+    private final CorsConfigurationSource corsConfigurationSource;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .cors(Customizer.withDefaults())
+                .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize -> authorize
                         /* .requestMatchers(

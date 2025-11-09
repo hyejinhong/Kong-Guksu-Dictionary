@@ -27,8 +27,7 @@ function HomePage() {
     setError(null);   // 에러 초기화
 
     try {
-      // API 기본 URL (RestaurantController의 @RequestMapping("/api/restaurants"))
-      const url = `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080'}/restaurants`;
+      const url = `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080'}/restaurants/filter`;
 
       // 모든 검색 및 필터링 파라미터를 params 객체에 담기
       const params = {

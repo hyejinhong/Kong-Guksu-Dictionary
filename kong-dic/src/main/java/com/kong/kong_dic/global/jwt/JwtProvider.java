@@ -13,11 +13,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 
 @Component
@@ -93,8 +97,17 @@ public class JwtProvider {
      * ✅ JWT 토큰에서 인증 정보 가져오기
      */
     public Authentication getAuthentication(String token) {
+        Claims claims = getClaimsFromToken(token);
+
         String username = getUsernameFromToken(token);
         UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-        return new UsernamePasswordAuthenticationToken(userDetails, "", userDetails.getAuthorities());
+
+        String roleName = claims.get("role", String.class);
+        Collection<GrantedAuthority> authorities = new ArrayList<>();
+        if (roleName != null) {
+            authorities.add(new SimpleGrantedAuthority("ROLE_" + roleName.toUpperCase()));
+        }
+
+        return new UsernamePasswordAuthenticationToken(userDetails, "", authorities);
     }
 }
