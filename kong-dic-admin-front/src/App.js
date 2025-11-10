@@ -1,9 +1,45 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
-import AdminRestaurantSubmissions from './pages/AdminRestaurantSubmissions'; 
+import AdminRestaurantSubmissions from './pages/AdminRestaurantSubmissions';
 import Login from './pages/Login';
 import AdminRestaurantList from './pages/AdminRestaurantList';
 import AdminRestaurantEdit from './pages/AdminRestaurantEdit';
+
+// JWT 토큰 파싱
+const parseJwt = (token) => {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function (c) {
+      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    console.error("Failed to parse token:", e);
+    return null;
+  }
+};
+
+// 토큰 만료 여부 확인
+const isTokenExpired = (token) => {
+  if (!token) return true;
+
+  const payload = parseJwt(token);
+  if (!payload || !payload.exp) {
+    // exp 필드가 없으면 유효하지 않은 토큰으로 간주
+    return true;
+  }
+
+  // payload.exp는 유닉스 타임스탬프 (초 단위)이므로 1000을 곱하여 밀리초로 변환
+  const expirationTimeMs = payload.exp * 1000;
+
+  // 현재 시간 (밀리초)
+  const currentTimeMs = Date.now();
+
+  // 만료 시간(exp)이 현재 시간보다 작으면 만료됨
+  return expirationTimeMs < currentTimeMs;
+};
 
 // 헤더 컴포넌트 (홈 버튼 및 로그아웃 버튼 포함)
 const Header = ({ onLogout }) => {
@@ -13,14 +49,14 @@ const Header = ({ onLogout }) => {
         <Link to="/">콩국수사전 관리자</Link>
       </div>
       <div className="flex space-x-4">
-        <Link 
-          to="/" 
+        <Link
+          to="/"
           className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-lg transition-colors duration-200"
         >
           🏠 홈
         </Link>
-        <button 
-          onClick={onLogout} 
+        <button
+          onClick={onLogout}
           className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200"
         >
           로그아웃
@@ -37,22 +73,22 @@ const HomePage = () => (
     <p className="text-lg mb-8 text-center">환영합니다! 관리 기능을 선택해주세요.</p>
     <nav className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
       {/* 🍽️ 식당 등록 요청 관리 링크 */}
-      <Link 
+      <Link
         to="/restaurants/submissions"
         className="px-6 py-3 bg-yellow-500 text-white font-semibold rounded-lg shadow-md hover:bg-yellow-600 transition-colors duration-200 text-center"
       >
         🍽️ 식당 등록 요청 관리
       </Link>
       {/* 🍜 등록된 식당 전체 관리 링크 (AdminRestaurantList 연결) */}
-      <Link 
-        to="/restaurants/list" 
+      <Link
+        to="/restaurants/list"
         className="px-6 py-3 bg-green-500 text-white font-semibold rounded-lg shadow-md hover:bg-green-600 transition-colors duration-200 text-center"
       >
         🍜 등록 식당 전체 관리
       </Link>
       {/* 👤 사용자 관리 링크 */}
-      <Link 
-        to="/users" 
+      <Link
+        to="/users"
         className="px-6 py-3 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 transition-colors duration-200 text-center"
       >
         👤 사용자 관리
@@ -66,8 +102,8 @@ const UserManagementPage = () => (
   <div className="flex flex-col items-center justify-center min-h-screen bg-white text-gray-800 p-4">
     <h2 className="text-3xl font-bold mb-4 text-center">사용자 관리 페이지 🧑‍💻</h2>
     <p className="text-md text-center">여기서 사용자 목록을 보고 계정 정지/권한 변경 작업을 할 수 있습니다.</p>
-    <Link 
-      to="/" 
+    <Link
+      to="/"
       className="mt-6 px-4 py-2 text-blue-600 border border-blue-600 rounded-md hover:bg-blue-50 hover:text-blue-700 transition-colors duration-200"
     >
       🏠 홈으로 돌아가기
@@ -78,14 +114,25 @@ const UserManagementPage = () => (
 // 메인 App 컴포넌트
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
   // 토큰 유효성 검사 (아주 기본적인 로직)
   useEffect(() => {
     const token = localStorage.getItem('admin_token');
+
+    // 1. 토큰 존재 및 만료 검사
     if (token) {
-      setIsAuthenticated(true);
+      if (!isTokenExpired(token)) {
+        // 토큰이 존재하고 만료되지 않음
+        setIsAuthenticated(true);
+      } else {
+        // 토큰은 있으나 만료됨
+        localStorage.removeItem('admin_token');
+        console.warn("관리자 토큰이 만료되었습니다. 다시 로그인해주세요.");
+      }
     }
+    setIsLoading(false); // 로딩 종료
   }, []);
 
   // 로그인 성공 시 호출될 함수
@@ -102,6 +149,14 @@ function App() {
     navigate('/');
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <p className="text-xl font-medium text-gray-700">인증 정보 확인 중...</p>
+      </div>
+    );
+  }
+
   if (!isAuthenticated) {
     return <Login onLogin={handleLogin} />;
   }
@@ -114,7 +169,7 @@ function App() {
         <Route path="/restaurants/submissions" element={<AdminRestaurantSubmissions />} />
         <Route path="/restaurants/list" element={<AdminRestaurantList />} />
         <Route path="/users" element={<UserManagementPage />} />
-        <Route path="/restaurants/edit/:id" element={<AdminRestaurantEdit />} /> 
+        <Route path="/restaurants/edit/:id" element={<AdminRestaurantEdit />} />
       </Routes>
     </div>
   );
