@@ -10,7 +10,10 @@ public enum UserExceptionType implements BaseExceptionType {
 
     ALREADY_VISITED_RESTAURANT(1, 400, "이미 저장된 정보입니다."),
     VISIT_NOT_FOUND(2, 404, "No visit found."),
-    FORBIDDEN(3, 403, "Forbidden");
+    FORBIDDEN(3, 403, "Forbidden"),
+    USER_NOT_FOUND(4, 400, "User not found."),
+    INVALID_INPUT(5, 400, "Invalid Input"),
+    UNAUTHORIZED(6, 401, "Unauthorized");
 
     private final int code;
     private final int httpStatusCode;
