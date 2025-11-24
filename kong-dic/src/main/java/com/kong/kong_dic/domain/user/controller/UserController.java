@@ -71,7 +71,6 @@ public class UserController {
         return ResponseEntity.ok(BaseResponse.success());
     }
 
-    // TODO permitAll
     @GetMapping("/nickname/random")
     public ResponseEntity<BaseResponse<String>> getRandomNickname() {
         return ResponseEntity.ok(BaseResponse.success("Success", userService.getRandomNickname()));
