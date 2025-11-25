@@ -59,18 +59,6 @@ public class UserController {
         return ResponseEntity.ok(BaseResponse.success("User profile updated successfully.", updatedProfile));
     }
 
-    @GetMapping("/my")
-    public ResponseEntity<BaseResponse<UserResponseDto>> getMyInfo(@AuthenticationPrincipal User user) {
-        return ResponseEntity.ok(BaseResponse.success(userService.getMyInfo(user)));
-    }
-
-    @PatchMapping("/my")
-    public ResponseEntity<BaseResponse<Void>> updateMyInfo(@AuthenticationPrincipal User user,
-                                                           @RequestBody UserUpdateRequestDto request) {
-        userService.updateMyInfo(user, request);
-        return ResponseEntity.ok(BaseResponse.success());
-    }
-
     @GetMapping("/nickname/random")
     public ResponseEntity<BaseResponse<String>> getRandomNickname() {
         return ResponseEntity.ok(BaseResponse.success("Success", userService.getRandomNickname()));

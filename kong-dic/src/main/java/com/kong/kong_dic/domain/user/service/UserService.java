@@ -73,7 +73,11 @@ public class UserService {
                 .orElseThrow(() -> new BaseException(UserExceptionType.USER_NOT_FOUND));
 
         // 1. 닉네임 수정 (값이 있을 경우에만)
-        if (request.getNickname() != null && !request.getNickname().isBlank()) {
+        String newNickname = request.getNickname();
+        if (newNickname != null && !newNickname.isBlank()) {
+            if (!user.getNickname().equals(newNickname) && userRepository.existsByNickname(newNickname)) {
+                throw new BaseException(UserExceptionType.DUPLICATED_NICKNAME);
+            }
             user.setNickname(request.getNickname());
         }
 
