@@ -13,7 +13,8 @@ public enum UserExceptionType implements BaseExceptionType {
     FORBIDDEN(3, 403, "Forbidden"),
     USER_NOT_FOUND(4, 400, "User not found."),
     INVALID_INPUT(5, 400, "Invalid Input"),
-    UNAUTHORIZED(6, 401, "Unauthorized");
+    UNAUTHORIZED(6, 401, "Unauthorized"),
+    DUPLICATED_NICKNAME(7, 400, "Duplicated Nickname.");
 
     private final int code;
     private final int httpStatusCode;

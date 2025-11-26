@@ -184,24 +184,36 @@ function BaseLayout({ children }) {
           🍜 콩국수 사전 🍜
         </h1>
         {isLoggedIn && (
-          <button onClick={handleNotificationClick} className="mr-2 text-2xl">
-            🔔
-          </button>
+          // ⭐ 로그인 상태일 때 버튼 그룹 ⭐
+          <div className="flex items-center space-x-3">
+            {/* 1. 마이페이지 버튼 추가 */}
+            <Link
+              to="/mypage"
+              className="bg-[#57B4BA] text-white px-3 py-1 rounded-md text-sm hover:bg-[#46A2AC] transition-colors"
+            >
+              내 정보
+            </Link>
+
+            {/* 2. 알림 버튼 (기존 유지) */}
+            <button onClick={handleNotificationClick} className="text-2xl">
+              🔔
+            </button>
+
+            {/* 3. 로그아웃 버튼 (기존 유지) */}
+            <button
+              onClick={handleLogout}
+              className="bg-red-500 text-white px-3 py-1 rounded-md text-sm hover:bg-red-600 transition-colors"
+            >
+              로그아웃
+            </button>
+          </div>
         )}
-        {isLoggedIn ? (
-          <button
-            onClick={handleLogout}
-            className="bg-[#57B4BA] text-white px-3 py-1 rounded-md text-sm"
-          >
-            로그아웃
-          </button>
-        ) : (
+        {!isLoggedIn && (
           <Link to="/login" className="bg-[#57B4BA] text-white px-3 py-1 rounded-md text-sm">
             로그인
           </Link>
         )}
       </header>
-
       <main className="flex-grow pb-16 md:pb-12">
         {children}
       </main>
