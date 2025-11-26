@@ -5,6 +5,7 @@ import com.kong.kong_dic.domain.user.dto.UserProfileResponseDto;
 import com.kong.kong_dic.domain.user.dto.UserProfileUpdateRequestDto;
 import com.kong.kong_dic.domain.user.entity.Role;
 import com.kong.kong_dic.domain.user.entity.User;
+import com.kong.kong_dic.domain.user.exception.UserExceptionType;
 import com.kong.kong_dic.domain.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -63,8 +64,11 @@ public class UserServiceTest {
 
         // DB 조회시 testUser 반환
         when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(testUser));
+        // 중복이 없다고 가정
+        when(userRepository.existsByNickname("newNickname")).thenReturn(false);
         // DB 저장시 testUser (수정된 닉네임) 반환 설정
         when(userRepository.save(any(User.class))).thenReturn(testUser);
+
 
         // When
         UserProfileResponseDto result = userService.updateMyProfile(USERNAME, request);
@@ -150,5 +154,49 @@ public class UserServiceTest {
         });
         // DB save는 호출되지 않았는지 확인
         verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("실패: 닉네임 중복인 경우")
+    void updateMyProfile_shouldThrowException_whenNicknameIsDuplicated() {
+        // Given
+        UserProfileUpdateRequestDto request = new UserProfileUpdateRequestDto();
+        request.setNickname("existingNickname");
+
+        // Mocking
+        when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(testUser));
+        when(userRepository.existsByNickname("existingNickname")).thenReturn(true);
+        
+        // When & Then
+        BaseException exception = assertThrows(BaseException.class, () -> {
+            userService.updateMyProfile(USERNAME, request);
+        });
+
+        // 검증: 예상된 예외 타입(NICKNAME_DUPLICATED)이 발생했는지 확인
+        assertThat(exception.getExceptionType()).isEqualTo(UserExceptionType.DUPLICATED_NICKNAME);
+        // 검증: DB save 메서드는 호출되지 않았는지 확인
+        verify(userRepository, never()).save(any(User.class));
+        // 검증: 닉네임 중복 검사 메서드가 호출되었는지 확인
+        verify(userRepository, times(1)).existsByNickname("existingNickname");
+    }
+
+    @Test
+    @DisplayName("성공: 닉네임을 변경하지 않으면 중복검사도 스킵")
+    void updateMyProfile_shouldSkipDuplicateCheck_whenNicknameIsUnchanged() {
+        // Given
+        UserProfileUpdateRequestDto request = new UserProfileUpdateRequestDto();
+        request.setNickname("oldNickname");
+
+        when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(testUser));
+        when(userRepository.save(any(User.class))).thenReturn(testUser);
+
+        // when
+        userService.updateMyProfile(USERNAME, request);
+
+        // Then
+        verify(userRepository, never()).existsByNickname(anyString());
+        // DB save 1번만 호출
+        verify(userRepository, times(1)).save(any(User.class));
+
     }
 }
