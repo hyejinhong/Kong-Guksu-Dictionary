@@ -26,6 +26,10 @@ public class UserRestaurantVisit {
     private Restaurant restaurant;
 
     private LocalDate visitDate; // 방문 일자
-    private Integer rating;      // 사용자가 매긴 별점
+    private Double rating;      // 사용자가 매긴 별점
     private String memo;         // 사용자의 짧은 메모
+
+    public void updateRating(Double rating) {
+        this.rating = rating;
+    }
 }

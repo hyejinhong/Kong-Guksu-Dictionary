@@ -45,4 +45,16 @@ public class Restaurant {
     @OneToMany(mappedBy = "restaurant", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<UserRestaurantVisit> userVisits = new ArrayList<>(); // 이 식당을 방문한 사용자 목록
+
+    @Column(nullable = false)
+    private Long totalScraps = 0L;
+
+    @Column(nullable = false)
+    private Double averageRating = 0.0;
+
+    // 통계 업데이트
+    public void updateStats(Long count, Double rating) {
+        this.totalScraps = count;
+        this.averageRating = rating;
+    }
 }
