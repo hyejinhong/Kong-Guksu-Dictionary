@@ -1,6 +1,6 @@
 package com.kong.kong_dic.domain.user.repository;
 
-import com.kong.kong_dic.domain.user.dto.RatingStatsDto;
+import com.kong.kong_dic.domain.restaurant.dto.RatingStatsDto;
 import com.kong.kong_dic.domain.user.entity.UserRestaurantVisit;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

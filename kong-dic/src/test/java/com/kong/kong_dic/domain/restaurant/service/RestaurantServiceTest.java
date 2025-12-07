@@ -3,7 +3,7 @@ package com.kong.kong_dic.domain.restaurant.service;
 import com.kong.kong_dic.common.exception.BaseException;
 import com.kong.kong_dic.domain.restaurant.entity.Restaurant;
 import com.kong.kong_dic.domain.restaurant.repository.RestaurantRepository;
-import com.kong.kong_dic.domain.user.dto.RatingStatsDto;
+import com.kong.kong_dic.domain.restaurant.dto.RatingStatsDto;
 import com.kong.kong_dic.domain.user.entity.User;
 import com.kong.kong_dic.domain.user.entity.UserRestaurantVisit;
 import com.kong.kong_dic.domain.user.repository.UserRepository;

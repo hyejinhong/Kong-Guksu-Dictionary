@@ -1,4 +1,4 @@
-package com.kong.kong_dic.domain.user.dto;
+package com.kong.kong_dic.domain.restaurant.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
