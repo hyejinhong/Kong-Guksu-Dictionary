@@ -9,6 +9,6 @@ import java.time.LocalDate;
 public class UserRestaurantVisitRequestDto {
     private Long restaurantId;
     private LocalDate visitDate;
-    private Integer rating;
+    private Double rating;
     private String memo;
 }

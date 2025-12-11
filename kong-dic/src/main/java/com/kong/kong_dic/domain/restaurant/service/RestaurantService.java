@@ -10,7 +10,11 @@ import com.kong.kong_dic.domain.restaurant.dto.RestaurantResponseDto;
 import com.kong.kong_dic.domain.restaurant.entity.Restaurant;
 import com.kong.kong_dic.domain.restaurant.exception.RestaurantExceptionType;
 import com.kong.kong_dic.domain.restaurant.repository.RestaurantRepository;
+import com.kong.kong_dic.domain.restaurant.dto.RatingStatsDto;
 import com.kong.kong_dic.domain.user.entity.User;
+import com.kong.kong_dic.domain.user.entity.UserRestaurantVisit;
+import com.kong.kong_dic.domain.user.exception.UserExceptionType;
+import com.kong.kong_dic.domain.user.repository.UserRepository;
 import com.kong.kong_dic.domain.user.repository.UserRestaurantVisitRepository;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.criteria.Join;
@@ -29,6 +33,7 @@ import org.springframework.util.StringUtils;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -37,6 +42,7 @@ import java.util.stream.Collectors;
 public class RestaurantService {
 
     private final RestaurantRepository restaurantRepository;
+    private final UserRepository userRepository;
     private final UserRestaurantVisitRepository visitRepository;
     private final KakaoMapUtil kakaoMapUtil;
 
@@ -251,5 +257,54 @@ public class RestaurantService {
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
         return EARTH_RADIUS_KM * c; // 거리 (km 단위)
+    }
+
+    /**
+     * 사용자가 식당을 '나의 사전'에 저장하거나, 별점을 수정
+     * 작업 후 식당의 전체 통계(저장 수, 평균 별점)를 업데이트
+     */
+    @Transactional
+    public void addOrUpdateVisit(Long userId, Long restaurantId, Double rating) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BaseException(UserExceptionType.USER_NOT_FOUND));
+        Restaurant restaurant = restaurantRepository.findById(restaurantId)
+                .orElseThrow(() -> new BaseException(RestaurantExceptionType.RESTAURANT_NOT_FOUND));
+
+        // 1. 기존 방문 기록 조회
+        Optional<UserRestaurantVisit> existingVisit = visitRepository.findByUserIdAndRestaurantId(userId, restaurantId);
+
+        if (existingVisit.isPresent()) {
+            // 1-A. 이미 존재하면 별점만 업데이트 (수정)
+            UserRestaurantVisit visit = existingVisit.get();
+            visit.updateRating(rating);
+            // JPA Dirty Checking으로 인해 save 호출 불필요 (트랜잭션 종료 시 자동 업데이트)
+        } else {
+            // 1-B. 없으면 새로 생성 (저장)
+            UserRestaurantVisit newVisit = UserRestaurantVisit.builder()
+                    .user(user)
+                    .restaurant(restaurant)
+                    .rating(rating)
+                    .build();
+            visitRepository.save(newVisit);
+        }
+
+        // 2. 통계 재계산 및 Restaurant 엔티티 업데이트 (역정규화)
+        updateRestaurantStats(restaurantId);
+    }
+
+    // 내부적으로 사용되는 통계 업데이트 메서드
+    private void updateRestaurantStats(Long restaurantId) {
+        Restaurant restaurant = restaurantRepository.findById(restaurantId)
+                .orElseThrow(() -> new BaseException(RestaurantExceptionType.RESTAURANT_NOT_FOUND));
+
+        // DB에서 최신 통계 집계
+        RatingStatsDto stats = visitRepository.findStatsByRestaurantId(restaurantId);
+
+        // 결과가 없으면(모두 삭제된 경우) 0으로 초기화
+        long count = stats != null ? stats.getCount() : 0L;
+        double average = stats != null ? stats.getAverage() : 0.0;
+
+        // 엔티티에 값 반영 (Restaurant 엔티티에 updateStats 메서드 필요)
+        restaurant.updateStats(count, average);
     }
 }

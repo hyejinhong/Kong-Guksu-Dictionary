@@ -181,6 +181,27 @@ function RestaurantDetail() {
         </h1>
         <p className="text-center text-gray-600 mb-4">{restaurant.address}</p>
 
+        {/* 통계 정보 표시 */}
+        <div className="flex justify-center items-center gap-4 mb-4 p-3 bg-yellow-50 rounded-lg">
+          <div className="text-center">
+            <p className="text-xs text-gray-500 font-medium">평균 별점</p>
+            <div className="flex items-center justify-center text-yellow-500 font-bold text-lg">
+              <span>⭐</span>
+              <span className="ml-1">{restaurant.averageRating ? restaurant.averageRating.toFixed(1) : "0.0"}</span>
+              <span className="text-gray-400 text-sm font-normal ml-1">/ 5.0</span>
+            </div>
+          </div>
+          <div className="w-px h-8 bg-gray-300"></div> {/* 구분선 */}
+          <div className="text-center">
+            <p className="text-xs text-gray-500 font-medium">저장한 콩덕후</p>
+            <div className="flex items-center justify-center font-bold text-lg text-gray-700">
+              <span>👤</span>
+              <span className="ml-1">{restaurant.totalScraps ? restaurant.totalScraps.toLocaleString() : "0"}</span>
+              <span className="text-gray-400 text-sm font-normal ml-1">명</span>
+            </div>
+          </div>
+        </div>
+
         <div ref={mapRef} className="w-full h-64 rounded mb-6" />
 
         <div className="space-y-3 mb-6">
