@@ -2,14 +2,16 @@ package com.kong.kong_dic.domain.user.controller;
 
 import com.kong.kong_dic.common.exception.BaseException;
 import com.kong.kong_dic.common.response.BaseResponse;
-import com.kong.kong_dic.domain.user.dto.UserProfileResponseDto;
-import com.kong.kong_dic.domain.user.dto.UserProfileUpdateRequestDto;
-import com.kong.kong_dic.domain.user.dto.UserResponseDto;
-import com.kong.kong_dic.domain.user.dto.UserUpdateRequestDto;
+import com.kong.kong_dic.domain.restaurant.service.RestaurantCommentService;
+import com.kong.kong_dic.domain.user.dto.*;
 import com.kong.kong_dic.domain.user.entity.User;
 import com.kong.kong_dic.domain.user.exception.UserExceptionType;
 import com.kong.kong_dic.domain.user.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserService userService;
+    private final RestaurantCommentService commentService;
 
     /**
      * 사용자 정보 조회 API
@@ -62,5 +65,20 @@ public class UserController {
     @GetMapping("/nickname/random")
     public ResponseEntity<BaseResponse<String>> getRandomNickname() {
         return ResponseEntity.ok(BaseResponse.success("Success", userService.getRandomNickname()));
+    }
+
+    @GetMapping("/me/comments")
+    public ResponseEntity<Page<MyCommentResponse>> getMyComments(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        if (userDetails == null) {
+            throw new BaseException(UserExceptionType.UNAUTHORIZED, "인증 정보가 없습니다.");
+        }
+
+        User user = (User) userDetails;
+        Long userId = user.getId();
+        Page<MyCommentResponse> response = commentService.getMyComments(userId, pageable);
+        return ResponseEntity.ok(response);
     }
 }

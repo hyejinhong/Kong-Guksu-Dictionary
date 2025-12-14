@@ -8,12 +8,14 @@ import com.kong.kong_dic.domain.restaurant.entity.Restaurant;
 import com.kong.kong_dic.domain.restaurant.exception.RestaurantExceptionType;
 import com.kong.kong_dic.domain.restaurant.repository.RestaurantCommentRepository;
 import com.kong.kong_dic.domain.restaurant.repository.RestaurantRepository;
+import com.kong.kong_dic.domain.user.dto.MyCommentResponse;
 import com.kong.kong_dic.domain.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
@@ -65,6 +67,12 @@ public class RestaurantCommentService {
                 .content(saved.getContent())
                 .createdAt(saved.getCreatedAt())
                 .build();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<MyCommentResponse> getMyComments(Long userId, Pageable pageable) {
+        Page<RestaurantComment> comments = commentRepository.findAllByUserId(userId, pageable);
+        return comments.map(MyCommentResponse::from);
     }
 
 }
