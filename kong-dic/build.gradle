@@ -46,6 +46,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-websocket'
 	implementation("com.google.code.gson:gson:2.10.1")
 	implementation 'jakarta.annotation:jakarta.annotation-api:2.1.1'
+	testImplementation 'org.springframework.security:spring-security-test'
 
 	implementation project(':kong-dic-common')
 }

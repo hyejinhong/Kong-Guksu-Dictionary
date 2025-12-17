@@ -10,6 +10,8 @@ import com.kong.kong_dic.domain.restaurant.repository.RestaurantCommentRepositor
 import com.kong.kong_dic.domain.restaurant.repository.RestaurantRepository;
 import com.kong.kong_dic.domain.user.dto.MyCommentResponse;
 import com.kong.kong_dic.domain.user.entity.User;
+import com.kong.kong_dic.domain.user.exception.UserExceptionType;
+import com.kong.kong_dic.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -18,12 +20,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 public class RestaurantCommentService {
     private final RestaurantRepository restaurantRepository;
     private final RestaurantCommentRepository commentRepository;
+    private final UserRepository userRepository;
 
     public Page<RestaurantCommentResponseDto> getComments(Long restaurantId, int page, int size) {
         restaurantRepository.findById(restaurantId)
@@ -70,8 +74,10 @@ public class RestaurantCommentService {
     }
 
     @Transactional(readOnly = true)
-    public Page<MyCommentResponse> getMyComments(Long userId, Pageable pageable) {
-        Page<RestaurantComment> comments = commentRepository.findAllByUserId(userId, pageable);
+    public Page<MyCommentResponse> getMyComments(String username, Pageable pageable) {
+        User user = userRepository.findByUsername(username).orElseThrow(() -> new BaseException(UserExceptionType.USER_NOT_FOUND));
+
+        Page<RestaurantComment> comments = commentRepository.findAllByUserId(user.getId(), pageable);
         return comments.map(MyCommentResponse::from);
     }
 

@@ -76,9 +76,7 @@ public class UserController {
             throw new BaseException(UserExceptionType.UNAUTHORIZED, "인증 정보가 없습니다.");
         }
 
-        User user = (User) userDetails;
-        Long userId = user.getId();
-        Page<MyCommentResponse> response = commentService.getMyComments(userId, pageable);
+        Page<MyCommentResponse> response = commentService.getMyComments(userDetails.getUsername(), pageable);
         return ResponseEntity.ok(response);
     }
 }
