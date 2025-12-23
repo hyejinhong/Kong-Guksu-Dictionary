@@ -1,6 +1,7 @@
 package com.kong.kong_dic.domain.restaurant.service;
 
 import com.kong.kong_dic.common.exception.BaseException;
+import com.kong.kong_dic.common.exception.BaseExceptionType;
 import com.kong.kong_dic.domain.restaurant.RestaurantComment;
 import com.kong.kong_dic.domain.restaurant.dto.RestaurantCommentRequestDto;
 import com.kong.kong_dic.domain.restaurant.dto.RestaurantCommentResponseDto;
@@ -81,4 +82,17 @@ public class RestaurantCommentService {
         return comments.map(MyCommentResponse::from);
     }
 
+    public void deleteMyComment(Long commentId, String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new BaseException(UserExceptionType.USER_NOT_FOUND));
+
+        RestaurantComment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new BaseException(RestaurantExceptionType.COMMENT_NOT_FOUND));
+
+        if (!comment.getAuthor().getId().equals(user.getId())) {
+            throw new BaseException(UserExceptionType.FORBIDDEN);
+        }
+
+        commentRepository.delete(comment);
+    }
 }

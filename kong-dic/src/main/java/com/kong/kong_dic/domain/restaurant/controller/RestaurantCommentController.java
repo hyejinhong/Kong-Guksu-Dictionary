@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -32,5 +33,14 @@ public class RestaurantCommentController {
                                                                                  @RequestBody RestaurantCommentRequestDto request,
                                                                                  @AuthenticationPrincipal User user) {
         return ResponseEntity.ok(BaseResponse.success(commentService.addComment(restaurantId, request, user)));
+    }
+
+    @DeleteMapping("/{commentId}")
+    public ResponseEntity<BaseResponse<Void>> deleteComment(
+            @PathVariable Long commentId,
+            @AuthenticationPrincipal UserDetails userDetails
+            ) {
+        commentService.deleteMyComment(commentId, userDetails.getUsername());
+        return ResponseEntity.ok(BaseResponse.success());
     }
 }
