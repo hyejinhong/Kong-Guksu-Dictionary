@@ -1,12 +1,15 @@
 package com.kong.kong_dic.domain.restaurant.controller;
 
+import com.kong.kong_dic.common.exception.BaseException;
 import com.kong.kong_dic.common.response.BaseResponse;
 import com.kong.kong_dic.domain.restaurant.dto.RestaurantCommentRequestDto;
 import com.kong.kong_dic.domain.restaurant.dto.RestaurantCommentResponseDto;
 import com.kong.kong_dic.domain.restaurant.service.RestaurantCommentService;
 import com.kong.kong_dic.domain.user.entity.User;
+import com.kong.kong_dic.domain.user.exception.UserExceptionType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -40,6 +43,9 @@ public class RestaurantCommentController {
             @PathVariable Long commentId,
             @AuthenticationPrincipal UserDetails userDetails
             ) {
+        if (userDetails == null) {
+            throw new BaseException(UserExceptionType.UNAUTHORIZED);
+        }
         commentService.deleteMyComment(commentId, userDetails.getUsername());
         return ResponseEntity.ok(BaseResponse.success());
     }
