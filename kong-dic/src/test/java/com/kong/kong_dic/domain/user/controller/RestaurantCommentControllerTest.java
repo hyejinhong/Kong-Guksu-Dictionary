@@ -1,6 +1,9 @@
 package com.kong.kong_dic.domain.user.controller;
 
+import com.kong.kong_dic.common.exception.BaseException;
+import com.kong.kong_dic.common.exception.BaseExceptionType;
 import com.kong.kong_dic.domain.restaurant.controller.RestaurantCommentController;
+import com.kong.kong_dic.domain.restaurant.exception.RestaurantExceptionType;
 import com.kong.kong_dic.domain.restaurant.service.RestaurantCommentService;
 import com.kong.kong_dic.domain.user.service.CustomUserDetailsService;
 import com.kong.kong_dic.global.config.SecurityConfig;
@@ -18,8 +21,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -76,6 +78,23 @@ public class RestaurantCommentControllerTest {
         mockMvc.perform(delete("/restaurants/{restaurantId}/comments/{commentId}", restaurantId, commentId)
                         .with(csrf()))
                 .andExpect(status().isUnauthorized())
+                .andDo(print());
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 댓글 삭제 요청시 404")
+    void deleteComment_shouldReturnNotFound_whenCommentDoesNotExist() throws Exception {
+        // given
+        Long restaurantId = 1L;
+        Long nonExistentCommentId = 999L;
+
+        doThrow(new BaseException(RestaurantExceptionType.COMMENT_NOT_FOUND))
+                .when(restaurantCommentService).deleteMyComment(anyLong(), anyString());
+
+        mockMvc.perform(delete("/restaurants/{restaurantId}/comments/{commentId}", restaurantId, nonExistentCommentId)
+                .with(csrf())
+                .with(user("testUser").roles("USER")))
+                .andExpect(status().isNotFound())
                 .andDo(print());
     }
 
