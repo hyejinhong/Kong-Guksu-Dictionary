@@ -1,8 +1,7 @@
 package com.kong.kong_dic.domain.restaurant.service;
 
 import com.kong.kong_dic.common.exception.BaseException;
-import com.kong.kong_dic.common.exception.BaseExceptionType;
-import com.kong.kong_dic.domain.restaurant.RestaurantComment;
+import com.kong.kong_dic.domain.restaurant.entity.RestaurantComment;
 import com.kong.kong_dic.domain.restaurant.dto.RestaurantCommentRequestDto;
 import com.kong.kong_dic.domain.restaurant.dto.RestaurantCommentResponseDto;
 import com.kong.kong_dic.domain.restaurant.entity.Restaurant;

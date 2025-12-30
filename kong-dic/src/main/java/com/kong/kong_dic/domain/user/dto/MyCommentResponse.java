@@ -1,6 +1,6 @@
 package com.kong.kong_dic.domain.user.dto;
 
-import com.kong.kong_dic.domain.restaurant.RestaurantComment;
+import com.kong.kong_dic.domain.restaurant.entity.RestaurantComment;
 import lombok.Builder;
 import lombok.Getter;
 
