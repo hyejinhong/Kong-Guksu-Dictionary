@@ -151,7 +151,7 @@ const MyPageProfile = () => {
 
             // 백엔드 Page 객체 구조에 맞춰 데이터 추출
             // 보통 response.data.data.content 가 리스트, response.data.data.totalPages 가 전체 페이지
-            const pageData = response.data?.data; 
+            const pageData = response.data; 
             if (pageData) {
                 setMyComments(pageData.content || []);
                 setTotalPages(pageData.totalPages || 0);
@@ -167,6 +167,12 @@ const MyPageProfile = () => {
 
     // 댓글 삭제
     const handleDeleteComment = async (restaurantId, commentId) => {
+        if (!commentId) {
+            console.error("삭제할 댓글 ID가 없습니다 (undefined)");
+            alert("댓글 정보를 찾을 수 없어 삭제할 수 없습니다.");
+            return;
+        }
+
         if (!window.confirm("정말로 이 댓글을 삭제하시겠습니까?")) return;
 
         try {
@@ -315,7 +321,7 @@ const MyPageProfile = () => {
                             ) : (
                                 <div className="space-y-4">
                                     {myComments.map((comment) => (
-                                        <div key={comment.id} className="bg-white p-5 rounded-xl shadow border border-gray-100 hover:shadow-md transition-shadow">
+                                        <div key={comment.id || comment.commentId} className="bg-white p-5 rounded-xl shadow border border-gray-100 hover:shadow-md transition-shadow">
                                             <div className="flex justify-between items-start mb-2">
                                                 <div className="flex flex-col">
                                                     {/* 가게 이름 (가게 상세페이지로 이동 기능 추가 가능) */}
@@ -328,7 +334,7 @@ const MyPageProfile = () => {
                                                 </div>
                                                 {/* 삭제 버튼 */}
                                                 <button 
-                                                    onClick={() => handleDeleteComment(comment.restaurantId, comment.id)}
+                                                    onClick={() => handleDeleteComment(comment.restaurantId, comment.id || comment.commentId)}
                                                     className="text-sm text-red-500 hover:text-red-700 font-medium px-2 py-1 rounded hover:bg-red-50"
                                                 >
                                                     삭제
