@@ -1,6 +1,5 @@
-package com.kong.kong_dic.domain.restaurant;
+package com.kong.kong_dic.domain.restaurant.entity;
 
-import com.kong.kong_dic.domain.restaurant.entity.Restaurant;
 import com.kong.kong_dic.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;

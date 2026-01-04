@@ -1,8 +1,7 @@
 package com.kong.kong_dic.domain.restaurant.entity;
 
-import com.kong.kong_dic.common.model.BeanType;
 import com.kong.kong_dic.common.model.BeanPrice;
-import com.kong.kong_dic.domain.restaurant.RestaurantComment;
+import com.kong.kong_dic.common.model.BeanType;
 import com.kong.kong_dic.domain.user.entity.UserRestaurantVisit;
 import jakarta.persistence.*;
 import lombok.*;
