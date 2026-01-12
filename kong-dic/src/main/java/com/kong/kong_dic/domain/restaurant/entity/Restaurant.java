@@ -46,9 +46,11 @@ public class Restaurant {
     private List<UserRestaurantVisit> userVisits = new ArrayList<>(); // 이 식당을 방문한 사용자 목록
 
     @Column(nullable = false)
+    @Builder.Default
     private Long totalScraps = 0L;
 
     @Column(nullable = false)
+    @Builder.Default
     private Double averageRating = 0.0;
 
     // 통계 업데이트
