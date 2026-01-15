@@ -35,15 +35,14 @@ public class RestaurantCommentController {
     @PostMapping
     public ResponseEntity<BaseResponse<RestaurantCommentResponseDto>> addComment(@PathVariable Long restaurantId,
                                                                                  @RequestBody RestaurantCommentRequestDto request,
-                                                                                 @AuthenticationPrincipal User user) {
-        return ResponseEntity.ok(BaseResponse.success(commentService.addComment(restaurantId, request, user)));
+                                                                                 @AuthUser UserDetails userDetails) {
+        return ResponseEntity.ok(BaseResponse.success(commentService.addComment(restaurantId, request, userDetails.getUsername())));
     }
 
     @DeleteMapping("/{commentId}")
     public ResponseEntity<BaseResponse<Void>> deleteComment(
             @PathVariable Long commentId,
-            @AuthUser UserDetails userDetails
-            ) {
+            @AuthUser UserDetails userDetails) {
         commentService.deleteMyComment(commentId, userDetails.getUsername());
         return ResponseEntity.ok(BaseResponse.success());
     }

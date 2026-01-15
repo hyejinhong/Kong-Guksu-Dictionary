@@ -1,7 +1,10 @@
 package com.kong.kong_dic.domain.user.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kong.kong_dic.common.exception.BaseException;
 import com.kong.kong_dic.domain.restaurant.controller.RestaurantCommentController;
+import com.kong.kong_dic.domain.restaurant.dto.RestaurantCommentRequestDto;
+import com.kong.kong_dic.domain.restaurant.dto.RestaurantCommentResponseDto;
 import com.kong.kong_dic.domain.restaurant.exception.RestaurantExceptionType;
 import com.kong.kong_dic.domain.restaurant.service.RestaurantCommentService;
 import com.kong.kong_dic.domain.user.service.CustomUserDetailsService;
@@ -15,20 +18,24 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
+import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
@@ -39,6 +46,9 @@ public class RestaurantCommentControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+    @Autowired
+    private ObjectMapper objectMapper;
+
 
     // --- SecurityConfig 의존성 Mocking ---
     @MockitoBean
@@ -58,6 +68,38 @@ public class RestaurantCommentControllerTest {
 
     // --- 비즈니스 로직 Mocking ---
     @MockitoBean private RestaurantCommentService restaurantCommentService;
+
+    @Test
+    @DisplayName("댓글 작성 성공 시 200 OK를 반환한다")
+    void addComment_shouldReturnOk_whenUserIsAuthenticated() throws Exception {
+        // given
+        Long restaurantId = 1L;
+        RestaurantCommentRequestDto requestDto = new RestaurantCommentRequestDto();
+        requestDto.setContent("ㅇㅅㅇ");
+
+        // 서비스가 반환할 가짜 응답 객체 생성
+        RestaurantCommentResponseDto responseDto = RestaurantCommentResponseDto.builder()
+                .id(1L)
+                .nickname("testUser")
+                .content("ㅇㅅㅇ")
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        // 서비스 메서드 반환값을 명시
+        given(restaurantCommentService.addComment(anyLong(), any(RestaurantCommentRequestDto.class), any()))
+                .willReturn(responseDto);
+
+        // when & then
+        mockMvc.perform(post("/restaurants/{restaurantId}/comments", restaurantId)
+                        .with(csrf())
+                        .with(user("testUser").roles("USER"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isOk())
+                .andDo(print());
+
+        verify(restaurantCommentService).addComment(eq(restaurantId), any(RestaurantCommentRequestDto.class), eq("testUser"));
+    }
 
     @Test
     @DisplayName("댓글 삭제 성공 시 204 No Content를 반환한다")
