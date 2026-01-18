@@ -134,13 +134,14 @@ public class RestaurantService {
         }
     }
 
-    public RestaurantResponseDto getRestaurantById(Long id, User user) {
+    public RestaurantResponseDto getRestaurantById(Long id, String username) {
         Restaurant restaurant = restaurantRepository.findById(id)
                 .orElseThrow(() -> new BaseException(RestaurantExceptionType.RESTAURANT_NOT_FOUND));
 
         // 로그인 한 경우, 이미 저장 여부
         boolean isSaved = false;
-        if (user != null) {
+        if (username != null) {
+            User user = userRepository.findByUsername(username).orElseThrow(() -> new BaseException(UserExceptionType.USER_NOT_FOUND));
             isSaved = visitRepository.findByUserIdAndRestaurantId(user.getId(), id).isPresent();
         }
 
