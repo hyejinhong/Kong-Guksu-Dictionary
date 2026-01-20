@@ -151,7 +151,8 @@ const MyPageProfile = () => {
 
             // 백엔드 Page 객체 구조에 맞춰 데이터 추출
             // 보통 response.data.data.content 가 리스트, response.data.data.totalPages 가 전체 페이지
-            const pageData = response.data; 
+            const result = response.data;
+            const pageData = result?.data; 
             if (pageData) {
                 setMyComments(pageData.content || []);
                 setTotalPages(pageData.totalPages || 0);
