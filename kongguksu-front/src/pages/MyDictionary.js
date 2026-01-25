@@ -197,35 +197,6 @@ const MyDictionary = () => {
               ✏️
             </button>
 
-<VisitModal
-  editingVisit={editingVisit}
-  onChange={setEditingVisit}
-  onClose={() => setShowModal(false)}
-  onSave={async () => {
-    try {
-      const headers = getAuthHeader();
-      const url = `${API_BASE_URL}/visited-restaurants/${editingVisit.id}`;
-      const payload = {
-        visitedDate: editingVisit.visitedDate,
-        rating: editingVisit.rating,
-        memo: editingVisit.memo,
-      };
-      const response = await axios.patch(url, payload, { headers });
-      if (response.data.code === 0) {
-        alert("수정이 완료되었습니다.");
-        // 목록에서 수정된 방문 기록 반영
-        setVisitedRestaurants(prev =>
-          prev.map(v => (v.id === editingVisit.id ? editingVisit : v))
-        );
-        setShowModal(false);
-      } else {
-        alert("수정 실패: " + response.data.message);
-      }
-    } catch (err) {
-      alert("수정 중 오류 발생: " + err.message);
-    }
-  }}
-/>
             {/* 나머지 내용은 Link로 감싸서 상세 페이지 이동 */}
             <Link to={`/restaurant/${visit.restaurant.id}`} className="block">
               <p className="font-bold text-lg">{visit.restaurant.name}</p>
@@ -284,6 +255,38 @@ const MyDictionary = () => {
           <p className="text-center text-gray-600 my-4">모든 식당을 불러왔습니다.</p>
         )}
       </div>
+            {showModal && editingVisit && (
+        <VisitModal
+          editingVisit={editingVisit}
+          onChange={setEditingVisit}
+          onClose={() => setShowModal(false)}
+          onSave={async () => {
+            try {
+              const headers = getAuthHeader();
+              const url = `${API_BASE_URL}/visited-restaurants/${editingVisit.id}`;
+              const payload = {
+                visitedDate: editingVisit.visitedDate,
+                rating: editingVisit.rating,
+                memo: editingVisit.memo,
+              };
+              const response = await axios.patch(url, payload, { headers });
+              
+              if (response.data.code === 0) {
+                alert("수정이 완료되었습니다.");
+                // 목록 업데이트
+                setVisitedRestaurants(prev =>
+                  prev.map(v => (v.id === editingVisit.id ? editingVisit : v))
+                );
+                setShowModal(false);
+              } else {
+                alert("수정 실패: " + response.data.message);
+              }
+            } catch (err) {
+              alert("수정 중 오류 발생: " + err.message);
+            }
+          }}
+        />
+      )}
     </div>
   );
 };
