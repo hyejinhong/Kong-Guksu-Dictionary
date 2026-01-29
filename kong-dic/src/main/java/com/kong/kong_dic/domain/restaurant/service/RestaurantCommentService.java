@@ -53,7 +53,10 @@ public class RestaurantCommentService {
                 .build();
     }
 
-    public RestaurantCommentResponseDto addComment(Long restaurantId, RestaurantCommentRequestDto request, User user) {
+    public RestaurantCommentResponseDto addComment(Long restaurantId, RestaurantCommentRequestDto request, String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new BaseException(UserExceptionType.USER_NOT_FOUND));
+
         Restaurant restaurant = restaurantRepository.findById(restaurantId)
                 .orElseThrow(() -> new BaseException(RestaurantExceptionType.RESTAURANT_NOT_FOUND));
 

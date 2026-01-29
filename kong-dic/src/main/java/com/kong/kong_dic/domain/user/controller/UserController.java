@@ -7,6 +7,7 @@ import com.kong.kong_dic.domain.user.dto.*;
 import com.kong.kong_dic.domain.user.entity.User;
 import com.kong.kong_dic.domain.user.exception.UserExceptionType;
 import com.kong.kong_dic.domain.user.service.UserService;
+import com.kong.kong_dic.global.annotation.AuthUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -32,15 +33,8 @@ public class UserController {
      */
     @GetMapping("/me")
     public ResponseEntity<BaseResponse<UserProfileResponseDto>> getMyProfile(
-            @AuthenticationPrincipal UserDetails userDetails) {
-
-        if (userDetails == null) {
-            // 토큰은 유효하지만 userDetails를 가져오지 못했거나 인증이 풀렸을 경우 (이론상 JwtFilter에서 처리됨)
-            throw new BaseException(UserExceptionType.UNAUTHORIZED, "인증 정보가 없습니다.");
-        }
-
-        UserProfileResponseDto responseDto = userService.getMyProfile(userDetails.getUsername());
-        return ResponseEntity.ok(BaseResponse.success("User profile fetched successfully.", responseDto));
+            @AuthUser UserDetails userDetails) {
+        return ResponseEntity.ok(BaseResponse.success("User profile fetched successfully.", userService.getMyProfile(userDetails.getUsername())));
     }
 
     /**
@@ -51,15 +45,10 @@ public class UserController {
      */
     @PatchMapping("/me")
     public ResponseEntity<BaseResponse<UserProfileResponseDto>> updateMyProfile(
-            @AuthenticationPrincipal UserDetails userDetails,
+            @AuthUser UserDetails userDetails,
             @RequestBody UserProfileUpdateRequestDto request) {
 
-        if (userDetails == null) {
-            throw new BaseException(UserExceptionType.UNAUTHORIZED, "인증 정보가 없습니다.");
-        }
-
-        UserProfileResponseDto updatedProfile = userService.updateMyProfile(userDetails.getUsername(), request);
-        return ResponseEntity.ok(BaseResponse.success("User profile updated successfully.", updatedProfile));
+        return ResponseEntity.ok(BaseResponse.success("User profile updated successfully.", userService.updateMyProfile(userDetails.getUsername(), request)));
     }
 
     @GetMapping("/nickname/random")
@@ -68,15 +57,10 @@ public class UserController {
     }
 
     @GetMapping("/me/comments")
-    public ResponseEntity<Page<MyCommentResponse>> getMyComments(
-            @AuthenticationPrincipal UserDetails userDetails,
+    public ResponseEntity<BaseResponse<Page<MyCommentResponse>>> getMyComments(
+            @AuthUser UserDetails userDetails,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        if (userDetails == null) {
-            throw new BaseException(UserExceptionType.UNAUTHORIZED, "인증 정보가 없습니다.");
-        }
-
-        Page<MyCommentResponse> response = commentService.getMyComments(userDetails.getUsername(), pageable);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(BaseResponse.success("success", commentService.getMyComments(userDetails.getUsername(), pageable)));
     }
 }

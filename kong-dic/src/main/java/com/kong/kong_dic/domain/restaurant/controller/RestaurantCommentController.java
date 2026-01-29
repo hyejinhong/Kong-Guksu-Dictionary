@@ -7,6 +7,7 @@ import com.kong.kong_dic.domain.restaurant.dto.RestaurantCommentResponseDto;
 import com.kong.kong_dic.domain.restaurant.service.RestaurantCommentService;
 import com.kong.kong_dic.domain.user.entity.User;
 import com.kong.kong_dic.domain.user.exception.UserExceptionType;
+import com.kong.kong_dic.global.annotation.AuthUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
@@ -34,18 +35,14 @@ public class RestaurantCommentController {
     @PostMapping
     public ResponseEntity<BaseResponse<RestaurantCommentResponseDto>> addComment(@PathVariable Long restaurantId,
                                                                                  @RequestBody RestaurantCommentRequestDto request,
-                                                                                 @AuthenticationPrincipal User user) {
-        return ResponseEntity.ok(BaseResponse.success(commentService.addComment(restaurantId, request, user)));
+                                                                                 @AuthUser UserDetails userDetails) {
+        return ResponseEntity.ok(BaseResponse.success(commentService.addComment(restaurantId, request, userDetails.getUsername())));
     }
 
     @DeleteMapping("/{commentId}")
     public ResponseEntity<BaseResponse<Void>> deleteComment(
             @PathVariable Long commentId,
-            @AuthenticationPrincipal UserDetails userDetails
-            ) {
-        if (userDetails == null) {
-            throw new BaseException(UserExceptionType.UNAUTHORIZED);
-        }
+            @AuthUser UserDetails userDetails) {
         commentService.deleteMyComment(commentId, userDetails.getUsername());
         return ResponseEntity.ok(BaseResponse.success());
     }

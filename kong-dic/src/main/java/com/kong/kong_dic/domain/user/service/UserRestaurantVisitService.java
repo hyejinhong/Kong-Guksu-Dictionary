@@ -10,6 +10,7 @@ import com.kong.kong_dic.domain.user.dto.UserRestaurantVisitResponseDto;
 import com.kong.kong_dic.domain.user.entity.User;
 import com.kong.kong_dic.domain.user.entity.UserRestaurantVisit;
 import com.kong.kong_dic.domain.user.exception.UserExceptionType;
+import com.kong.kong_dic.domain.user.repository.UserRepository;
 import com.kong.kong_dic.domain.user.repository.UserRestaurantVisitRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -24,8 +25,11 @@ public class UserRestaurantVisitService {
 
     private final UserRestaurantVisitRepository visitRepository;
     private final RestaurantRepository restaurantRepository;
+    private final UserRepository userRepository;
 
-    public List<UserRestaurantVisitResponseDto> getVisitedRestaurants(User user, Pageable pageable) {
+    public List<UserRestaurantVisitResponseDto> getVisitedRestaurants(String username, Pageable pageable) {
+        User user = userRepository.findByUsername(username).orElseThrow(() -> new BaseException(UserExceptionType.USER_NOT_FOUND));
+
         List<UserRestaurantVisit> entityList = visitRepository.findByUserId(user.getId(), pageable);
         return entityList.stream().map(this::entityToResponseDto).toList();
     }
@@ -40,7 +44,9 @@ public class UserRestaurantVisitService {
                 .build();
     }
 
-    public void insertVisitedRestaurant(User user, UserRestaurantVisitRequestDto request) {
+    public void insertVisitedRestaurant(String username, UserRestaurantVisitRequestDto request) {
+        User user = userRepository.findByUsername(username).orElseThrow(() -> new BaseException(UserExceptionType.USER_NOT_FOUND));
+
         Restaurant restaurant = restaurantRepository.findById(request.getRestaurantId())
                 .orElseThrow(() -> new BaseException(RestaurantExceptionType.RESTAURANT_NOT_FOUND));
 
@@ -58,12 +64,15 @@ public class UserRestaurantVisitService {
         visitRepository.save(entity);
     }
 
-    public void deleteVisitedRestaurant(User user, Long id) {
+    public void deleteVisitedRestaurant(String username, Long id) {
+        User user = userRepository.findByUsername(username).orElseThrow(() -> new BaseException(UserExceptionType.USER_NOT_FOUND));
         visitRepository.deleteByIdAndUserId(id, user.getId());
     }
 
     @Transactional
-    public void updateVisitedRestaurant(User user, UserRestaurantVisitRequestDto request, Long id) {
+    public void updateVisitedRestaurant(String username, UserRestaurantVisitRequestDto request, Long id) {
+        User user = userRepository.findByUsername(username).orElseThrow(() -> new BaseException(UserExceptionType.USER_NOT_FOUND));
+
         UserRestaurantVisit visit = visitRepository.findById(id)
                 .orElseThrow(() -> new BaseException(UserExceptionType.VISIT_NOT_FOUND));
 

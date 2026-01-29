@@ -2,9 +2,12 @@ package com.kong.kong_dic.domain.restaurant.service;
 
 import com.kong.kong_dic.common.domain.restaurant.dto.RestaurantSubmitRequestDto;
 import com.kong.kong_dic.common.domain.restaurant.entity.RestaurantSubmission;
+import com.kong.kong_dic.common.exception.BaseException;
 import com.kong.kong_dic.common.util.KakaoMapUtil;
 import com.kong.kong_dic.domain.restaurant.repository.RestaurantSubmitRepository;
 import com.kong.kong_dic.domain.user.entity.User;
+import com.kong.kong_dic.domain.user.exception.UserExceptionType;
+import com.kong.kong_dic.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -16,9 +19,11 @@ public class RestaurantSubmitService {
 
     private final RestaurantSubmitRepository submitRepository;
     private final KakaoMapUtil kakaoMapUtil;
+    private final UserRepository userRepository;
 
-    public void addRestaurantSubmission(User user, RestaurantSubmitRequestDto request) {
-        // TODO 로그인 안 한 경우 제한
+    public void addRestaurantSubmission(String username, RestaurantSubmitRequestDto request) {
+        User user = userRepository.findByUsername(username).orElseThrow(() -> new BaseException(UserExceptionType.USER_NOT_FOUND));
+
         log.info("### Restaurant Submission Requested : {}", request.toString());
         RestaurantSubmission submission = RestaurantSubmission.builder()
                 .name(request.getName())
