@@ -1,7 +1,9 @@
 package com.kong.kong_dic.domain.notification.redis;
 
 import com.kong.kong_dic.common.dto.NotificationMessage;
+import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
@@ -19,144 +21,117 @@ import java.util.concurrent.Executors;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class RedisStreamManager {
 
     private final StringRedisTemplate redisTemplate;
     private final SimpMessagingTemplate messagingTemplate;
 
-    // 사용자별 스트림 리스너 스레드를 관리할 맵
-    private final Map<String, StreamConsumerRunner> consumerRunners = new ConcurrentHashMap<>();
-    // 스레드 풀
-    private final ExecutorService executorService = Executors.newCachedThreadPool(); // 필요에 따라 스레드 생성/재활용
+    // 단일 스레드로 글로벌 스트림 처리
+    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
     private static final String GROUP = "notification-group"; // 모든 사용자 스트림에 동일한 그룹 사용
 
-    @Autowired
-    public RedisStreamManager(StringRedisTemplate redisTemplate, SimpMessagingTemplate messagingTemplate) {
-        this.redisTemplate = redisTemplate;
-        this.messagingTemplate = messagingTemplate;
+    // 모든 알림이 모이는 글로벌 스트림 키
+    private static final String GLOBAL_STREAM_KEY = "server:notifications";
+    private static final String GROUP_NAME = "notification-service-group";
+    private static final String CONSUMER_NAME = "instance-1"; // 다중 서버 환경에서는 UUID 등으로 유니크하게 설정 필요
+
+    private volatile boolean isRunning = true;
+
+    @PostConstruct
+    public void startGlobalListener() {
+        // 1. 컨슈머 그룹 생성 (없으면 생성)
+        createStreamGroup(GLOBAL_STREAM_KEY, GROUP_NAME);
+
+        // 2. 리스너 스레드 실행
+        executorService.submit(this::consumeStream);
+        log.info("🚀 글로벌 Redis Stream 리스너가 시작되었습니다. (Key: {})", GLOBAL_STREAM_KEY);
     }
 
     /**
-     * 특정 사용자를 위한 Redis Stream 리스너를 시작합니다.
-     * @param username 리스닝할 사용자의 이름
+     * 스트림 그룹 생성 로직
      */
-    public void startListening(String username) {
-        String streamKey = "notifications:" + username;
-        String consumerName = "consumer-" + username;
-
-        if (consumerRunners.containsKey(username)) {
-            log.warn("User {} already has an active stream listener.", username);
-            return;
-        }
-
+    private void createStreamGroup(String key, String group) {
         try {
-            redisTemplate.opsForStream().createGroup(streamKey, ReadOffset.from("0-0"), GROUP);
-            log.info("Created Redis Stream group '{}' for stream '{}'", GROUP, streamKey);
+            // 스트림이 없으면 생성하면서 그룹도 같이 만듬 (MKSTREAM 옵션과 유사 효과를 위해 0-0 부터 읽기)
+            redisTemplate.opsForStream().createGroup(key, ReadOffset.from("0-0"), group);
+            log.info("Redis Stream 그룹 생성 완료: {} / {}", key, group);
         } catch (DataAccessException e) {
-            Throwable rootCause = e.getRootCause();
-
-            if (rootCause instanceof io.lettuce.core.RedisBusyException) {
-                log.info("Redis Stream group '{}' for stream '{}' already exists. (Caught RedisBusyException)", GROUP, streamKey);
-            } else {
-                // 다른 종류의 Redis 관련 예외 처리
-                String errorMessage = rootCause != null ? rootCause.getMessage() : e.getMessage();
-                log.error("Unhandled Redis error creating Stream group for stream '{}': {}. Original exception: {}",
-                        streamKey, errorMessage, e.getClass().getSimpleName(), e); // 전체 스택 트레이스도 다시 찍기
-            }
-        } catch (Exception e) { // 혹시 DataAccessException 외의 다른 예외가 발생할 경우를 대비
-            log.error("Unexpected error creating Redis Stream group for stream '{}': {}", streamKey, e.getMessage(), e);
+            // 그룹이 이미 존재하면 RedisBusyException 발생 -> 무시하고 진행
+            log.info("Redis Stream 그룹이 이미 존재합니다. (Skipping creation)");
         }
-
-        StreamConsumerRunner runner = new StreamConsumerRunner(streamKey, GROUP, consumerName);
-        executorService.submit(runner);
-        consumerRunners.put(username, runner);
-        log.info("Started Redis Stream listener for user: {}", username);
     }
+
     /**
-     * 특정 사용자를 위한 Redis Stream 리스너를 중지합니다.
-     * @param username 중지할 사용자의 이름
+     * 실제 메시지를 읽어오는 무한 루프 (단일 스레드)
      */
-    public void stopListening(String username) {
-        StreamConsumerRunner runner = consumerRunners.remove(username);
-        if (runner != null) {
-            runner.stop(); // 스레드 중지 요청
-            log.info("Stopped Redis Stream listener for user: {}", username);
+    private void consumeStream() {
+        while (isRunning) {
+            try {
+                // 글로벌 스트림에서 메시지 읽기 (블로킹 2초)
+                List<MapRecord<String, Object, Object>> messages = redisTemplate.opsForStream().read(
+                        Consumer.from(GROUP_NAME, CONSUMER_NAME),
+                        StreamReadOptions.empty().block(Duration.ofSeconds(2)).count(10),
+                        StreamOffset.create(GLOBAL_STREAM_KEY, ReadOffset.lastConsumed())
+                );
+
+                if (messages != null && !messages.isEmpty()) {
+                    for (MapRecord<String, Object, Object> message : messages) {
+                        processMessage(message);
+                        // 처리 후 ACK
+                        redisTemplate.opsForStream().acknowledge(GROUP_NAME, message);
+                    }
+                }
+            } catch (Exception e) {
+                log.error("Redis Stream 소비 중 에러 발생: {}", e.getMessage());
+                try {
+                    Thread.sleep(1000); // 에러 발생 시 잠시 대기 (CPU 폭주 방지)
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    isRunning = false;
+                }
+            }
+        }
+    }
+
+
+    /**
+     * 메시지 처리 및 WebSocket 전송
+     */
+    private void processMessage(MapRecord<String, Object, Object> message) {
+        try {
+            Map<Object, Object> body = message.getValue();
+
+            // [중요] 메시지 안에 수신자(username) 정보가 반드시 포함되어야 함
+            String targetUsername = (String) body.get("username");
+            String title = (String) body.get("title");
+            String content = (String) body.get("content");
+            String type = (String) body.get("type");
+
+            if (targetUsername == null) {
+                log.warn("수신자(username)가 없는 알림 메시지는 무시합니다. ID: {}", message.getId());
+                return;
+            }
+
+            NotificationMessage notification = new NotificationMessage(targetUsername, title, content, type);
+
+            // 해당 유저의 전용 토픽으로 WebSocket 전송
+            // (사용자가 접속해 있다면 받고, 아니면 그냥 증발 - 실시간 알림 특성)
+            String destination = "/topic/notifications/" + targetUsername;
+            messagingTemplate.convertAndSend(destination, notification);
+
+            log.debug("알림 전송 완료 -> User: {}, Dest: {}", targetUsername, destination);
+
+        } catch (Exception e) {
+            log.error("알림 메시지 처리 실패: {}", e.getMessage(), e);
         }
     }
 
     @PreDestroy
     public void shutdown() {
-        // 애플리케이션 종료 시 모든 리스너 중지
-        consumerRunners.values().forEach(StreamConsumerRunner::stop);
-        executorService.shutdownNow(); // 스레드 풀 즉시 종료
-        log.info("Shutting down all Redis Stream listeners and executor service.");
-    }
-
-    // 내부 클래스로 각 사용자 스트림을 듣는 Runner 정의
-    private class StreamConsumerRunner implements Runnable {
-        private final String streamKey;
-        private final String groupName;
-        private final String consumerName;
-        private volatile boolean running = true; // 스레드 중지를 위한 플래그
-
-        public StreamConsumerRunner(String streamKey, String groupName, String consumerName) {
-            this.streamKey = streamKey;
-            this.groupName = groupName;
-            this.consumerName = consumerName;
-        }
-
-        public void stop() {
-            this.running = false;
-        }
-
-        @Override
-        public void run() {
-            log.info("StreamConsumerRunner for {} started.", streamKey);
-            while (running) {
-                try {
-                    // 메시지 읽기: 지정된 컨슈머 그룹과 컨슈머 이름으로, BLOCK 옵션 사용
-                    List<MapRecord<String, Object, Object>> messages = redisTemplate.opsForStream().read(
-                            Consumer.from(groupName, consumerName),
-                            StreamReadOptions.empty().block(Duration.ofSeconds(1)).count(10), // 최대 10개 메시지, 1초 블로킹
-                            StreamOffset.create(streamKey, ReadOffset.lastConsumed()) // 마지막으로 읽은 메시지부터 시작
-                    );
-
-                    if (messages != null && !messages.isEmpty()) {
-                        for (MapRecord<String, Object, Object> message : messages) {
-                            processMessage(message); // 메시지 처리
-                            // 메시지 처리 후 ACK (필수)
-                            redisTemplate.opsForStream().acknowledge(groupName, message);
-                        }
-                    }
-                } catch (Exception e) {
-                    log.error("Error in Redis Stream listener for {}: {}", streamKey, e.getMessage());
-                    // 오류 발생 시 잠시 대기하여 CPU 과부하 방지
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                        log.warn("StreamConsumerRunner for {} interrupted during error pause.", streamKey);
-                        running = false;
-                    }
-                }
-            }
-            log.info("StreamConsumerRunner for {} stopped.", streamKey);
-        }
-
-        private void processMessage(MapRecord<String, Object, Object> message) {
-            Map<Object, Object> body = message.getValue();
-            String username = (String) body.get("username");
-            String title = (String) body.get("title");
-            String content = (String) body.get("content");
-            String type = (String) body.get("type");
-
-            NotificationMessage notification = new NotificationMessage(username, title, content, type);
-
-            log.info("> 발행 경로 : {}", "/topic/notifications/" + notification.getUsername());
-            log.info("> 발행 메시지 : {}", notification.toString());
-            // WebSocket으로 전송
-            messagingTemplate.convertAndSend("/topic/notifications/" + notification.getUsername(), notification);
-        }
+        isRunning = false;
+        executorService.shutdownNow();
+        log.info("🛑 Redis Stream 리스너가 종료되었습니다.");
     }
 }
