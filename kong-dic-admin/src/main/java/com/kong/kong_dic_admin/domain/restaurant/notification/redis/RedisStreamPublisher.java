@@ -1,6 +1,7 @@
 package com.kong.kong_dic_admin.domain.restaurant.notification.redis;
 
 import com.kong.kong_dic.common.dto.NotificationMessage;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
@@ -14,6 +15,7 @@ import java.util.Map;
 public class RedisStreamPublisher {
 
     private final StringRedisTemplate redisTemplate;
+    private static final String GLOBAL_STREAM_KY = "server:notifications";
 
     public RedisStreamPublisher(StringRedisTemplate redisTemplate) {
         this.redisTemplate = redisTemplate;
@@ -26,7 +28,8 @@ public class RedisStreamPublisher {
         map.put("content", message.getContent());
         map.put("type", message.getType());
 
-        log.info("@@ published : {}", message.toString());
-        redisTemplate.opsForStream().add("notifications:" + message.getUsername(), map);
+        redisTemplate.opsForStream().add(GLOBAL_STREAM_KY, map);
+        log.info("🔔 [Admin -> Redis] 알림 이벤트 발행 완료: Target={}, Type={}",
+                message.getUsername(), message.getType());
     }
 }
