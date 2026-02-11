@@ -5,6 +5,7 @@ import com.kong.kong_dic.common.model.Coordinates;
 import com.kong.kong_dic.common.util.KakaoMapUtil;
 import com.kong.kong_dic.common.model.BeanType;
 import com.kong.kong_dic.common.model.BeanPrice;
+import com.kong.kong_dic.domain.restaurant.dto.RestaurantRankingDto;
 import com.kong.kong_dic.domain.restaurant.dto.RestaurantRequestDto;
 import com.kong.kong_dic.domain.restaurant.dto.RestaurantResponseDto;
 import com.kong.kong_dic.domain.restaurant.entity.Restaurant;
@@ -16,11 +17,11 @@ import com.kong.kong_dic.domain.user.entity.UserRestaurantVisit;
 import com.kong.kong_dic.domain.user.exception.UserExceptionType;
 import com.kong.kong_dic.domain.user.repository.UserRepository;
 import com.kong.kong_dic.domain.user.repository.UserRestaurantVisitRepository;
+import com.kong.kong_dic.global.service.RedisService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -28,12 +29,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -45,6 +45,9 @@ public class RestaurantService {
     private final UserRepository userRepository;
     private final UserRestaurantVisitRepository visitRepository;
     private final KakaoMapUtil kakaoMapUtil;
+
+    private final RedisService redisService;
+    private static final String RANKING_KEY = "restaurant:ranking:views";
 
     public Page<RestaurantResponseDto> getAllRestaurants(Pageable pageable) {
         Page<Restaurant> restaurantPage = restaurantRepository.findAll(pageable);
@@ -137,6 +140,9 @@ public class RestaurantService {
     public RestaurantResponseDto getRestaurantById(Long id, String username) {
         Restaurant restaurant = restaurantRepository.findById(id)
                 .orElseThrow(() -> new BaseException(RestaurantExceptionType.RESTAURANT_NOT_FOUND));
+
+        // 조회수 1 증가 (Redis ZSet)
+        redisService.incrementScore(RANKING_KEY, id.toString(), 1.0);
 
         // 로그인 한 경우, 이미 저장 여부
         boolean isSaved = false;
@@ -308,4 +314,41 @@ public class RestaurantService {
         // 엔티티에 값 반영 (Restaurant 엔티티에 updateStats 메서드 필요)
         restaurant.updateStats(count, average);
     }
+
+    /**
+     * [신규] 실시간 인기 식당 TOP 10 조회
+     */
+    @Transactional(readOnly = true)
+    public List<RestaurantRankingDto> getTopRestaurants() {
+        // 1. Redis에서 상위 10개 식당 ID 조회 (Score 높은 순)
+        // getTopRanking은 Set<Object>를 반환하므로 Long 리스트로 변환 필요
+        Set<Object> topIdsObj = redisService.getTopRanking(RANKING_KEY, 0, 9);
+
+        if (topIdsObj == null || topIdsObj.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<Long> topIds = topIdsObj.stream()
+                .map(id -> Long.valueOf(String.valueOf(id)))
+                .collect(Collectors.toList());
+
+        // 2. DB에서 식당 정보 조회
+        List<Restaurant> restaurants = restaurantRepository.findAllById(topIds);
+
+        // 3. 순서 보장을 위해 Map으로 변환 (Key: ID, Value: Restaurant)
+        Map<Long, Restaurant> restaurantMap = restaurants.stream()
+                .collect(Collectors.toMap(Restaurant::getId, r -> r));
+
+        // 4. Redis 랭킹 순서대로 DTO 리스트 생성
+        List<RestaurantRankingDto> rankingList = new ArrayList<>();
+        int rank = 1;
+        for (Long id : topIds) {
+            if (restaurantMap.containsKey(id)) {
+                rankingList.add(RestaurantRankingDto.of(restaurantMap.get(id), rank++));
+            }
+        }
+
+        return rankingList;
+    }
+
 }
