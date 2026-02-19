@@ -316,7 +316,7 @@ public class RestaurantService {
     }
 
     /**
-     * [신규] 실시간 인기 식당 TOP 10 조회
+     * 실시간 인기 식당 TOP 10 조회
      */
     @Transactional(readOnly = true)
     public List<RestaurantRankingDto> getTopRestaurants() {
