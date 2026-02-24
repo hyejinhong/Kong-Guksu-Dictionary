@@ -2,6 +2,7 @@ package com.kong.kong_dic.domain.restaurant.controller;
 
 import com.kong.kong_dic.common.response.BaseResponse;
 import com.kong.kong_dic.common.model.BeanType;
+import com.kong.kong_dic.domain.restaurant.dto.RestaurantRankingDto;
 import com.kong.kong_dic.domain.restaurant.dto.RestaurantRequestDto;
 import com.kong.kong_dic.domain.restaurant.dto.RestaurantResponseDto;
 import com.kong.kong_dic.domain.restaurant.service.RestaurantService;
@@ -137,4 +138,13 @@ public class RestaurantController {
         return ResponseEntity.ok(
                 BaseResponse.success(restaurantService.getRestaurantsByBeanType(beanType, latitude, longitude, pageable)));
     }
+
+    /**
+     * 실시간 인기 콩국수 랭킹 조회 (TOP 10)
+     */
+    @GetMapping("/ranking")
+    public ResponseEntity<BaseResponse<List<RestaurantRankingDto>>> getRestaurantRanking() {
+        return ResponseEntity.ok(BaseResponse.success(restaurantService.getTopRestaurants()));
+    }
+
 }

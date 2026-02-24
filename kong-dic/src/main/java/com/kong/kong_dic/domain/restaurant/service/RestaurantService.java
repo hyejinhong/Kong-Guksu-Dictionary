@@ -1,10 +1,14 @@
 package com.kong.kong_dic.domain.restaurant.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kong.kong_dic.common.exception.BaseException;
 import com.kong.kong_dic.common.model.Coordinates;
 import com.kong.kong_dic.common.util.KakaoMapUtil;
 import com.kong.kong_dic.common.model.BeanType;
 import com.kong.kong_dic.common.model.BeanPrice;
+import com.kong.kong_dic.domain.restaurant.dto.RestaurantRankingDto;
 import com.kong.kong_dic.domain.restaurant.dto.RestaurantRequestDto;
 import com.kong.kong_dic.domain.restaurant.dto.RestaurantResponseDto;
 import com.kong.kong_dic.domain.restaurant.entity.Restaurant;
@@ -16,24 +20,25 @@ import com.kong.kong_dic.domain.user.entity.UserRestaurantVisit;
 import com.kong.kong_dic.domain.user.exception.UserExceptionType;
 import com.kong.kong_dic.domain.user.repository.UserRepository;
 import com.kong.kong_dic.domain.user.repository.UserRestaurantVisitRepository;
+import com.kong.kong_dic.global.service.RedisService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.time.Duration;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -45,6 +50,14 @@ public class RestaurantService {
     private final UserRepository userRepository;
     private final UserRestaurantVisitRepository visitRepository;
     private final KakaoMapUtil kakaoMapUtil;
+
+    private final RedisService redisService;
+    private static final String RANKING_KEY = "restaurant:ranking:views";
+    private static final String RANKING_CACHE_KEY = "restaurant:ranking:top10_cache";
+    private static final Duration CACHE_TTL = Duration.ofMinutes(1);
+
+    private final StringRedisTemplate stringRedisTemplate;
+    private final ObjectMapper objectMapper;
 
     public Page<RestaurantResponseDto> getAllRestaurants(Pageable pageable) {
         Page<Restaurant> restaurantPage = restaurantRepository.findAll(pageable);
@@ -134,9 +147,68 @@ public class RestaurantService {
         }
     }
 
+    /**
+     * 실시간 인기 식당 TOP 10 조회 (캐싱)
+     * @return
+     */
+    @Transactional
+    public List<RestaurantRankingDto> getTopRestaurants() {
+        try {
+            // 1. Redis에서 캐시된 완성본(JSON)이 있는지 먼저 확인 (Cache Hit)
+            String cachedRanking = stringRedisTemplate.opsForValue().get(RANKING_CACHE_KEY);
+            if (cachedRanking != null) {
+                log.info("🎯 랭킹 캐시 적중! (DB 조회 생략)");
+                // JSON 문자열을 List<RestaurantRankingDto> 객체로 변환하여 즉시 반환
+                return objectMapper.readValue(cachedRanking, new TypeReference<List<RestaurantRankingDto>>() {});
+            }
+        } catch (Exception e) {
+            log.warn("랭킹 캐시 읽기 실패. DB 조회를 진행합니다.", e);
+        }
+
+        log.info("🐌 랭킹 캐시 없음. ZSet 및 DB를 조회하여 랭킹을 새로 계산합니다.");
+
+        // 2. 캐시가 없으면(Cache Miss) 기존 로직대로 새로 계산
+        Set<Object> topIdsObj = redisService.getTopRanking(RANKING_KEY, 0, 9);
+
+        if (topIdsObj == null || topIdsObj.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<Long> topIds = topIdsObj.stream()
+                .map(id -> Long.valueOf(String.valueOf(id)))
+                .collect(Collectors.toList());
+
+        List<Restaurant> restaurants = restaurantRepository.findAllById(topIds);
+
+        Map<Long, Restaurant> restaurantMap = restaurants.stream()
+                .collect(Collectors.toMap(Restaurant::getId, r -> r));
+
+        List<RestaurantRankingDto> rankingList = new ArrayList<>();
+        int rank = 1;
+        for (Long id : topIds) {
+            if (restaurantMap.containsKey(id)) {
+                rankingList.add(RestaurantRankingDto.of(restaurantMap.get(id), rank++));
+            }
+        }
+
+        // 3. 새로 계산한 랭킹 결과를 JSON으로 변환하여 Redis에 1분간 캐싱
+        try {
+            String rankingJson = objectMapper.writeValueAsString(rankingList);
+            stringRedisTemplate.opsForValue().set(RANKING_CACHE_KEY, rankingJson, CACHE_TTL);
+            log.debug("💾 새 랭킹 데이터 캐싱 완료 (TTL: 1분)");
+        } catch (JsonProcessingException e) {
+            log.error("랭킹 데이터 캐싱(직렬화) 실패", e);
+        }
+
+        return rankingList;
+    }
+
     public RestaurantResponseDto getRestaurantById(Long id, String username) {
         Restaurant restaurant = restaurantRepository.findById(id)
                 .orElseThrow(() -> new BaseException(RestaurantExceptionType.RESTAURANT_NOT_FOUND));
+
+        // 조회수 1 증가 (Redis ZSet)
+        redisService.incrementScore(RANKING_KEY, id.toString(), 1.0);
 
         // 로그인 한 경우, 이미 저장 여부
         boolean isSaved = false;
