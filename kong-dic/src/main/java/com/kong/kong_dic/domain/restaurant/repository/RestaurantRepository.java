@@ -9,6 +9,8 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
+
 public interface RestaurantRepository extends JpaRepository<Restaurant, Long>, JpaSpecificationExecutor<Restaurant> {
     Page<Restaurant> findByBeanTypesContains(BeanType beanType, Pageable pageable);
 
@@ -37,4 +39,8 @@ public interface RestaurantRepository extends JpaRepository<Restaurant, Long>, J
             @Param("longitude") double longitude,
             @Param("distance") double distance,
             Pageable pageable
-    );}
+    );
+
+    List<Restaurant> findTop10ByOrderByAverageRatingDesc();
+}
+
