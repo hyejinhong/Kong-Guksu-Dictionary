@@ -147,4 +147,12 @@ public class RestaurantController {
         return ResponseEntity.ok(BaseResponse.success(restaurantService.getTopRestaurants()));
     }
 
+    /**
+     * 실시간 인기 콩국수 랭킹 조회 (별점 기준 TOP 10)
+     */
+    @GetMapping("/ranking/rating")
+    public ResponseEntity<BaseResponse<List<RestaurantRankingDto>>> getTopRatedRestaurantRanking() {
+        return ResponseEntity.ok(BaseResponse.success(restaurantService.getTopRatedRestaurants()));
+    }
+
 }

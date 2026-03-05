@@ -54,6 +54,8 @@ public class RestaurantService {
     private final RedisService redisService;
     private static final String RANKING_KEY = "restaurant:ranking:views";
     private static final String RANKING_CACHE_KEY = "restaurant:ranking:top10_cache";
+    private static final String RATING_RANKING_CACHE_KEY = "restaurant:ranking:rating_top10_cache";
+
     private static final Duration CACHE_TTL = Duration.ofMinutes(1);
 
     private final StringRedisTemplate stringRedisTemplate;
@@ -198,6 +200,46 @@ public class RestaurantService {
             log.debug("💾 새 랭킹 데이터 캐싱 완료 (TTL: 1분)");
         } catch (JsonProcessingException e) {
             log.error("랭킹 데이터 캐싱(직렬화) 실패", e);
+        }
+
+        return rankingList;
+    }
+
+    /**
+     * 평균 별점 기반 인기 식당 TOP 10 조회 (캐싱 적용)
+     */
+    @Transactional(readOnly = true)
+    public List<RestaurantRankingDto> getTopRatedRestaurants() {
+        try {
+            // 1. Redis에서 캐시된 완성본(JSON)이 있는지 확인 (Cache Hit)
+            String cachedRanking = stringRedisTemplate.opsForValue().get(RATING_RANKING_CACHE_KEY);
+            if (cachedRanking != null) {
+                log.info("🎯 별점 랭킹 캐시 적중! (DB 조회 생략)");
+                return objectMapper.readValue(cachedRanking, new TypeReference<List<RestaurantRankingDto>>() {});
+            }
+        } catch (Exception e) {
+            log.warn("별점 랭킹 캐시 읽기 실패. DB 조회를 진행합니다.", e);
+        }
+
+        log.info("🐌 별점 랭킹 캐시 없음. DB를 조회하여 별점 랭킹을 새로 계산합니다.");
+
+        // 2. DB에서 별점 순으로 상위 10개 식당 직접 조회
+        List<Restaurant> topRatedRestaurants = restaurantRepository.findTop10ByOrderByAverageRatingDesc();
+
+        // 3. Entity List -> DTO List 로 변환 (순위 rank 값 부여)
+        List<RestaurantRankingDto> rankingList = new ArrayList<>();
+        int rank = 1;
+        for (Restaurant restaurant : topRatedRestaurants) {
+            rankingList.add(RestaurantRankingDto.of(restaurant, rank++));
+        }
+
+        // 4. 조회된 결과를 JSON으로 변환하여 Redis에 1분간 캐싱
+        try {
+            String rankingJson = objectMapper.writeValueAsString(rankingList);
+            stringRedisTemplate.opsForValue().set(RATING_RANKING_CACHE_KEY, rankingJson, CACHE_TTL);
+            log.info("💾 새 별점 랭킹 데이터 캐싱 완료 (TTL: 1분)");
+        } catch (Exception e) {
+            log.error("별점 랭킹 데이터 캐싱(직렬화) 실패", e);
         }
 
         return rankingList;

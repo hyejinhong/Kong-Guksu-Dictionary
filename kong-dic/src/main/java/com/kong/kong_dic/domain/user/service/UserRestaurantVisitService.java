@@ -1,6 +1,7 @@
 package com.kong.kong_dic.domain.user.service;
 
 import com.kong.kong_dic.common.exception.BaseException;
+import com.kong.kong_dic.domain.restaurant.dto.RestaurantRankingDto;
 import com.kong.kong_dic.domain.restaurant.entity.Restaurant;
 import com.kong.kong_dic.domain.restaurant.exception.RestaurantExceptionType;
 import com.kong.kong_dic.domain.restaurant.repository.RestaurantRepository;
@@ -62,6 +63,14 @@ public class UserRestaurantVisitService {
                 .memo(request.getMemo())
                 .build();
         visitRepository.save(entity);
+
+        // 별점 통계 업데이트
+        visitRepository.flush();
+        var stats = visitRepository.findStatsByRestaurantId(restaurant.getId());
+        long count = stats != null ? stats.getCount() : 0L;
+        double average = stats != null ? stats.getAverage() : 0.0;
+        restaurant.updateStats(count, average);
+        restaurantRepository.save(restaurant);
     }
 
     public void deleteVisitedRestaurant(String username, Long id) {
