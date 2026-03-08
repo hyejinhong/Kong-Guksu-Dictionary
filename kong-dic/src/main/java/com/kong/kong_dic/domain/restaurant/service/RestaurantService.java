@@ -55,6 +55,7 @@ public class RestaurantService {
     private static final String RANKING_KEY = "restaurant:ranking:views";
     private static final String RANKING_CACHE_KEY = "restaurant:ranking:top10_cache";
     private static final String RATING_RANKING_CACHE_KEY = "restaurant:ranking:rating_top10_cache";
+    private static final String DAILY_RANKING_KEY = "restaurant:ranking:views:daily";
 
     private static final Duration CACHE_TTL = Duration.ofMinutes(1);
 
@@ -251,6 +252,7 @@ public class RestaurantService {
 
         // 조회수 1 증가 (Redis ZSet)
         redisService.incrementScore(RANKING_KEY, id.toString(), 1.0);
+        redisService.incrementScore(DAILY_RANKING_KEY, id.toString(), 1.0);
 
         // 로그인 한 경우, 이미 저장 여부
         boolean isSaved = false;
