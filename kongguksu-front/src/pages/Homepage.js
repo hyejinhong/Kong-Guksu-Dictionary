@@ -23,7 +23,8 @@ function HomePage() {
   const [rankingData, setRankingData] = useState([]);
   const [activeTab, setActiveTab] = useState('views'); // 'views' | 'rating'
   const [isLoading, setIsLoading] = useState(false);
-
+  const [viewPeriod, setViewPeriod] = useState('daily');
+  
   // 식당 데이터를 서버에서 가져오는 함수
   const fetchRestaurants = useCallback(async () => {
     setLoading(true);
@@ -85,14 +86,19 @@ function HomePage() {
     setFilter((prevFilter) => ({ ...prevFilter, [type]: value }));
   }, []);
 
-  // 실시간 랭킹 데이터 가져오기 (activeTab 바뀔 때마다 실행)
+  // 실시간 랭킹 데이터 가져오기 (activeTab 또는 viewPeriod가 바뀔 때마다 실행)
   const fetchRanking = async () => {
     setIsLoading(true);
     try {
-      const endpoint = activeTab === 'views' 
-        ? '/restaurants/ranking' 
-        : '/restaurants/ranking/rating';
-        
+      let endpoint = '';
+      
+      // 인기순 -> 파라미터 (?period=daily or all)
+      if (activeTab === 'views') {
+        endpoint = `/restaurants/ranking?period=${viewPeriod}`;
+      } else {
+        endpoint = '/restaurants/ranking/rating';
+      }
+
       const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080'}${endpoint}`);
       
       if (response.data && response.data.data) {
@@ -107,7 +113,7 @@ function HomePage() {
 
   useEffect(() => {
     fetchRanking();
-  }, [activeTab]);
+  }, [activeTab, viewPeriod]);
 
 
   return (
@@ -135,8 +141,8 @@ function HomePage() {
           <p className="text-sm text-gray-500 mt-1">지금 가장 핫한 콩국수 맛집은?</p>
         </div>
 
-        {/* 탭 UI 영역 */}
-        <div className="px-5 py-3 flex space-x-2 border-b border-gray-200 bg-gray-50">
+        {/* 메인 탭 UI 영역 */}
+        <div className="px-5 py-3 flex space-x-2 bg-white">
           <button
             onClick={() => setActiveTab('views')}
             className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${
@@ -159,15 +165,37 @@ function HomePage() {
           </button>
         </div>
 
+        {/* ⭐ 서브 탭 UI 영역 (인기순 탭이 선택되었을 때만 노출!) */}
+        {activeTab === 'views' && (
+          <div className="px-5 py-2 bg-gray-50 border-y border-gray-100 flex justify-end items-center space-x-3">
+            <button 
+              onClick={() => setViewPeriod('daily')}
+              className={`text-xs font-semibold transition-colors ${viewPeriod === 'daily' ? 'text-gray-800' : 'text-gray-400 hover:text-gray-600'}`}
+            >
+              오늘
+            </button>
+            <span className="text-gray-300 text-xs">|</span>
+            <button 
+              onClick={() => setViewPeriod('all')}
+              className={`text-xs font-semibold transition-colors ${viewPeriod === 'all' ? 'text-gray-800' : 'text-gray-400 hover:text-gray-600'}`}
+            >
+              누적
+            </button>
+          </div>
+        )}
+        
+        {/* 만약 별점순 탭이라면 서브 탭 공간만큼 얇은 선만 하나 그어줍니다 */}
+        {activeTab === 'rating' && <div className="border-b border-gray-100"></div>}
+
         {/* 랭킹 리스트 렌더링 영역 */}
-        <div className="flex-1 overflow-y-auto p-5">
+        <div className="flex-1 overflow-y-auto p-5 bg-white">
           <div className="space-y-3">
             {isLoading ? (
               <p className="text-center text-gray-500 py-10 text-sm font-medium animate-pulse">
                 데이터를 불러오는 중입니다...
               </p>
             ) : rankingData.length === 0 ? (
-              <p className="text-center text-gray-500 py-10 text-sm bg-gray-50 rounded-lg">
+              <p className="text-center text-gray-500 py-10 text-sm bg-gray-50 rounded-lg border border-gray-100">
                 아직 랭킹 데이터가 없습니다.<br/>첫 조회의 주인공이 되어보세요!
               </p>
             ) : (
@@ -201,12 +229,11 @@ function HomePage() {
                     </div>
                   </div>
 
-                  {/* ⭐ 탭에 따라 우측에 보여줄 수치 다르게 설정 */}
+                  {/* 탭에 따라 우측에 보여줄 수치 다르게 설정 */}
                   <div className="text-sm font-bold text-gray-600 ml-2 whitespace-nowrap">
                     {activeTab === 'views' ? (
                       <span className="flex items-center gap-1">
                         <span className="text-gray-400 text-xs font-normal">조회</span>
-                        {/* 백엔드 DTO명(reviewCount, totalScraps 등)에 맞게 렌더링 */}
                         {shop.reviewCount ?? shop.totalScraps ?? 0}
                       </span>
                     ) : (
