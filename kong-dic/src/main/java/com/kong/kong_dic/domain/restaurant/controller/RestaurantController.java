@@ -143,8 +143,8 @@ public class RestaurantController {
      * 실시간 인기 콩국수 랭킹 조회 (TOP 10)
      */
     @GetMapping("/ranking")
-    public ResponseEntity<BaseResponse<List<RestaurantRankingDto>>> getRestaurantRanking() {
-        return ResponseEntity.ok(BaseResponse.success(restaurantService.getTopRestaurants()));
+    public ResponseEntity<BaseResponse<List<RestaurantRankingDto>>> getRestaurantRanking(@RequestParam(name = "period", defaultValue = "daily") String period) {
+        return ResponseEntity.ok(BaseResponse.success(restaurantService.getTopRestaurants(period)));
     }
 
     /**

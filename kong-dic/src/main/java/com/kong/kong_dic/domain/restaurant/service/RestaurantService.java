@@ -55,6 +55,8 @@ public class RestaurantService {
     private static final String RANKING_KEY = "restaurant:ranking:views";
     private static final String RANKING_CACHE_KEY = "restaurant:ranking:top10_cache";
     private static final String RATING_RANKING_CACHE_KEY = "restaurant:ranking:rating_top10_cache";
+    private static final String DAILY_RANKING_KEY = "restaurant:ranking:views:daily";
+    private static final String DAILY_RANKING_CACHE_KEY = "restaurant:ranking:top10_cache:daily";
 
     private static final Duration CACHE_TTL = Duration.ofMinutes(1);
 
@@ -154,10 +156,21 @@ public class RestaurantService {
      * @return
      */
     @Transactional
-    public List<RestaurantRankingDto> getTopRestaurants() {
+    public List<RestaurantRankingDto> getTopRestaurants(String period) {
+        String cacheKey;
+        String zSetKey;
+
+        if ("all".equals(period)) {
+            cacheKey = RANKING_CACHE_KEY;
+            zSetKey = RANKING_KEY;
+        } else {
+            cacheKey = DAILY_RANKING_CACHE_KEY;
+            zSetKey = DAILY_RANKING_KEY;
+        }
+
         try {
             // 1. Redis에서 캐시된 완성본(JSON)이 있는지 먼저 확인 (Cache Hit)
-            String cachedRanking = stringRedisTemplate.opsForValue().get(RANKING_CACHE_KEY);
+            String cachedRanking = stringRedisTemplate.opsForValue().get(cacheKey);
             if (cachedRanking != null) {
                 log.info("🎯 랭킹 캐시 적중! (DB 조회 생략)");
                 // JSON 문자열을 List<RestaurantRankingDto> 객체로 변환하여 즉시 반환
@@ -170,7 +183,7 @@ public class RestaurantService {
         log.info("🐌 랭킹 캐시 없음. ZSet 및 DB를 조회하여 랭킹을 새로 계산합니다.");
 
         // 2. 캐시가 없으면(Cache Miss) 기존 로직대로 새로 계산
-        Set<Object> topIdsObj = redisService.getTopRanking(RANKING_KEY, 0, 9);
+        Set<Object> topIdsObj = redisService.getTopRanking(zSetKey, 0, 9);
 
         if (topIdsObj == null || topIdsObj.isEmpty()) {
             return Collections.emptyList();
@@ -196,7 +209,7 @@ public class RestaurantService {
         // 3. 새로 계산한 랭킹 결과를 JSON으로 변환하여 Redis에 1분간 캐싱
         try {
             String rankingJson = objectMapper.writeValueAsString(rankingList);
-            stringRedisTemplate.opsForValue().set(RANKING_CACHE_KEY, rankingJson, CACHE_TTL);
+            stringRedisTemplate.opsForValue().set(cacheKey, rankingJson, CACHE_TTL);
             log.debug("💾 새 랭킹 데이터 캐싱 완료 (TTL: 1분)");
         } catch (JsonProcessingException e) {
             log.error("랭킹 데이터 캐싱(직렬화) 실패", e);
@@ -251,6 +264,7 @@ public class RestaurantService {
 
         // 조회수 1 증가 (Redis ZSet)
         redisService.incrementScore(RANKING_KEY, id.toString(), 1.0);
+        redisService.incrementScore(DAILY_RANKING_KEY, id.toString(), 1.0);
 
         // 로그인 한 경우, 이미 저장 여부
         boolean isSaved = false;
