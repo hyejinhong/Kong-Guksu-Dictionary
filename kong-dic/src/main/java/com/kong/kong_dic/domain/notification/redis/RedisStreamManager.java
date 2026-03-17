@@ -82,7 +82,7 @@ public class RedisStreamManager {
                     }
                 }
             } catch (Exception e) {
-                log.error("Redis Stream 소비 중 에러 발생: {}", e.getMessage());
+                log.error("Redis Stream 소비 중 에러 발생", e);
                 try {
                     Thread.sleep(1000); // 에러 발생 시 잠시 대기 (CPU 폭주 방지)
                 } catch (InterruptedException ie) {
