@@ -1,0 +1,16 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/admin/:path*",
+      "destination": "http://34.127.86.52:8081/:path*"
+    },
+    {
+      "source": "/api/main/:path*",
+      "destination": "http://34.127.86.52:8080/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
