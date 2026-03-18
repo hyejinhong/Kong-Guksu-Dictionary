@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "$GCP_BACKEND_URL/:path*"
+      "destination": "http://34.127.86.52:8080/:path*"
     }
   ]
 }
