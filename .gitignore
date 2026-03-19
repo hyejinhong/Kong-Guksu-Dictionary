@@ -21,4 +21,3 @@ yarn-error.log*
 kong-dic-admin/src/main/resources/application-dev.yml
 /.gradle
 /.idea
-kongguksu-front/vercel.json
