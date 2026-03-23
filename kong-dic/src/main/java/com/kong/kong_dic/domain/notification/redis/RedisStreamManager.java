@@ -44,7 +44,7 @@ public class RedisStreamManager {
 
         // 2. 리스너 스레드 실행
         executorService.submit(this::consumeStream);
-        log.info("🚀 글로벌 Redis Stream 리스너가 시작되었습니다. (Key: {})", GLOBAL_STREAM_KEY);
+        log.info(">>> 글로벌 Redis Stream 리스너가 시작되었습니다. (Key: {})", GLOBAL_STREAM_KEY);
     }
 
     /**
@@ -53,6 +53,10 @@ public class RedisStreamManager {
     private void createStreamGroup(String key, String group) {
         try {
             // 스트림이 없으면 생성하면서 그룹도 같이 만듬 (MKSTREAM 옵션과 유사 효과를 위해 0-0 부터 읽기)
+            if (Boolean.FALSE.equals(redisTemplate.hasKey(key))) {
+                redisTemplate.opsForStream().add(key, Map.of("init", "true"));
+                log.info(">>> Redis Stream 키 생성 완료 : {}", key);
+            }
             redisTemplate.opsForStream().createGroup(key, ReadOffset.from("0-0"), group);
             log.info("Redis Stream 그룹 생성 완료: {} / {}", key, group);
         } catch (DataAccessException e) {
@@ -130,6 +134,6 @@ public class RedisStreamManager {
     public void shutdown() {
         isRunning = false;
         executorService.shutdownNow();
-        log.info("🛑 Redis Stream 리스너가 종료되었습니다.");
+        log.info(">>> Redis Stream 리스너가 종료되었습니다.");
     }
 }

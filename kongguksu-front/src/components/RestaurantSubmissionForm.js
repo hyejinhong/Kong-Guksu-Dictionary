@@ -190,6 +190,7 @@ const RestaurantSubmissionForm = () => {
           isAllYear: false,
           latitude: 0,
           longitude: 0,
+          prices: [{ beanType: "", price: "" }]
         });
       } else {
         alert("제출에 실패했습니다: " + res.data.message);
