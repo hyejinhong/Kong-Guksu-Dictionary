@@ -347,6 +347,8 @@ public class RestaurantService {
                 .endMonth(restaurant.getEndMonth())
                 .prices(restaurant.getPrices())
                 .distance(calculateDistance(restaurant, latitude, longitude))
+                .totalScraps(restaurant.getTotalScraps())
+                .averageRating(restaurant.getAverageRating())
                 .build();
     }
 
