@@ -25,4 +25,5 @@ public class RestaurantResponseDto {
     private Boolean isSaved;
     private Double averageRating;
     private Long totalScraps;
+    private Long viewCount;
 }

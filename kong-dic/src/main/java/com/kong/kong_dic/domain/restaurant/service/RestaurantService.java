@@ -172,7 +172,7 @@ public class RestaurantService {
             // 1. Redis에서 캐시된 완성본(JSON)이 있는지 먼저 확인 (Cache Hit)
             String cachedRanking = stringRedisTemplate.opsForValue().get(cacheKey);
             if (cachedRanking != null) {
-                log.info("🎯 랭킹 캐시 적중! (DB 조회 생략)");
+                log.info(">> 랭킹 캐시 존재 (DB 조회 생략)");
                 // JSON 문자열을 List<RestaurantRankingDto> 객체로 변환하여 즉시 반환
                 return objectMapper.readValue(cachedRanking, new TypeReference<List<RestaurantRankingDto>>() {});
             }
@@ -180,7 +180,7 @@ public class RestaurantService {
             log.warn("랭킹 캐시 읽기 실패. DB 조회를 진행합니다.", e);
         }
 
-        log.info("🐌 랭킹 캐시 없음. ZSet 및 DB를 조회하여 랭킹을 새로 계산합니다.");
+        log.info(">> 랭킹 캐시 없음. ZSet 및 DB를 조회하여 랭킹을 새로 계산합니다.");
 
         // 2. 캐시가 없으면(Cache Miss) 기존 로직대로 새로 계산
         Set<Object> topIdsObj = redisService.getTopRanking(zSetKey, 0, 9);
@@ -262,9 +262,17 @@ public class RestaurantService {
         Restaurant restaurant = restaurantRepository.findById(id)
                 .orElseThrow(() -> new BaseException(RestaurantExceptionType.RESTAURANT_NOT_FOUND));
 
-        // 조회수 1 증가 (Redis ZSet)
+        // 조회수 1 증가
         redisService.incrementScore(RANKING_KEY, id.toString(), 1.0);
         redisService.incrementScore(DAILY_RANKING_KEY, id.toString(), 1.0);
+
+        // 현재 Redis 실시간 점수 가져오기
+        Double totalScore = stringRedisTemplate.opsForZSet().score(RANKING_KEY, id.toString());
+        Double todayScore = stringRedisTemplate.opsForZSet().score(DAILY_RANKING_KEY, id.toString());
+        long totalView = (totalScore != null) ? totalScore.longValue() : 0L;
+        long todayView = (todayScore != null) ? todayScore.longValue() : 0L;
+
+        restaurant.setViewCount(restaurant.getViewCount() + totalView);
 
         // 로그인 한 경우, 이미 저장 여부
         boolean isSaved = false;
@@ -349,6 +357,7 @@ public class RestaurantService {
                 .distance(calculateDistance(restaurant, latitude, longitude))
                 .totalScraps(restaurant.getTotalScraps())
                 .averageRating(restaurant.getAverageRating())
+                .viewCount(restaurant.getViewCount())
                 .build();
     }
 

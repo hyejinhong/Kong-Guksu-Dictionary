@@ -53,6 +53,12 @@ public class Restaurant {
     @Builder.Default
     private Double averageRating = 0.0;
 
+    private Long viewCount = 0L;
+
+    public void addViewCount(Long count) {
+        this.viewCount += count;
+    }
+
     // 통계 업데이트
     public void updateStats(Long count, Double rating) {
         this.totalScraps = count;
