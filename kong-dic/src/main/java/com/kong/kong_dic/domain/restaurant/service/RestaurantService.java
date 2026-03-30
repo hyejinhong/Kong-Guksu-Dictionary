@@ -64,8 +64,6 @@ public class RestaurantService {
     private final ObjectMapper objectMapper;
 
     public Page<RestaurantResponseDto> getAllRestaurants(Pageable pageable) {
-        Page<Restaurant> restaurantPage = restaurantRepository.findAll(pageable);
-
         Page<Restaurant> page = restaurantRepository.findAll(pageable);
         return page.map(restaurant -> entityToResponseDto(restaurant, null, null));
     }
@@ -272,8 +270,6 @@ public class RestaurantService {
         long totalView = (totalScore != null) ? totalScore.longValue() : 0L;
         long todayView = (todayScore != null) ? todayScore.longValue() : 0L;
 
-        restaurant.setViewCount(restaurant.getViewCount() + totalView);
-
         // 로그인 한 경우, 이미 저장 여부
         boolean isSaved = false;
         if (username != null) {
@@ -282,6 +278,7 @@ public class RestaurantService {
         }
 
         RestaurantResponseDto responseDto = entityToResponseDto(restaurant);
+        responseDto.setViewCount(restaurant.getViewCount() + totalView);
         responseDto.setIsSaved(isSaved);
         return responseDto;
     }
