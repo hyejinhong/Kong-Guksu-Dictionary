@@ -233,8 +233,8 @@ function HomePage() {
                   <div className="text-sm font-bold text-gray-600 ml-2 whitespace-nowrap">
                     {activeTab === 'views' ? (
                       <span className="flex items-center gap-1">
-                        <span className="text-gray-400 text-xs font-normal">저장</span>
-                        {shop.reviewCount ?? shop.totalScraps ?? 0}
+                        <span className="text-gray-400 text-xs font-normal">조회</span>
+                        {shop.viewCount ?? 0}
                       </span>
                     ) : (
                       <span className="flex items-center gap-1 text-yellow-500">

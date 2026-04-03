@@ -1,12 +1,11 @@
 package com.kong.kong_dic.domain.restaurant.controller;
 
-import com.kong.kong_dic.common.response.BaseResponse;
 import com.kong.kong_dic.common.model.BeanType;
+import com.kong.kong_dic.common.response.BaseResponse;
 import com.kong.kong_dic.domain.restaurant.dto.RestaurantRankingDto;
 import com.kong.kong_dic.domain.restaurant.dto.RestaurantRequestDto;
 import com.kong.kong_dic.domain.restaurant.dto.RestaurantResponseDto;
 import com.kong.kong_dic.domain.restaurant.service.RestaurantService;
-import com.kong.kong_dic.domain.user.entity.User;
 import com.kong.kong_dic.global.annotation.AuthUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -14,7 +13,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
@@ -143,8 +141,8 @@ public class RestaurantController {
      * 실시간 인기 콩국수 랭킹 조회 (TOP 10)
      */
     @GetMapping("/ranking")
-    public ResponseEntity<BaseResponse<List<RestaurantRankingDto>>> getRestaurantRanking(@RequestParam(name = "period", defaultValue = "daily") String period) {
-        return ResponseEntity.ok(BaseResponse.success(restaurantService.getTopRestaurants(period)));
+    public ResponseEntity<BaseResponse<List<RestaurantRankingDto>>> getRestaurantRankingByViewCount(@RequestParam(name = "period", defaultValue = "daily") String period) {
+        return ResponseEntity.ok(BaseResponse.success(restaurantService.getTopRestaurantsByViewCount(period)));
     }
 
     /**
