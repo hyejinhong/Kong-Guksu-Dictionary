@@ -168,7 +168,7 @@ public class RestaurantService {
      * @return
      */
     @Transactional
-    public List<RestaurantRankingDto> getTopRestaurants(String period) {
+    public List<RestaurantRankingDto> getTopRestaurantsByViewCount(String period) {
         String cacheKey;
         String zSetKey;
 
@@ -195,7 +195,7 @@ public class RestaurantService {
         log.info(">> 랭킹 캐시 없음. ZSet 및 DB를 조회하여 랭킹을 새로 계산합니다.");
 
         // 2. 캐시가 없으면(Cache Miss) 기존 로직대로 새로 계산
-        Set<Object> topIdsObj = redisService.getTopRanking(zSetKey, 0, 9);
+        Set<String> topIdsObj = redisService.getTopRanking(zSetKey, 0, 9);
 
         if (topIdsObj == null || topIdsObj.isEmpty()) {
             return Collections.emptyList();
@@ -222,7 +222,7 @@ public class RestaurantService {
         try {
             String rankingJson = objectMapper.writeValueAsString(rankingList);
             stringRedisTemplate.opsForValue().set(cacheKey, rankingJson, CACHE_TTL);
-            log.debug("💾 새 랭킹 데이터 캐싱 완료 (TTL: 1분)");
+            log.debug(">> 새 랭킹 데이터 캐싱 완료 (TTL: 1분)");
         } catch (JsonProcessingException e) {
             log.error("랭킹 데이터 캐싱(직렬화) 실패", e);
         }
@@ -292,7 +292,7 @@ public class RestaurantService {
         }
 
         RestaurantResponseDto responseDto = entityToResponseDto(restaurant);
-        responseDto.setViewCount(restaurant.getViewCount() + totalView);
+        responseDto.setViewCount(totalView);
         responseDto.setIsSaved(isSaved);
         return responseDto;
     }
