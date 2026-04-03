@@ -2,6 +2,7 @@ package com.kong.kong_dic.global.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.Set;
@@ -11,7 +12,7 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class RedisService {
 
-    private final RedisTemplate<String, Object> redisTemplate;
+    private final StringRedisTemplate redisTemplate;
 
     /**
      * 랭킹 점수 증가 (ZINCRBY)
@@ -26,7 +27,7 @@ public class RedisService {
      * @param end 끝 순위
      * @return Value Set (식당 ID 목록)
      */
-    public Set<Object> getTopRanking(String key, int start, int end) {
+    public Set<String> getTopRanking(String key, int start, int end) {
         // 점수가 높은 순으로 조회 (Reverse Range)
         return redisTemplate.opsForZSet().reverseRange(key, start, end);
     }

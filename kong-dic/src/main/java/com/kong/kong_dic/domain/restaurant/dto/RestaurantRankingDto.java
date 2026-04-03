@@ -16,6 +16,7 @@ public class RestaurantRankingDto {
     private String address;
     private Double averageRating;
     private Long reviewCount;
+    private Long viewCount;
     private int rank;
 
     public static RestaurantRankingDto of(Restaurant restaurant, int rank) {
@@ -25,6 +26,7 @@ public class RestaurantRankingDto {
                 .address(restaurant.getAddress())
                 .averageRating(restaurant.getAverageRating())
                 .reviewCount(restaurant.getTotalScraps())
+                .viewCount(restaurant.getViewCount())
                 .rank(rank)
                 .build();
     }

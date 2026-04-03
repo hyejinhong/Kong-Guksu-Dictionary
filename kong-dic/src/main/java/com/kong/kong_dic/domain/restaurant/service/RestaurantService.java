@@ -52,11 +52,25 @@ public class RestaurantService {
     private final KakaoMapUtil kakaoMapUtil;
 
     private final RedisService redisService;
-    private static final String RANKING_KEY = "restaurant:ranking:views";
-    private static final String RANKING_CACHE_KEY = "restaurant:ranking:top10_cache";
-    private static final String RATING_RANKING_CACHE_KEY = "restaurant:ranking:rating_top10_cache";
-    private static final String DAILY_RANKING_KEY = "restaurant:ranking:views:daily";
-    private static final String DAILY_RANKING_CACHE_KEY = "restaurant:ranking:top10_cache:daily";
+
+    // =========================================================
+    // 1. Redis Keys (ZSet): '조회수(Views)' 누적 전용
+    // (getRestaurantById 호출 시에만 업데이트 됨)
+    // =========================================================
+    private static final String ZSET_VIEWS_ALL_KEY = "restaurant:ranking:views";
+    private static final String ZSET_VIEWS_DAILY_KEY = "restaurant:ranking:views:daily";
+
+    // =========================================================
+    // 2. Redis Keys (String Cache): '조회수(Views)' 랭킹 결과 캐싱용
+    // =========================================================
+    private static final String CACHE_VIEWS_ALL_KEY = "restaurant:ranking:top10_cache";
+    private static final String CACHE_VIEWS_DAILY_KEY = "restaurant:ranking:top10_cache:daily";
+
+    // =========================================================
+    // 3. Redis Keys (String Cache): '별점(Rating)' 랭킹 결과 캐싱용
+    // (DB 통계 기반으로 계산 후 결과만 캐싱 됨)
+    // =========================================================
+    private static final String CACHE_RATING_ALL_KEY = "restaurant:ranking:rating_top10_cache";
 
     private static final Duration CACHE_TTL = Duration.ofMinutes(1);
 
@@ -64,8 +78,6 @@ public class RestaurantService {
     private final ObjectMapper objectMapper;
 
     public Page<RestaurantResponseDto> getAllRestaurants(Pageable pageable) {
-        Page<Restaurant> restaurantPage = restaurantRepository.findAll(pageable);
-
         Page<Restaurant> page = restaurantRepository.findAll(pageable);
         return page.map(restaurant -> entityToResponseDto(restaurant, null, null));
     }
@@ -156,23 +168,23 @@ public class RestaurantService {
      * @return
      */
     @Transactional
-    public List<RestaurantRankingDto> getTopRestaurants(String period) {
+    public List<RestaurantRankingDto> getTopRestaurantsByViewCount(String period) {
         String cacheKey;
         String zSetKey;
 
         if ("all".equals(period)) {
-            cacheKey = RANKING_CACHE_KEY;
-            zSetKey = RANKING_KEY;
+            cacheKey = CACHE_VIEWS_ALL_KEY;
+            zSetKey = ZSET_VIEWS_ALL_KEY;
         } else {
-            cacheKey = DAILY_RANKING_CACHE_KEY;
-            zSetKey = DAILY_RANKING_KEY;
+            cacheKey = CACHE_VIEWS_DAILY_KEY;
+            zSetKey = ZSET_VIEWS_DAILY_KEY;
         }
 
         try {
             // 1. Redis에서 캐시된 완성본(JSON)이 있는지 먼저 확인 (Cache Hit)
             String cachedRanking = stringRedisTemplate.opsForValue().get(cacheKey);
             if (cachedRanking != null) {
-                log.info("🎯 랭킹 캐시 적중! (DB 조회 생략)");
+                log.info(">> 랭킹 캐시 존재 (DB 조회 생략)");
                 // JSON 문자열을 List<RestaurantRankingDto> 객체로 변환하여 즉시 반환
                 return objectMapper.readValue(cachedRanking, new TypeReference<List<RestaurantRankingDto>>() {});
             }
@@ -180,10 +192,10 @@ public class RestaurantService {
             log.warn("랭킹 캐시 읽기 실패. DB 조회를 진행합니다.", e);
         }
 
-        log.info("🐌 랭킹 캐시 없음. ZSet 및 DB를 조회하여 랭킹을 새로 계산합니다.");
+        log.info(">> 랭킹 캐시 없음. ZSet 및 DB를 조회하여 랭킹을 새로 계산합니다.");
 
         // 2. 캐시가 없으면(Cache Miss) 기존 로직대로 새로 계산
-        Set<Object> topIdsObj = redisService.getTopRanking(zSetKey, 0, 9);
+        Set<String> topIdsObj = redisService.getTopRanking(zSetKey, 0, 9);
 
         if (topIdsObj == null || topIdsObj.isEmpty()) {
             return Collections.emptyList();
@@ -210,7 +222,7 @@ public class RestaurantService {
         try {
             String rankingJson = objectMapper.writeValueAsString(rankingList);
             stringRedisTemplate.opsForValue().set(cacheKey, rankingJson, CACHE_TTL);
-            log.debug("💾 새 랭킹 데이터 캐싱 완료 (TTL: 1분)");
+            log.debug(">> 새 랭킹 데이터 캐싱 완료 (TTL: 1분)");
         } catch (JsonProcessingException e) {
             log.error("랭킹 데이터 캐싱(직렬화) 실패", e);
         }
@@ -225,7 +237,7 @@ public class RestaurantService {
     public List<RestaurantRankingDto> getTopRatedRestaurants() {
         try {
             // 1. Redis에서 캐시된 완성본(JSON)이 있는지 확인 (Cache Hit)
-            String cachedRanking = stringRedisTemplate.opsForValue().get(RATING_RANKING_CACHE_KEY);
+            String cachedRanking = stringRedisTemplate.opsForValue().get(CACHE_RATING_ALL_KEY);
             if (cachedRanking != null) {
                 log.info("🎯 별점 랭킹 캐시 적중! (DB 조회 생략)");
                 return objectMapper.readValue(cachedRanking, new TypeReference<List<RestaurantRankingDto>>() {});
@@ -249,7 +261,7 @@ public class RestaurantService {
         // 4. 조회된 결과를 JSON으로 변환하여 Redis에 1분간 캐싱
         try {
             String rankingJson = objectMapper.writeValueAsString(rankingList);
-            stringRedisTemplate.opsForValue().set(RATING_RANKING_CACHE_KEY, rankingJson, CACHE_TTL);
+            stringRedisTemplate.opsForValue().set(CACHE_RATING_ALL_KEY, rankingJson, CACHE_TTL);
             log.info("💾 새 별점 랭킹 데이터 캐싱 완료 (TTL: 1분)");
         } catch (Exception e) {
             log.error("별점 랭킹 데이터 캐싱(직렬화) 실패", e);
@@ -262,9 +274,15 @@ public class RestaurantService {
         Restaurant restaurant = restaurantRepository.findById(id)
                 .orElseThrow(() -> new BaseException(RestaurantExceptionType.RESTAURANT_NOT_FOUND));
 
-        // 조회수 1 증가 (Redis ZSet)
-        redisService.incrementScore(RANKING_KEY, id.toString(), 1.0);
-        redisService.incrementScore(DAILY_RANKING_KEY, id.toString(), 1.0);
+        // 조회수 1 증가
+        redisService.incrementScore(ZSET_VIEWS_ALL_KEY, id.toString(), 1.0);
+        redisService.incrementScore(ZSET_VIEWS_DAILY_KEY, id.toString(), 1.0);
+
+        // 현재 Redis 실시간 점수 가져오기
+        Double totalScore = stringRedisTemplate.opsForZSet().score(ZSET_VIEWS_ALL_KEY, id.toString());
+        Double todayScore = stringRedisTemplate.opsForZSet().score(ZSET_VIEWS_DAILY_KEY, id.toString());
+        long totalView = (totalScore != null) ? totalScore.longValue() : 0L;
+        long todayView = (todayScore != null) ? todayScore.longValue() : 0L;
 
         // 로그인 한 경우, 이미 저장 여부
         boolean isSaved = false;
@@ -274,6 +292,7 @@ public class RestaurantService {
         }
 
         RestaurantResponseDto responseDto = entityToResponseDto(restaurant);
+        responseDto.setViewCount(totalView);
         responseDto.setIsSaved(isSaved);
         return responseDto;
     }
@@ -349,6 +368,7 @@ public class RestaurantService {
                 .distance(calculateDistance(restaurant, latitude, longitude))
                 .totalScraps(restaurant.getTotalScraps())
                 .averageRating(restaurant.getAverageRating())
+                .viewCount(restaurant.getViewCount())
                 .build();
     }
 

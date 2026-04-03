@@ -87,6 +87,12 @@ public class RedisStreamManager {
                 }
             } catch (Exception e) {
                 log.error("Redis Stream 소비 중 에러 발생", e);
+
+                // NO GROUP 에러인 경우 그룹 닷 생성
+                if (e.getMessage() != null && e.getMessage().contains("NOGROUP")) {
+                    log.info(">>> NOGROUP Error 감지, Stream group 재생성 시도");
+                    createStreamGroup(GLOBAL_STREAM_KEY, GROUP_NAME);
+                }
                 try {
                     Thread.sleep(1000); // 에러 발생 시 잠시 대기 (CPU 폭주 방지)
                 } catch (InterruptedException ie) {
