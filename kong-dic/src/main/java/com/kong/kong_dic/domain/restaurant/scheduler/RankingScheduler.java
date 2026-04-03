@@ -1,10 +1,13 @@
 package com.kong.kong_dic.domain.restaurant.scheduler;
 
+import com.kong.kong_dic.domain.restaurant.repository.RestaurantRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+
+import java.util.Set;
 
 @Slf4j
 @Component
@@ -12,8 +15,11 @@ import org.springframework.stereotype.Component;
 public class RankingScheduler {
 
     private final StringRedisTemplate redisTemplate;
+    private final RestaurantRepository restaurantRepository;
     private static final String DAILY_VIEWS_RANKING_KEY = "restaurant:ranking:views:daily";
     private static final String DAILY_VIEWS_RANKING_CACHE_KEY = "restaurant:ranking:top10_cache:daily";
+    private static final String ZSET_VIEWS_ALL_KEY = "restaurant:ranking:views";
+
     /**
      * 매일 자정(00:00:00)에 실행되는 일간 랭킹 초기화 스케줄러
      */
@@ -28,5 +34,36 @@ public class RankingScheduler {
         } catch (Exception e) {
             log.error(">> 일간 랭킹 초기화 중 오류 발생", e);
         }
+    }
+
+    @Scheduled(cron = "0 */2 * * * *", zone = "Asia/Seoul") // 5분마다
+    public void syncViewCountToDB() {
+        log.info(">> 조회수 Redis → DB 동기화 시작");
+
+        Set<String> restaurantIds = redisTemplate.opsForZSet()
+                .range(ZSET_VIEWS_ALL_KEY, 0, -1);
+
+        if (restaurantIds == null || restaurantIds.isEmpty()) {
+            log.info(">> 동기화할 조회수 데이터 없음");
+            return;
+        }
+
+        for (String idStr : restaurantIds) {
+            try {
+                Long id = Long.valueOf(idStr);
+                Double score = redisTemplate.opsForZSet()
+                        .score(ZSET_VIEWS_ALL_KEY, idStr);
+                if (score == null) continue;
+
+                restaurantRepository.findById(id).ifPresent(restaurant -> {
+                    restaurant.setViewCount(score.longValue());
+                    restaurantRepository.save(restaurant);
+                });
+            } catch (Exception e) {
+                log.error(">> 조회수 동기화 실패 - id: {}", idStr, e);
+            }
+        }
+
+        log.info(">> 조회수 DB 동기화 완료");
     }
 }
