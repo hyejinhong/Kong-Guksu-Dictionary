@@ -22,7 +22,12 @@ public class RestaurantSubmitService {
     private final UserRepository userRepository;
 
     public void addRestaurantSubmission(String username, RestaurantSubmitRequestDto request) {
-        User user = userRepository.findByUsername(username).orElseThrow(() -> new BaseException(UserExceptionType.USER_NOT_FOUND));
+        Long userId = null;
+
+        if (username != null && !username.trim().isEmpty())  {
+            User user = userRepository.findByUsername(username).orElseThrow(() -> new BaseException(UserExceptionType.USER_NOT_FOUND));
+            userId = user.getId();
+        }
 
         log.info("### Restaurant Submission Requested : {}", request.toString());
         RestaurantSubmission submission = RestaurantSubmission.builder()
@@ -34,7 +39,7 @@ public class RestaurantSubmitService {
                 .endMonth(request.getEndMonth())
                 .latitude(request.getLatitude())
                 .longitude(request.getLongitude())
-                .userId(user.getId())
+                .userId(userId)
                 .build();
         submitRepository.save(submission);
     }

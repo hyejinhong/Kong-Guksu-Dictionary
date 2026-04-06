@@ -22,8 +22,9 @@ public class RestaurantSubmitController {
     private final RestaurantSubmitService submitService;
 
     @PostMapping
-    public ResponseEntity<BaseResponse<Void>> addRestaurantSubmission(@AuthUser UserDetails userDetails, @RequestBody RestaurantSubmitRequestDto request) {
-        submitService.addRestaurantSubmission(userDetails.getUsername(), request);
+    public ResponseEntity<BaseResponse<Void>> addRestaurantSubmission(@AuthUser(required = false) UserDetails userDetails, @RequestBody RestaurantSubmitRequestDto request) {
+        String username = userDetails != null ? userDetails.getUsername() : null;
+        submitService.addRestaurantSubmission(username, request);
         return ResponseEntity.ok(BaseResponse.success());
     }
 }

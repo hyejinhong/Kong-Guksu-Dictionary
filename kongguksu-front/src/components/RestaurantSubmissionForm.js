@@ -175,7 +175,7 @@ const RestaurantSubmissionForm = () => {
 
       const res = await axios.post(`${API_BASE_URL}/restaurants/submissions`, payload, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          ...(token && { Authorization: `Bearer ${token}` }),
           'Content-Type': 'application/json',
         }
       });
