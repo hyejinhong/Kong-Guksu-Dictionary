@@ -76,41 +76,44 @@ public class RestaurantSubmitAdminService {
 
         log.info("### Published RestaurantApprovedEvent: {}", payload);
 
-        // TODO Exception
-        User user = userRepository.findById(submission.getUserId()).orElseThrow();
+        // 로그인한 유저가 요청한 경우에만 알림 발행
+        if (submission.getUserId() != null) {
+            User user = userRepository.findById(submission.getUserId()).orElseThrow();
 
-        // 알림 메시지 생성
-        NotificationMessage notification = NotificationMessage.builder()
-                .username(user.getUsername())
-                .title("Approve")
-                .type("alert")
-                .content("❤️ 요청하신 " + submission.getName() + " 등록이 승인되었습니다.")
-                .build();
+            // 알림 메시지 생성
+            NotificationMessage notification = NotificationMessage.builder()
+                    .username(user.getUsername())
+                    .title("Approve")
+                    .type("alert")
+                    .content("❤️ 요청하신 " + submission.getName() + " 등록이 승인되었습니다.")
+                    .build();
 
-        // Redis Stream 발행
-        redisStreamPublisher.publish(notification);
+            // Redis Stream 발행
+            redisStreamPublisher.publish(notification);
+        }
     }
 
     public void rejectSubmission(Long id) {
         RestaurantSubmission submission = submitRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Submission not found"));
         submission.reject();
-
-        // TODO Exception
-        User user = userRepository.findById(submission.getUserId()).orElseThrow();
-
-        // 알림 메시지 생성
-        NotificationMessage notification = NotificationMessage.builder()
-                .username(user.getUsername())
-                .title("Reject")
-                .type("alert")
-                .content("💔 요청하신 " + submission.getName() + "식당 등록이 거절되었습니다.")
-                .build();
-
-        // Redis Stream 발행
-        redisStreamPublisher.publish(notification);
-
         submitRepository.save(submission);
+
+        // 로그인한 유저가 요청한 경우에만 알림 발행
+        if (submission.getUserId() != null) {
+            User user = userRepository.findById(submission.getUserId()).orElseThrow();
+
+            // 알림 메시지 생성
+            NotificationMessage notification = NotificationMessage.builder()
+                    .username(user.getUsername())
+                    .title("Reject")
+                    .type("alert")
+                    .content("💔 요청하신 " + submission.getName() + "식당 등록이 거절되었습니다.")
+                    .build();
+
+            // Redis Stream 발행
+            redisStreamPublisher.publish(notification);
+        }
     }
 
     private RestaurantSubmitRequestDto entityToRequestDto(RestaurantSubmission submission) {
@@ -126,6 +129,4 @@ public class RestaurantSubmitAdminService {
                 .userId(submission.getUserId())
                 .build();
     }
-
-
 }
