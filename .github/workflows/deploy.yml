@@ -43,7 +43,7 @@ jobs:
           file: kong-dic/Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/kong-dic:latest
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/arm64
 
       - name: kong-dic-admin 빌드 & 푸시
         uses: docker/build-push-action@v4
@@ -52,7 +52,7 @@ jobs:
           file: kong-dic-admin/Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/kong-dic-admin:latest
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/arm64
 
 #  deploy:
 #    needs: build-and-push
