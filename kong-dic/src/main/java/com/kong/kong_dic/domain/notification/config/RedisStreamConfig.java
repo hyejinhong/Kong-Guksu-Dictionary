@@ -12,19 +12,23 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 @Configuration
 public class RedisStreamConfig {
 
-    @Bean
-    public RedisConnectionFactory redisConnectionFactory() {
-        RedisStandaloneConfiguration redisStandaloneConfiguration = new RedisStandaloneConfiguration();
-        redisStandaloneConfiguration.setHostName(redisHost);
-        redisStandaloneConfiguration.setPort(redisPort);
-        return new LettuceConnectionFactory(redisStandaloneConfiguration);
-    }
-
     @Value("${spring.redis.host}")
     private String redisHost;
 
     @Value("${spring.redis.port}")
     private int redisPort;
+
+    @Value("${spring.redis.password}")
+    private String redisPassword;
+
+    @Bean
+    public RedisConnectionFactory redisConnectionFactory() {
+        RedisStandaloneConfiguration redisStandaloneConfiguration = new RedisStandaloneConfiguration();
+        redisStandaloneConfiguration.setHostName(redisHost);
+        redisStandaloneConfiguration.setPort(redisPort);
+        redisStandaloneConfiguration.setPassword(redisPassword);
+        return new LettuceConnectionFactory(redisStandaloneConfiguration);
+    }
 
     @Bean
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory factory) {
