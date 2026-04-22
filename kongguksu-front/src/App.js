@@ -10,6 +10,7 @@ import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import MyDictionary from "./pages/MyDictionary";
 import MyPageProfile from "./pages/MyPageProfile";
+import V2MainPage from "./v2/pages/V2MainPage";
 
 import { Toaster } from 'react-hot-toast';
 
@@ -28,6 +29,8 @@ function App() {
             <Route path="/admin/restaurant-submissions" element={<AdminRestaurantSubmissions />} />
             <Route path="/mypage" element={<MyPageProfile />} />
           </Route>
+
+          <Route path="/v2/*" element={<V2MainPage />} />
         </Routes>
       </Router>
       <Toaster position="top-right" reverseOrder={false} />

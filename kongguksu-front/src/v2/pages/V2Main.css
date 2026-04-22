@@ -1,0 +1,38 @@
+/* src/v2/pages/V2Main.css */
+
+/* v2 영역 내에서만 폰트와 배경색 적용 */
+.v2-root {
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
+  background-color: #fdf9ed;
+  min-height: 100vh;
+}
+
+/* Material Icons 설정도 v2 전용으로 */
+.v2-root .material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 600, 'GRAD' 0, 'opsz' 24;
+}
+
+/* 콩 마커 등 커스텀 스타일 */
+.v2-root .bean-marker {
+  width: 44px;
+  height: 30px;
+  border-radius: 60% 60% 50% 50% / 70% 70% 40% 40%;
+  transform: rotate(-10deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 15px rgba(105, 94, 52, 0.1);
+}
+
+.v2-root .glass-panel {
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+}
+
+.v2-root .squishy {
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.v2-root .squishy:active {
+  transform: scale(0.92);
+}
