@@ -4,6 +4,7 @@ WORKDIR /app
 
 # Gradle Wrapper & 설정
 COPY gradlew .
+RUN sed -i 's/\r$//' gradlew
 COPY gradle gradle
 COPY settings.gradle .
 
