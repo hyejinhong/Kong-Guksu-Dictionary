@@ -21,3 +21,4 @@ yarn-error.log*
 kong-dic-admin/src/main/resources/application-dev.yml
 /.gradle
 /.idea
+kong-dic-admin-front/.env
