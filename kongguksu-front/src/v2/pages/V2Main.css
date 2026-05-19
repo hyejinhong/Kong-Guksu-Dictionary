@@ -4,7 +4,9 @@
 .v2-root {
   font-family: 'Plus Jakarta Sans', sans-serif !important;
   background-color: #fdf9ed;
+  height: 100dvh;
   min-height: 100vh;
+  overscroll-behavior: none;
 }
 
 /* Material Icons 설정도 v2 전용으로 */
@@ -27,6 +29,16 @@
 .v2-root .glass-panel {
   backdrop-filter: blur(25px);
   -webkit-backdrop-filter: blur(25px);
+}
+
+.v2-root .v2-kakao-map,
+.v2-root .v2-kakao-map * {
+  pointer-events: auto;
+  touch-action: none;
+  -ms-touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .v2-root .squishy {
