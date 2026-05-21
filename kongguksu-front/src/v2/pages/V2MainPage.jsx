@@ -1,9 +1,12 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import './V2Main.css';
 
 const KAKAO_MAP_SCRIPT_ID = 'kakao-map-sdk';
 const DEFAULT_LOCATION = { latitude: 37.5665, longitude: 126.9780 };
+const INITIAL_MIN_PRICE = 5000;
+const INITIAL_MAX_PRICE = 20000;
+const LIST_PAGE_SIZE = 8;
 
 const loadKakaoMapScript = () => {
   if (window.kakao?.maps) {
@@ -65,14 +68,34 @@ const getRestaurantPosition = (restaurant) => {
   return { latitude, longitude };
 };
 
+const formatPrice = (price) => {
+  const numericPrice = Number(price);
+  return Number.isFinite(numericPrice) ? `${numericPrice.toLocaleString()}원` : '가격 정보 없음';
+};
+
+const getBeanLabel = (beanType) => {
+  if (beanType === 'SOY_BEAN') return '백태';
+  if (beanType === 'BLACK_BEAN') return '서리태';
+  return beanType || '기타';
+};
+
 const V2MainPage = () => {
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
   const markersRef = useRef([]);
+  const [activeView, setActiveView] = useState('map');
   const [location, setLocation] = useState(DEFAULT_LOCATION);
   const [restaurants, setRestaurants] = useState([]);
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [submittedSearchTerm, setSubmittedSearchTerm] = useState('');
+  const [filter, setFilter] = useState({
+    beanType: 'all',
+    openNow: false,
+    minPrice: INITIAL_MIN_PRICE,
+    maxPrice: INITIAL_MAX_PRICE,
+  });
+  const [listPage, setListPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [mapError, setMapError] = useState('');
@@ -88,19 +111,38 @@ const V2MainPage = () => {
         lon: location.longitude,
         page: 0,
         size: 50,
-        searchTerm: searchTerm || null,
+        searchTerm: submittedSearchTerm || null,
+        beanType: filter.beanType !== 'all' ? filter.beanType : null,
+        season: filter.openNow ? 'open-now' : null,
+        minPrice:
+          filter.minPrice === INITIAL_MIN_PRICE && filter.maxPrice === INITIAL_MAX_PRICE
+            ? null
+            : filter.minPrice,
+        maxPrice:
+          filter.minPrice === INITIAL_MIN_PRICE && filter.maxPrice === INITIAL_MAX_PRICE
+            ? null
+            : filter.maxPrice,
       };
 
       const response = await axios.get(url, { params });
       setRestaurants(response.data?.data ?? []);
       setSelectedRestaurant(null);
+      setListPage(1);
     } catch (fetchError) {
       console.error(fetchError);
       setError('식당 목록을 불러오지 못했습니다.');
     } finally {
       setLoading(false);
     }
-  }, [location.latitude, location.longitude, searchTerm]);
+  }, [
+    filter.beanType,
+    filter.maxPrice,
+    filter.minPrice,
+    filter.openNow,
+    location.latitude,
+    location.longitude,
+    submittedSearchTerm,
+  ]);
 
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(
@@ -121,12 +163,14 @@ const V2MainPage = () => {
   }, [fetchRestaurants]);
 
   useEffect(() => {
+    if (activeView !== 'map') return undefined;
+
     let ignore = false;
 
     const initMap = async () => {
       try {
         const kakao = await loadKakaoMapScript();
-        if (ignore || !mapContainerRef.current || mapRef.current) return;
+        if (ignore || !mapContainerRef.current) return;
 
         const center = new kakao.maps.LatLng(location.latitude, location.longitude);
         mapRef.current = new kakao.maps.Map(mapContainerRef.current, {
@@ -149,10 +193,15 @@ const V2MainPage = () => {
 
     return () => {
       ignore = true;
+      markersRef.current.forEach((marker) => marker.setMap(null));
+      markersRef.current = [];
+      mapRef.current = null;
     };
-  }, [location.latitude, location.longitude]);
+  }, [activeView, location.latitude, location.longitude]);
 
   useEffect(() => {
+    if (activeView !== 'map') return undefined;
+
     const mapContainer = mapContainerRef.current;
     if (!mapContainer) return undefined;
 
@@ -167,13 +216,13 @@ const V2MainPage = () => {
       mapContainer.removeEventListener('touchstart', preventPageGesture);
       mapContainer.removeEventListener('touchmove', preventPageGesture);
     };
-  }, []);
+  }, [activeView]);
 
   useEffect(() => {
     const map = mapRef.current;
     const kakao = window.kakao;
 
-    if (!map || !kakao?.maps) return;
+    if (activeView !== 'map' || !map || !kakao?.maps) return;
 
     markersRef.current.forEach((marker) => marker.setMap(null));
     markersRef.current = [];
@@ -214,7 +263,17 @@ const V2MainPage = () => {
     } else {
       map.setCenter(new kakao.maps.LatLng(location.latitude, location.longitude));
     }
-  }, [restaurants, location.latitude, location.longitude]);
+  }, [activeView, restaurants, location.latitude, location.longitude]);
+
+  const totalListPages = Math.max(1, Math.ceil(restaurants.length / LIST_PAGE_SIZE));
+  const pagedRestaurants = useMemo(() => {
+    const startIndex = (listPage - 1) * LIST_PAGE_SIZE;
+    return restaurants.slice(startIndex, startIndex + LIST_PAGE_SIZE);
+  }, [listPage, restaurants]);
+
+  const updateFilter = (key, value) => {
+    setFilter((prevFilter) => ({ ...prevFilter, [key]: value }));
+  };
 
   const zoomIn = () => {
     const map = mapRef.current;
@@ -245,86 +304,344 @@ const V2MainPage = () => {
 
   const handleSearchSubmit = (event) => {
     event.preventDefault();
-    fetchRestaurants();
+    setSubmittedSearchTerm(searchTerm.trim());
   };
 
   return (
-    <div className="v2-root bg-background text-on-surface min-h-screen flex flex-col overflow-hidden relative">
-      <header className="bg-[#FDF9ED]/90 dark:bg-stone-900/90 backdrop-blur-xl fixed top-0 z-50 flex justify-between items-center px-6 py-5 w-full">
-        <div className="flex items-center gap-2">
-          <div className="bg-primary-container p-2 rounded-2xl flex items-center justify-center">
-            <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>restaurant</span>
-          </div>
-          <h1 className="text-xl font-bold text-primary tracking-tight">콩국수 사전</h1>
-        </div>
-        <button className="bg-primary-container text-on-primary-container px-6 py-2.5 rounded-full font-bold text-sm squishy shadow-sm">
-          로그인
-        </button>
-      </header>
+    <div
+      className={`v2-root bg-background text-on-surface min-h-screen relative ${
+        activeView === 'map' ? 'overflow-hidden' : 'v2-list-root'
+      }`}
+    >
+      <Header />
 
-      <main className="relative flex-grow w-full h-screen">
-        <div className="absolute inset-0 z-0 bg-surface-container">
-          <div ref={mapContainerRef} className="v2-kakao-map w-full h-full" aria-label="카카오 지도" />
-          {(mapError || error) && (
-            <div className="absolute inset-0 flex items-center justify-center bg-surface-container text-primary font-bold">
-              {mapError || error}
-            </div>
-          )}
-        </div>
+      {activeView === 'map' ? (
+        <MapView
+          error={error}
+          handleSearchSubmit={handleSearchSubmit}
+          loading={loading}
+          mapContainerRef={mapContainerRef}
+          mapError={mapError}
+          moveToCurrentLocation={moveToCurrentLocation}
+          searchTerm={searchTerm}
+          selectedRestaurant={selectedRestaurant}
+          setSearchTerm={setSearchTerm}
+          zoomIn={zoomIn}
+          zoomOut={zoomOut}
+        />
+      ) : (
+        <ListView
+          filter={filter}
+          listPage={listPage}
+          loading={loading}
+          pagedRestaurants={pagedRestaurants}
+          restaurants={restaurants}
+          setListPage={setListPage}
+          totalListPages={totalListPages}
+          updateFilter={updateFilter}
+        />
+      )}
 
-        <form onSubmit={handleSearchSubmit} className="absolute top-28 left-1/2 -translate-x-1/2 w-full max-w-md px-6 z-20">
-          <div className="bg-surface-container-lowest/95 glass-panel flex items-center gap-3 px-6 py-4 rounded-[2rem] shadow-xl relative overflow-hidden">
-            <div className="absolute -right-1 -top-1 opacity-20 pointer-events-none">
-              <span className="material-symbols-outlined text-primary text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>ramen_dining</span>
-            </div>
-            <span className="material-symbols-outlined text-outline text-xl">search</span>
-            <input
-              className="bg-transparent border-none focus:ring-0 text-on-surface placeholder-outline-variant/70 w-full font-bold text-sm"
-              onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="콩국수 맛집 검색..."
-              type="text"
-              value={searchTerm}
-            />
-            <button className="flex items-center justify-center p-1.5 bg-primary-container rounded-full squishy" type="submit" aria-label="검색">
-              <span className="material-symbols-outlined text-primary text-xl">search</span>
-            </button>
-          </div>
-        </form>
-
-        {loading && (
-          <div className="absolute top-52 left-1/2 -translate-x-1/2 z-20 bg-surface-container-lowest/95 px-5 py-3 rounded-full shadow-lg text-sm font-bold text-primary">
-            콩국수 맛집을 찾는 중입니다...
-          </div>
-        )}
-
-        <div className="absolute right-6 top-1/2 -translate-y-1/2 flex flex-col gap-4 z-20">
-          <button onClick={zoomIn} className="w-14 h-14 bg-surface-container-lowest rounded-2xl shadow-md flex items-center justify-center text-primary squishy" aria-label="지도 확대">
-            <span className="material-symbols-outlined text-2xl font-black">add</span>
-          </button>
-          <button onClick={zoomOut} className="w-14 h-14 bg-surface-container-lowest rounded-2xl shadow-md flex items-center justify-center text-primary squishy" aria-label="지도 축소">
-            <span className="material-symbols-outlined text-2xl font-black">remove</span>
-          </button>
-          <div className="h-2"></div>
-          <button onClick={moveToCurrentLocation} className="w-14 h-14 bg-primary-container rounded-2xl shadow-md flex items-center justify-center text-primary squishy" aria-label="현재 위치">
-            <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>my_location</span>
-          </button>
-        </div>
-
-        {selectedRestaurant && (
-          <RestaurantCard restaurant={selectedRestaurant} />
-        )}
-      </main>
-
-      <nav className="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-10 pt-5 bg-[#FDF9ED] rounded-t-[3.5rem] shadow-[0_-15px_45px_rgba(105,94,52,0.06)] z-50 border-t border-primary-container/20">
-        <NavItem icon="military_tech" label="랭킹" />
-        <NavItem icon="add_circle" label="등록 요청" active />
-        <NavItem icon="bookmark" label="저장" />
-      </nav>
+      <BottomNav activeView={activeView} setActiveView={setActiveView} />
     </div>
   );
 };
 
-const RestaurantCard = ({ restaurant }) => (
+const Header = () => (
+  <header className="fixed top-0 w-full z-50 bg-[#FDF9ED]/80 backdrop-blur-xl flex justify-between items-center px-6 py-4">
+    <div className="text-xl font-bold text-primary tracking-tight font-headline">
+      Kong-guksu Dict
+    </div>
+    <button className="bg-primary-container text-on-primary-container font-semibold px-6 py-2 rounded-full active:scale-95 transition-transform">
+      로그인
+    </button>
+  </header>
+);
+
+const MapView = ({
+  error,
+  handleSearchSubmit,
+  loading,
+  mapContainerRef,
+  mapError,
+  moveToCurrentLocation,
+  searchTerm,
+  selectedRestaurant,
+  setSearchTerm,
+  zoomIn,
+  zoomOut,
+}) => (
+  <main className="relative w-full h-[100dvh]">
+    <div className="absolute inset-0 z-0 bg-surface-container">
+      <div ref={mapContainerRef} className="v2-kakao-map w-full h-full" aria-label="카카오 지도" />
+      {(mapError || error) && (
+        <div className="absolute inset-0 flex items-center justify-center bg-surface-container text-primary font-bold">
+          {mapError || error}
+        </div>
+      )}
+    </div>
+
+    <form onSubmit={handleSearchSubmit} className="absolute top-28 left-1/2 -translate-x-1/2 w-full max-w-md px-6 z-20">
+      <div className="bg-surface-container-lowest/95 glass-panel flex items-center gap-3 px-6 py-4 rounded-[2rem] shadow-xl relative overflow-hidden">
+        <div className="absolute -right-1 -top-1 opacity-20 pointer-events-none">
+          <span className="material-symbols-outlined text-primary text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>ramen_dining</span>
+        </div>
+        <span className="material-symbols-outlined text-outline text-xl">search</span>
+        <input
+          className="bg-transparent border-none focus:ring-0 text-on-surface placeholder-outline-variant/70 w-full font-bold text-sm"
+          onChange={(event) => setSearchTerm(event.target.value)}
+          placeholder="콩국수 맛집 검색..."
+          type="text"
+          value={searchTerm}
+        />
+        <button className="flex items-center justify-center p-1.5 bg-primary-container rounded-full squishy" type="submit" aria-label="검색">
+          <span className="material-symbols-outlined text-primary text-xl">search</span>
+        </button>
+      </div>
+    </form>
+
+    {loading && (
+      <div className="absolute top-52 left-1/2 -translate-x-1/2 z-20 bg-surface-container-lowest/95 px-5 py-3 rounded-full shadow-lg text-sm font-bold text-primary">
+        콩국수 맛집을 찾는 중입니다...
+      </div>
+    )}
+
+    <div className="absolute right-6 top-1/2 -translate-y-1/2 flex flex-col gap-4 z-20">
+      <button onClick={zoomIn} className="w-14 h-14 bg-surface-container-lowest rounded-2xl shadow-md flex items-center justify-center text-primary squishy" aria-label="지도 확대">
+        <span className="material-symbols-outlined text-2xl font-black">add</span>
+      </button>
+      <button onClick={zoomOut} className="w-14 h-14 bg-surface-container-lowest rounded-2xl shadow-md flex items-center justify-center text-primary squishy" aria-label="지도 축소">
+        <span className="material-symbols-outlined text-2xl font-black">remove</span>
+      </button>
+      <div className="h-2"></div>
+      <button onClick={moveToCurrentLocation} className="w-14 h-14 bg-primary-container rounded-2xl shadow-md flex items-center justify-center text-primary squishy" aria-label="현재 위치">
+        <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>my_location</span>
+      </button>
+    </div>
+
+    {selectedRestaurant && <MapRestaurantCard restaurant={selectedRestaurant} />}
+  </main>
+);
+
+const ListView = ({
+  filter,
+  listPage,
+  loading,
+  pagedRestaurants,
+  restaurants,
+  setListPage,
+  totalListPages,
+  updateFilter,
+}) => (
+  <main className="pt-24 px-6 max-w-2xl mx-auto pb-36">
+    <section className="space-y-6 mb-10">
+      <div className="flex gap-2 overflow-x-auto pb-2 -mx-2 px-2 no-scrollbar">
+        <FilterChip active={filter.beanType === 'SOY_BEAN'} onClick={() => updateFilter('beanType', filter.beanType === 'SOY_BEAN' ? 'all' : 'SOY_BEAN')}>
+          백태
+        </FilterChip>
+        <FilterChip active={filter.beanType === 'BLACK_BEAN'} onClick={() => updateFilter('beanType', filter.beanType === 'BLACK_BEAN' ? 'all' : 'BLACK_BEAN')}>
+          서리태
+        </FilterChip>
+        <FilterChip active={filter.beanType === 'ETC'} onClick={() => updateFilter('beanType', filter.beanType === 'ETC' ? 'all' : 'ETC')}>
+          기타
+        </FilterChip>
+      </div>
+
+      <div className="bg-surface-container-low p-6 rounded-xl space-y-6">
+        <div className="flex justify-between items-center">
+          <label className="text-sm font-bold text-primary tracking-tight" htmlFor="open-now-toggle">
+            현재 영업 중만 보기
+          </label>
+          <button
+            id="open-now-toggle"
+            type="button"
+            onClick={() => updateFilter('openNow', !filter.openNow)}
+            className={`w-12 h-6 rounded-full relative transition-colors ${filter.openNow ? 'bg-secondary' : 'bg-surface-container-highest'}`}
+          >
+            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${filter.openNow ? 'translate-x-7' : 'translate-x-1'}`}></div>
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex justify-between text-xs font-bold text-tertiary uppercase tracking-wider">
+            <span>Price Range</span>
+            <span className="text-secondary">
+              {filter.minPrice.toLocaleString()}원 - {filter.maxPrice.toLocaleString()}원
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <PriceInput label="최소" value={filter.minPrice} onChange={(value) => updateFilter('minPrice', Math.min(value, filter.maxPrice))} />
+            <PriceInput label="최대" value={filter.maxPrice} onChange={(value) => updateFilter('maxPrice', Math.max(value, filter.minPrice))} />
+          </div>
+          <PriceRangeSlider
+            maxPrice={filter.maxPrice}
+            minPrice={filter.minPrice}
+            onMaxChange={(value) => updateFilter('maxPrice', Math.max(value, filter.minPrice))}
+            onMinChange={(value) => updateFilter('minPrice', Math.min(value, filter.maxPrice))}
+          />
+        </div>
+      </div>
+    </section>
+
+    <section className="space-y-4">
+      {loading ? (
+        <div className="bg-surface-container-lowest p-5 rounded-xl soy-shadow text-center text-primary font-bold">
+          콩국수 맛집을 불러오는 중입니다...
+        </div>
+      ) : restaurants.length === 0 ? (
+        <div className="bg-surface-container-lowest p-5 rounded-xl soy-shadow text-center text-tertiary font-semibold">
+          조건에 맞는 식당이 없습니다.
+        </div>
+      ) : (
+        pagedRestaurants.map((restaurant) => (
+          <ListRestaurantCard key={restaurant.id || `${restaurant.name}-${restaurant.address}`} restaurant={restaurant} />
+        ))
+      )}
+    </section>
+
+    <section className="mt-12 mb-8 flex justify-center items-center gap-3">
+      <button
+        className="w-12 h-12 rounded-full bg-surface-container-highest flex items-center justify-center text-primary active:scale-90 transition-all disabled:opacity-40"
+        disabled={listPage === 1}
+        onClick={() => setListPage((page) => Math.max(1, page - 1))}
+        type="button"
+      >
+        <span className="material-symbols-outlined font-bold">chevron_left</span>
+      </button>
+      <div className="flex gap-2">
+        {Array.from({ length: Math.min(totalListPages, 3) }, (_, index) => {
+          const page = index + 1;
+          return (
+            <button
+              key={page}
+              className={`w-10 h-10 rounded-full font-bold flex items-center justify-center transition-colors ${
+                listPage === page
+                  ? 'bg-secondary text-white soy-shadow'
+                  : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest'
+              }`}
+              onClick={() => setListPage(page)}
+              type="button"
+            >
+              {page}
+            </button>
+          );
+        })}
+      </div>
+      <button
+        className="w-12 h-12 rounded-full bg-surface-container-highest flex items-center justify-center text-primary active:scale-90 transition-all disabled:opacity-40"
+        disabled={listPage === totalListPages}
+        onClick={() => setListPage((page) => Math.min(totalListPages, page + 1))}
+        type="button"
+      >
+        <span className="material-symbols-outlined font-bold">chevron_right</span>
+      </button>
+    </section>
+  </main>
+);
+
+const FilterChip = ({ active, children, onClick }) => (
+  <button
+    className={`flex-none px-5 py-2.5 rounded-full font-semibold text-sm transition-all ${
+      active
+        ? 'bg-secondary-container text-on-secondary-container soy-shadow'
+        : 'bg-surface-container-highest text-on-surface-variant hover:bg-surface-container-high'
+    }`}
+    onClick={onClick}
+    type="button"
+  >
+    {children}
+  </button>
+);
+
+const PriceInput = ({ label, onChange, value }) => (
+  <label className="block">
+    <span className="block text-[10px] font-bold text-outline uppercase mb-1">{label}</span>
+    <input
+      className="w-full rounded-full border-outline-variant bg-surface-container-lowest text-sm font-bold text-primary focus:border-secondary focus:ring-secondary"
+      max={INITIAL_MAX_PRICE}
+      min={INITIAL_MIN_PRICE}
+      onChange={(event) => onChange(Number(event.target.value))}
+      step={1000}
+      type="number"
+      value={value}
+    />
+  </label>
+);
+
+const PriceRangeSlider = ({ maxPrice, minPrice, onMaxChange, onMinChange }) => {
+  const minPercent = ((minPrice - INITIAL_MIN_PRICE) / (INITIAL_MAX_PRICE - INITIAL_MIN_PRICE)) * 100;
+  const maxPercent = ((maxPrice - INITIAL_MIN_PRICE) / (INITIAL_MAX_PRICE - INITIAL_MIN_PRICE)) * 100;
+
+  return (
+    <div className="v2-price-slider relative h-8">
+      <div className="absolute left-0 right-0 top-1/2 h-2 -translate-y-1/2 rounded-full bg-surface-container-highest">
+        <div
+          className="absolute h-full rounded-full bg-secondary"
+          style={{
+            left: `${minPercent}%`,
+            right: `${100 - maxPercent}%`,
+          }}
+        />
+      </div>
+      <input
+        aria-label="최소 가격"
+        className="v2-range-input"
+        max={INITIAL_MAX_PRICE}
+        min={INITIAL_MIN_PRICE}
+        onChange={(event) => onMinChange(Number(event.target.value))}
+        step={1000}
+        type="range"
+        value={minPrice}
+      />
+      <input
+        aria-label="최대 가격"
+        className="v2-range-input"
+        max={INITIAL_MAX_PRICE}
+        min={INITIAL_MIN_PRICE}
+        onChange={(event) => onMaxChange(Number(event.target.value))}
+        step={1000}
+        type="range"
+        value={maxPrice}
+      />
+    </div>
+  );
+};
+
+const ListRestaurantCard = ({ restaurant }) => {
+  const selling = isCurrentlySelling(restaurant);
+  const beanTypes = restaurant.beanTypes?.length ? restaurant.beanTypes : [restaurant.beanType].filter(Boolean);
+
+  return (
+    <div className="bg-surface-container-lowest p-5 rounded-xl soy-shadow flex gap-4 items-start active:scale-[0.98] transition-transform">
+      <div className={`w-16 h-16 rounded-lg flex items-center justify-center flex-shrink-0 ${selling ? 'bg-primary-container' : 'bg-surface-container-highest'}`}>
+        <span className={`material-symbols-outlined text-3xl ${selling ? 'text-primary' : 'text-outline'}`} style={{ fontVariationSettings: selling ? "'FILL' 1" : "'FILL' 0" }}>
+          restaurant
+        </span>
+      </div>
+      <div className="flex-1 space-y-2 min-w-0">
+        <div className="flex justify-between items-start gap-3">
+          <h3 className="font-bold text-lg text-on-surface leading-tight truncate">{restaurant.name}</h3>
+          <span className={`material-symbols-outlined flex-shrink-0 ${selling ? 'text-secondary' : 'text-outline-variant'}`} style={{ fontVariationSettings: selling ? "'FILL' 1" : "'FILL' 0" }}>
+            {selling ? 'check_circle' : 'cancel'}
+          </span>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {beanTypes.map((beanType) => (
+            <span key={beanType} className="bg-primary-fixed text-on-primary-fixed-variant text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">
+              {getBeanLabel(beanType)}
+            </span>
+          ))}
+          <span className="bg-surface-container text-tertiary text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">
+            {formatPrice(restaurant.price)}
+          </span>
+        </div>
+        <p className="text-tertiary text-sm leading-relaxed line-clamp-2">{restaurant.address}</p>
+      </div>
+    </div>
+  );
+};
+
+const MapRestaurantCard = ({ restaurant }) => (
   <div className="absolute bottom-36 left-6 right-6 z-20 md:max-w-sm">
     <div className="bg-surface-container-lowest p-5 rounded-[2.5rem] shadow-2xl flex gap-4 border border-white">
       <div className="w-24 h-24 rounded-[1.8rem] overflow-hidden flex-shrink-0 bg-primary-container">
@@ -351,7 +668,7 @@ const RestaurantCard = ({ restaurant }) => (
           </span>
           {restaurant.price && (
             <span className="text-[10px] font-black text-primary">
-              {restaurant.price.toLocaleString()}원
+              {formatPrice(restaurant.price)}
             </span>
           )}
         </div>
@@ -360,19 +677,29 @@ const RestaurantCard = ({ restaurant }) => (
   </div>
 );
 
-const NavItem = ({ icon, label, active = false }) => (
+const BottomNav = ({ activeView, setActiveView }) => (
+  <nav className="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-3 bg-[#FDF9ED]/80 backdrop-blur-xl z-50 rounded-t-xl shadow-[0_-20px_40px_rgba(105,94,52,0.08)]">
+    <FooterItem active={activeView === 'list'} icon="dictionary" label="목록" onClick={() => setActiveView('list')} />
+    <FooterItem active={activeView === 'map'} icon="map" label="지도" onClick={() => setActiveView('map')} />
+    <FooterItem icon="bookmark" label="저장" onClick={() => {}} />
+    <FooterItem icon="person" label="내 정보" onClick={() => {}} />
+  </nav>
+);
+
+const FooterItem = ({ active = false, icon, label, onClick }) => (
   <button
-    type="button"
-    className={`flex flex-col items-center justify-center px-6 py-2 squishy ${
+    className={`flex flex-col items-center justify-center rounded-full active:scale-90 transition-all duration-300 ${
       active
-        ? 'bg-primary-container text-primary rounded-[2rem] px-8 py-3 shadow-lg'
-        : 'text-outline'
+        ? 'bg-primary-container text-primary px-5 py-2'
+        : 'text-tertiary opacity-60 hover:bg-surface-container-low p-2'
     }`}
+    onClick={onClick}
+    type="button"
   >
-    <span className="material-symbols-outlined text-2xl mb-1" style={{ fontVariationSettings: active ? "'FILL' 1, 'wght' 700" : "'wght' 700" }}>
+    <span className="material-symbols-outlined" style={{ fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0" }}>
       {icon}
     </span>
-    <span className="text-[11px] font-black tracking-tight uppercase">{label}</span>
+    <span className="font-label text-[10px] font-semibold tracking-wider uppercase">{label}</span>
   </button>
 );
 

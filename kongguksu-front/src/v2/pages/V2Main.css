@@ -9,6 +9,14 @@
   overscroll-behavior: none;
 }
 
+.v2-root.v2-list-root {
+  height: auto;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-bottom: 0;
+}
+
 /* Material Icons 설정도 v2 전용으로 */
 .v2-root .material-symbols-outlined {
   font-variation-settings: 'FILL' 0, 'wght' 600, 'GRAD' 0, 'opsz' 24;
@@ -29,6 +37,64 @@
 .v2-root .glass-panel {
   backdrop-filter: blur(25px);
   -webkit-backdrop-filter: blur(25px);
+}
+
+.v2-root .soy-shadow {
+  box-shadow: 0 20px 40px rgba(105, 94, 52, 0.08);
+}
+
+.v2-root .no-scrollbar {
+  scrollbar-width: none;
+}
+
+.v2-root .no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.v2-root .v2-price-slider {
+  margin-top: 0.5rem;
+}
+
+.v2-root .v2-range-input {
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  height: 2rem;
+  left: 0;
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  width: 100%;
+}
+
+.v2-root .v2-range-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  background: #ffffff;
+  border: 4px solid #44682f;
+  border-radius: 9999px;
+  box-shadow: 0 10px 20px rgba(105, 94, 52, 0.16);
+  cursor: pointer;
+  height: 1.5rem;
+  pointer-events: auto;
+  width: 1.5rem;
+}
+
+.v2-root .v2-range-input::-moz-range-thumb {
+  background: #ffffff;
+  border: 4px solid #44682f;
+  border-radius: 9999px;
+  box-shadow: 0 10px 20px rgba(105, 94, 52, 0.16);
+  cursor: pointer;
+  height: 1rem;
+  pointer-events: auto;
+  width: 1rem;
+}
+
+.v2-root .v2-range-input::-webkit-slider-runnable-track,
+.v2-root .v2-range-input::-moz-range-track {
+  background: transparent;
+  border: 0;
 }
 
 .v2-root .v2-kakao-map,
