@@ -91,7 +91,7 @@ const V2LoginPage = () => {
         <div className="text-center pt-4">
           <p className="text-sm text-outline font-medium">
             계정이 없으신가요?{' '}
-            <Link to="/signup" className="text-secondary font-bold hover:underline">
+            <Link to="/v2/signup" className="text-secondary font-bold hover:underline">
               회원가입하기
             </Link>
           </p>
