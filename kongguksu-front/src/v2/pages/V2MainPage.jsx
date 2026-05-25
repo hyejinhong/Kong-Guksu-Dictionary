@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './V2Main.css';
 
@@ -77,6 +78,21 @@ const getBeanLabel = (beanType) => {
   if (beanType === 'SOY_BEAN') return '백태';
   if (beanType === 'BLACK_BEAN') return '서리태';
   return beanType || '기타';
+};
+
+const isLoggedIn = () => {
+  const token = localStorage.getItem('token');
+  const exp = localStorage.getItem('exp');
+  if (!token || !exp) return false;
+
+  const now = Math.floor(Date.now() / 1000);
+  if (now >= Number(exp)) {
+    localStorage.removeItem('token');
+    localStorage.removeItem('exp');
+    localStorage.removeItem('role');
+    return false;
+  }
+  return true;
 };
 
 const V2MainPage = () => {
@@ -347,16 +363,35 @@ const V2MainPage = () => {
   );
 };
 
-const Header = () => (
-  <header className="fixed top-0 w-full z-50 bg-[#FDF9ED]/80 backdrop-blur-xl flex justify-between items-center px-6 py-4">
-    <div className="text-xl font-bold text-primary tracking-tight font-headline">
-      Kong-guksu Dict
-    </div>
-    <button className="bg-primary-container text-on-primary-container font-semibold px-6 py-2 rounded-full active:scale-95 transition-transform">
-      로그인
-    </button>
-  </header>
-);
+const Header = () => {
+  const navigate = useNavigate();
+  const loggedIn = isLoggedIn();
+
+  const handleAuthAction = () => {
+    if (loggedIn) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('exp');
+      localStorage.removeItem('role');
+      window.location.reload(); // 상태 반영을 위해 새로고침
+    } else {
+      navigate('/v2/login');
+    }
+  };
+
+  return (
+    <header className="fixed top-0 w-full z-50 bg-[#FDF9ED]/80 backdrop-blur-xl flex justify-between items-center px-6 py-4">
+      <div className="text-xl font-bold text-primary tracking-tight font-headline">
+        콩국수사전
+      </div>
+      <button
+        onClick={handleAuthAction}
+        className="bg-primary-container text-on-primary-container font-semibold px-6 py-2 rounded-full active:scale-95 transition-transform"
+      >
+        {loggedIn ? '로그아웃' : '로그인'}
+      </button>
+    </header>
+  );
+};
 
 const MapView = ({
   error,
@@ -557,7 +592,7 @@ const PriceInput = ({ label, onChange, value }) => (
   <label className="block">
     <span className="block text-[10px] font-bold text-outline uppercase mb-1">{label}</span>
     <input
-      className="w-full rounded-full border-outline-variant bg-surface-container-lowest text-sm font-bold text-primary focus:border-secondary focus:ring-secondary"
+      className="w-full rounded-full border-outline-variant bg-surface-container-lowest text-sm font-bold text-primary focus:border-secondary focus:ring-secondary text-center"
       max={INITIAL_MAX_PRICE}
       min={INITIAL_MIN_PRICE}
       onChange={(event) => onChange(Number(event.target.value))}
@@ -677,14 +712,27 @@ const MapRestaurantCard = ({ restaurant }) => (
   </div>
 );
 
-const BottomNav = ({ activeView, setActiveView }) => (
-  <nav className="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-3 bg-[#FDF9ED]/80 backdrop-blur-xl z-50 rounded-t-xl shadow-[0_-20px_40px_rgba(105,94,52,0.08)]">
-    <FooterItem active={activeView === 'list'} icon="dictionary" label="목록" onClick={() => setActiveView('list')} />
-    <FooterItem active={activeView === 'map'} icon="map" label="지도" onClick={() => setActiveView('map')} />
-    <FooterItem icon="bookmark" label="저장" onClick={() => {}} />
-    <FooterItem icon="person" label="내 정보" onClick={() => {}} />
-  </nav>
-);
+const BottomNav = ({ activeView, setActiveView }) => {
+  const navigate = useNavigate();
+
+  const handleSavedClick = () => {
+    if (!isLoggedIn()) {
+      navigate('/v2/login');
+    } else {
+      // 추후 저장 목록 기능 구현 시 연결
+      console.log('Token exists and is valid');
+    }
+  };
+
+  return (
+    <nav className="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-3 bg-[#FDF9ED]/80 backdrop-blur-xl z-50 rounded-t-xl shadow-[0_-20px_40px_rgba(105,94,52,0.08)]">
+      <FooterItem active={activeView === 'list'} icon="dictionary" label="목록" onClick={() => setActiveView('list')} />
+      <FooterItem active={activeView === 'map'} icon="map" label="지도" onClick={() => setActiveView('map')} />
+      <FooterItem icon="bookmark" label="저장" onClick={handleSavedClick} />
+      <FooterItem icon="person" label="내 정보" onClick={() => {}} />
+    </nav>
+  );
+};
 
 const FooterItem = ({ active = false, icon, label, onClick }) => (
   <button
