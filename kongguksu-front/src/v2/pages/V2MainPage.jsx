@@ -96,6 +96,7 @@ const isLoggedIn = () => {
 };
 
 const V2MainPage = () => {
+  const navigate = useNavigate();
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
   const markersRef = useRef([]);
@@ -359,6 +360,22 @@ const V2MainPage = () => {
       )}
 
       <BottomNav activeView={activeView} setActiveView={setActiveView} />
+
+      {/* 식당 제보 Floating Action Button */}
+      <button
+        onClick={() => {
+          if (!isLoggedIn()) {
+            navigate('/v2/login');
+          } else {
+            navigate('/v2/submit');
+          }
+        }}
+        className="fixed bottom-28 right-6 z-40 px-5 py-3 bg-primary text-background rounded-full flex items-center gap-2 soy-shadow active:scale-95 transition-all hover:bg-primary/90 group"
+        aria-label="식당 제보하기"
+      >
+        <span className="material-symbols-outlined text-2xl">ramen_dining</span>
+        <span className="text-sm font-bold tracking-tight">제보</span>
+      </button>
     </div>
   );
 };
