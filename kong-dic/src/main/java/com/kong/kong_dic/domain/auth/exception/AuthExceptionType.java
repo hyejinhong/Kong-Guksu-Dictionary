@@ -8,7 +8,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum AuthExceptionType implements BaseExceptionType {
     USER_NOT_FOUND(1, 400, "Cannot find account. Please check entered data."),
-    DUPLICATED_USERNAME(2, 400,"ID is duplicated. Please use another one.");
+    DUPLICATED_USERNAME(2, 400,"ID is duplicated. Please use another one."),
+    INVALID_REFRESH_TOKEN(3, 401, "Invalid refresh token. Please login again.");
 
     private final int code;
     private final int httpStatusCode;

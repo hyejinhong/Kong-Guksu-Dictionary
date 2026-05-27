@@ -21,8 +21,9 @@ const V2LoginPage = () => {
       const response = await axios.post(url, { username, password });
 
       if (response.data && response.data.code === 0 && response.data.data?.token) {
-        const { token, exp } = response.data.data;
+        const { token, refreshToken, exp } = response.data.data;
         localStorage.setItem('token', token);
+        localStorage.setItem('refreshToken', refreshToken);
         localStorage.setItem('exp', exp);
 
         try {

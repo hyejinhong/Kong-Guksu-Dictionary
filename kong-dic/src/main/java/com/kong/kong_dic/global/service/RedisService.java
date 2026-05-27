@@ -15,6 +15,27 @@ public class RedisService {
     private final StringRedisTemplate redisTemplate;
 
     /**
+     * 데이터 저장 (값, 만료 시간)
+     */
+    public void setData(String key, String value, long timeout, TimeUnit unit) {
+        redisTemplate.opsForValue().set(key, value, timeout, unit);
+    }
+
+    /**
+     * 데이터 조회
+     */
+    public String getData(String key) {
+        return redisTemplate.opsForValue().get(key);
+    }
+
+    /**
+     * 데이터 삭제
+     */
+    public void deleteData(String key) {
+        redisTemplate.delete(key);
+    }
+
+    /**
      * 랭킹 점수 증가 (ZINCRBY)
      */
     public void incrementScore(String key, String value, double score) {

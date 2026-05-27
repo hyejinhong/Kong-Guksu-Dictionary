@@ -1,6 +1,7 @@
 package com.kong.kong_dic.domain.auth.service;
 
 import com.kong.kong_dic.common.exception.BaseException;
+import com.kong.kong_dic.domain.auth.dto.LoginResponseDto;
 import com.kong.kong_dic.domain.auth.dto.SignupRequestDto;
 import com.kong.kong_dic.domain.auth.exception.AuthExceptionType;
 import com.kong.kong_dic.domain.user.entity.Role;
@@ -12,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
@@ -22,6 +24,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
+    private final RefreshTokenService refreshTokenService;
 
     public void signup(SignupRequestDto request) throws Exception {
         if (userRepository.existsByUsername(request.getUsername())) {
@@ -36,6 +39,40 @@ public class AuthService {
                 .build();
 
         userRepository.save(newUser);
+    }
+
+    @Transactional
+    public LoginResponseDto refresh(String refreshToken) {
+        // 1. Refresh Token 검증
+        try {
+            jwtProvider.validateToken(refreshToken);
+        } catch (Exception e) {
+            throw new BaseException(AuthExceptionType.INVALID_REFRESH_TOKEN);
+        }
+
+        // 2. Redis에서 해당 토큰의 소유자 확인
+        String username = refreshTokenService.getUsernameByRefreshToken(refreshToken);
+        if (username == null) {
+            throw new BaseException(AuthExceptionType.INVALID_REFRESH_TOKEN);
+        }
+
+        // 3. 사용자 정보 조회
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new BaseException(AuthExceptionType.USER_NOT_FOUND));
+
+        // 4. 새로운 토큰 쌍 생성 (Refresh Token Rotation)
+        LoginResponseDto response = jwtProvider.generateToken(user);
+
+        // 5. 이전 Refresh Token 삭제 및 새로운 Refresh Token 저장
+        refreshTokenService.deleteRefreshToken(refreshToken);
+        refreshTokenService.saveRefreshToken(username, response.getRefreshToken());
+
+        return response;
+    }
+
+    @Transactional
+    public void logout(String refreshToken) {
+        refreshTokenService.deleteRefreshToken(refreshToken);
     }
 
     public boolean verifyToken(String token) {

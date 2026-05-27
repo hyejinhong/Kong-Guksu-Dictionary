@@ -34,6 +34,9 @@ public class JwtProvider {
     @Value("${jwt.expiration}")
     private long expirationTime;
 
+    @Value("${jwt.refresh-expiration}")
+    private long refreshExpirationTime;
+
     private final CustomUserDetailsService userDetailsService;
 
     private Key getSigningKey() {
@@ -42,20 +45,39 @@ public class JwtProvider {
     }
 
     public LoginResponseDto generateToken(User user) {
+        String accessToken = createAccessToken(user);
+        String refreshToken = createRefreshToken(user);
+
+        return LoginResponseDto.builder()
+                .token(accessToken)
+                .refreshToken(refreshToken)
+                .exp(new Date(System.currentTimeMillis() + expirationTime))
+                .build();
+    }
+
+    public String createAccessToken(User user) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + expirationTime);
 
-        String token = Jwts.builder()
+        return Jwts.builder()
                 .setSubject(user.getUsername())
                 .claim("role", user.getRole())
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
-        return LoginResponseDto.builder()
-                .token(token)
-                .exp(expiryDate)
-                .build();
+    }
+
+    public String createRefreshToken(User user) {
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + refreshExpirationTime);
+
+        return Jwts.builder()
+                .setSubject(user.getUsername())
+                .setIssuedAt(now)
+                .setExpiration(expiryDate)
+                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
+                .compact();
     }
 
     public Claims getClaimsFromToken(String token) {

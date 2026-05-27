@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api';
 import { toast } from 'react-hot-toast';
 import './V2Main.css';
 
@@ -167,13 +167,7 @@ const V2SubmissionPage = () => {
           .filter((item) => item.beanType && item.price),
       };
 
-      const token = localStorage.getItem('token');
-      const res = await axios.post(`${API_BASE_URL}/restaurants/submissions`, payload, {
-        headers: {
-          ...(token && { Authorization: `Bearer ${token}` }),
-          'Content-Type': 'application/json',
-        },
-      });
+      const res = await api.post('/restaurants/submissions', payload);
 
       if (res.data.code === 0) {
         toast.success('식당 제보가 성공적으로 접수되었습니다!');

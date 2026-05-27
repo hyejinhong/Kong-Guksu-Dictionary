@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api';
 import './V2Main.css';
 
 const KAKAO_MAP_SCRIPT_ID = 'kakao-map-sdk';
@@ -141,7 +141,7 @@ const V2MainPage = () => {
             : filter.maxPrice,
       };
 
-      const response = await axios.get(url, { params });
+      const response = await api.get('/restaurants/filter', { params });
       setRestaurants(response.data?.data ?? []);
       setSelectedRestaurant(null);
       setListPage(1);
@@ -384,9 +384,18 @@ const Header = () => {
   const navigate = useNavigate();
   const loggedIn = isLoggedIn();
 
-  const handleAuthAction = () => {
+  const handleAuthAction = async () => {
     if (loggedIn) {
+      const refreshToken = localStorage.getItem('refreshToken');
+      if (refreshToken) {
+        try {
+          await api.post('/auth/logout', { refreshToken });
+        } catch (error) {
+          console.error('Logout failed:', error);
+        }
+      }
       localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
       localStorage.removeItem('exp');
       localStorage.removeItem('role');
       window.location.reload(); // 상태 반영을 위해 새로고침

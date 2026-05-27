@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
+import api from '../api';
 import { toast } from 'react-hot-toast';
 import './V2Main.css';
 
@@ -26,8 +27,7 @@ const V2SignupPage = () => {
     setIsGeneratingNickname(true);
 
     try {
-      const url = `${API_BASE_URL}/users/nickname/random`;
-      const response = await axios.get(url);
+      const response = await api.get('/users/nickname/random');
 
       if (response.data && response.data.code === 0 && response.data.data) {
         setFormData((prev) => ({ ...prev, nickname: response.data.data }));
