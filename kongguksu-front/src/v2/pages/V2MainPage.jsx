@@ -431,58 +431,66 @@ const MapView = ({
   setSearchTerm,
   zoomIn,
   zoomOut,
-}) => (
-  <main className="relative w-full h-[100dvh]">
-    <div className="absolute inset-0 z-0 bg-surface-container">
-      <div ref={mapContainerRef} className="v2-kakao-map w-full h-full" aria-label="카카오 지도" />
-      {(mapError || error) && (
-        <div className="absolute inset-0 flex items-center justify-center bg-surface-container text-primary font-bold">
-          {mapError || error}
+}) => {
+  const navigate = useNavigate();
+  return (
+    <main className="relative w-full h-[100dvh]">
+      <div className="absolute inset-0 z-0 bg-surface-container">
+        <div ref={mapContainerRef} className="v2-kakao-map w-full h-full" aria-label="카카오 지도" />
+        {(mapError || error) && (
+          <div className="absolute inset-0 flex items-center justify-center bg-surface-container text-primary font-bold">
+            {mapError || error}
+          </div>
+        )}
+      </div>
+
+      <form onSubmit={handleSearchSubmit} className="absolute top-28 left-1/2 -translate-x-1/2 w-full max-w-md px-6 z-20">
+        <div className="bg-surface-container-lowest/95 glass-panel flex items-center gap-3 px-6 py-4 rounded-[2rem] shadow-xl relative overflow-hidden">
+          <div className="absolute -right-1 -top-1 opacity-20 pointer-events-none">
+            <span className="material-symbols-outlined text-primary text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>ramen_dining</span>
+          </div>
+          <span className="material-symbols-outlined text-outline text-xl">search</span>
+          <input
+            className="bg-transparent border-none focus:ring-0 text-on-surface placeholder-outline-variant/70 w-full font-bold text-sm"
+            onChange={(event) => setSearchTerm(event.target.value)}
+            placeholder="콩국수 맛집 검색..."
+            type="text"
+            value={searchTerm}
+          />
+          <button className="flex items-center justify-center p-1.5 bg-primary-container rounded-full squishy" type="submit" aria-label="검색">
+            <span className="material-symbols-outlined text-primary text-xl">search</span>
+          </button>
+        </div>
+      </form>
+
+      {loading && (
+        <div className="absolute top-52 left-1/2 -translate-x-1/2 z-20 bg-surface-container-lowest/95 px-5 py-3 rounded-full shadow-lg text-sm font-bold text-primary">
+          콩국수 맛집을 찾는 중입니다...
         </div>
       )}
-    </div>
 
-    <form onSubmit={handleSearchSubmit} className="absolute top-28 left-1/2 -translate-x-1/2 w-full max-w-md px-6 z-20">
-      <div className="bg-surface-container-lowest/95 glass-panel flex items-center gap-3 px-6 py-4 rounded-[2rem] shadow-xl relative overflow-hidden">
-        <div className="absolute -right-1 -top-1 opacity-20 pointer-events-none">
-          <span className="material-symbols-outlined text-primary text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>ramen_dining</span>
-        </div>
-        <span className="material-symbols-outlined text-outline text-xl">search</span>
-        <input
-          className="bg-transparent border-none focus:ring-0 text-on-surface placeholder-outline-variant/70 w-full font-bold text-sm"
-          onChange={(event) => setSearchTerm(event.target.value)}
-          placeholder="콩국수 맛집 검색..."
-          type="text"
-          value={searchTerm}
-        />
-        <button className="flex items-center justify-center p-1.5 bg-primary-container rounded-full squishy" type="submit" aria-label="검색">
-          <span className="material-symbols-outlined text-primary text-xl">search</span>
+      <div className="absolute right-6 top-1/2 -translate-y-1/2 flex flex-col gap-4 z-20">
+        <button onClick={zoomIn} className="w-14 h-14 bg-surface-container-lowest rounded-2xl shadow-md flex items-center justify-center text-primary squishy" aria-label="지도 확대">
+          <span className="material-symbols-outlined text-2xl font-black">add</span>
+        </button>
+        <button onClick={zoomOut} className="w-14 h-14 bg-surface-container-lowest rounded-2xl shadow-md flex items-center justify-center text-primary squishy" aria-label="지도 축소">
+          <span className="material-symbols-outlined text-2xl font-black">remove</span>
+        </button>
+        <div className="h-2"></div>
+        <button onClick={moveToCurrentLocation} className="w-14 h-14 bg-primary-container rounded-2xl shadow-md flex items-center justify-center text-primary squishy" aria-label="현재 위치">
+          <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>my_location</span>
         </button>
       </div>
-    </form>
 
-    {loading && (
-      <div className="absolute top-52 left-1/2 -translate-x-1/2 z-20 bg-surface-container-lowest/95 px-5 py-3 rounded-full shadow-lg text-sm font-bold text-primary">
-        콩국수 맛집을 찾는 중입니다...
-      </div>
-    )}
-
-    <div className="absolute right-6 top-1/2 -translate-y-1/2 flex flex-col gap-4 z-20">
-      <button onClick={zoomIn} className="w-14 h-14 bg-surface-container-lowest rounded-2xl shadow-md flex items-center justify-center text-primary squishy" aria-label="지도 확대">
-        <span className="material-symbols-outlined text-2xl font-black">add</span>
-      </button>
-      <button onClick={zoomOut} className="w-14 h-14 bg-surface-container-lowest rounded-2xl shadow-md flex items-center justify-center text-primary squishy" aria-label="지도 축소">
-        <span className="material-symbols-outlined text-2xl font-black">remove</span>
-      </button>
-      <div className="h-2"></div>
-      <button onClick={moveToCurrentLocation} className="w-14 h-14 bg-primary-container rounded-2xl shadow-md flex items-center justify-center text-primary squishy" aria-label="현재 위치">
-        <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>my_location</span>
-      </button>
-    </div>
-
-    {selectedRestaurant && <MapRestaurantCard restaurant={selectedRestaurant} />}
-  </main>
-);
+      {selectedRestaurant && (
+        <MapRestaurantCard
+          restaurant={selectedRestaurant}
+          onClick={() => navigate(`/v2/restaurant/${selectedRestaurant.id}`)}
+        />
+      )}
+    </main>
+  );
+};
 
 const ListView = ({
   filter,
@@ -493,112 +501,119 @@ const ListView = ({
   setListPage,
   totalListPages,
   updateFilter,
-}) => (
-  <main className="pt-24 px-6 max-w-2xl mx-auto pb-36">
-    <section className="space-y-6 mb-10">
-      <div className="flex gap-2 overflow-x-auto pb-2 -mx-2 px-2 no-scrollbar">
-        <FilterChip active={filter.beanType === 'SOY_BEAN'} onClick={() => updateFilter('beanType', filter.beanType === 'SOY_BEAN' ? 'all' : 'SOY_BEAN')}>
-          백태
-        </FilterChip>
-        <FilterChip active={filter.beanType === 'BLACK_BEAN'} onClick={() => updateFilter('beanType', filter.beanType === 'BLACK_BEAN' ? 'all' : 'BLACK_BEAN')}>
-          서리태
-        </FilterChip>
-        <FilterChip active={filter.beanType === 'ETC'} onClick={() => updateFilter('beanType', filter.beanType === 'ETC' ? 'all' : 'ETC')}>
-          기타
-        </FilterChip>
-      </div>
-
-      <div className="bg-surface-container-low p-6 rounded-xl space-y-6">
-        <div className="flex justify-between items-center">
-          <label className="text-sm font-bold text-primary tracking-tight" htmlFor="open-now-toggle">
-            현재 영업 중만 보기
-          </label>
-          <button
-            id="open-now-toggle"
-            type="button"
-            onClick={() => updateFilter('openNow', !filter.openNow)}
-            className={`w-12 h-6 rounded-full relative transition-colors ${filter.openNow ? 'bg-secondary' : 'bg-surface-container-highest'}`}
-          >
-            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${filter.openNow ? 'translate-x-7' : 'translate-x-1'}`}></div>
-          </button>
+}) => {
+  const navigate = useNavigate();
+  return (
+    <main className="pt-24 px-6 max-w-2xl mx-auto pb-36">
+      <section className="space-y-6 mb-10">
+        <div className="flex gap-2 overflow-x-auto pb-2 -mx-2 px-2 no-scrollbar">
+          <FilterChip active={filter.beanType === 'SOY_BEAN'} onClick={() => updateFilter('beanType', filter.beanType === 'SOY_BEAN' ? 'all' : 'SOY_BEAN')}>
+            백태
+          </FilterChip>
+          <FilterChip active={filter.beanType === 'BLACK_BEAN'} onClick={() => updateFilter('beanType', filter.beanType === 'BLACK_BEAN' ? 'all' : 'BLACK_BEAN')}>
+            서리태
+          </FilterChip>
+          <FilterChip active={filter.beanType === 'ETC'} onClick={() => updateFilter('beanType', filter.beanType === 'ETC' ? 'all' : 'ETC')}>
+            기타
+          </FilterChip>
         </div>
 
-        <div className="space-y-4">
-          <div className="flex justify-between text-xs font-bold text-tertiary uppercase tracking-wider">
-            <span>Price Range</span>
-            <span className="text-secondary">
-              {filter.minPrice.toLocaleString()}원 - {filter.maxPrice.toLocaleString()}원
-            </span>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <PriceInput label="최소" value={filter.minPrice} onChange={(value) => updateFilter('minPrice', Math.min(value, filter.maxPrice))} />
-            <PriceInput label="최대" value={filter.maxPrice} onChange={(value) => updateFilter('maxPrice', Math.max(value, filter.minPrice))} />
-          </div>
-          <PriceRangeSlider
-            maxPrice={filter.maxPrice}
-            minPrice={filter.minPrice}
-            onMaxChange={(value) => updateFilter('maxPrice', Math.max(value, filter.minPrice))}
-            onMinChange={(value) => updateFilter('minPrice', Math.min(value, filter.maxPrice))}
-          />
-        </div>
-      </div>
-    </section>
-
-    <section className="space-y-4">
-      {loading ? (
-        <div className="bg-surface-container-lowest p-5 rounded-xl soy-shadow text-center text-primary font-bold">
-          콩국수 맛집을 불러오는 중입니다...
-        </div>
-      ) : restaurants.length === 0 ? (
-        <div className="bg-surface-container-lowest p-5 rounded-xl soy-shadow text-center text-tertiary font-semibold">
-          조건에 맞는 식당이 없습니다.
-        </div>
-      ) : (
-        pagedRestaurants.map((restaurant) => (
-          <ListRestaurantCard key={restaurant.id || `${restaurant.name}-${restaurant.address}`} restaurant={restaurant} />
-        ))
-      )}
-    </section>
-
-    <section className="mt-12 mb-8 flex justify-center items-center gap-3">
-      <button
-        className="w-12 h-12 rounded-full bg-surface-container-highest flex items-center justify-center text-primary active:scale-90 transition-all disabled:opacity-40"
-        disabled={listPage === 1}
-        onClick={() => setListPage((page) => Math.max(1, page - 1))}
-        type="button"
-      >
-        <span className="material-symbols-outlined font-bold">chevron_left</span>
-      </button>
-      <div className="flex gap-2">
-        {Array.from({ length: Math.min(totalListPages, 3) }, (_, index) => {
-          const page = index + 1;
-          return (
+        <div className="bg-surface-container-low p-6 rounded-xl space-y-6">
+          <div className="flex justify-between items-center">
+            <label className="text-sm font-bold text-primary tracking-tight" htmlFor="open-now-toggle">
+              현재 영업 중만 보기
+            </label>
             <button
-              key={page}
-              className={`w-10 h-10 rounded-full font-bold flex items-center justify-center transition-colors ${
-                listPage === page
-                  ? 'bg-secondary text-white soy-shadow'
-                  : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest'
-              }`}
-              onClick={() => setListPage(page)}
+              id="open-now-toggle"
               type="button"
+              onClick={() => updateFilter('openNow', !filter.openNow)}
+              className={`w-12 h-6 rounded-full relative transition-colors ${filter.openNow ? 'bg-secondary' : 'bg-surface-container-highest'}`}
             >
-              {page}
+              <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${filter.openNow ? 'translate-x-7' : 'translate-x-1'}`}></div>
             </button>
-          );
-        })}
-      </div>
-      <button
-        className="w-12 h-12 rounded-full bg-surface-container-highest flex items-center justify-center text-primary active:scale-90 transition-all disabled:opacity-40"
-        disabled={listPage === totalListPages}
-        onClick={() => setListPage((page) => Math.min(totalListPages, page + 1))}
-        type="button"
-      >
-        <span className="material-symbols-outlined font-bold">chevron_right</span>
-      </button>
-    </section>
-  </main>
-);
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex justify-between text-xs font-bold text-tertiary uppercase tracking-wider">
+              <span>Price Range</span>
+              <span className="text-secondary">
+                {filter.minPrice.toLocaleString()}원 - {filter.maxPrice.toLocaleString()}원
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <PriceInput label="최소" value={filter.minPrice} onChange={(value) => updateFilter('minPrice', Math.min(value, filter.maxPrice))} />
+              <PriceInput label="최대" value={filter.maxPrice} onChange={(value) => updateFilter('maxPrice', Math.max(value, filter.minPrice))} />
+            </div>
+            <PriceRangeSlider
+              maxPrice={filter.maxPrice}
+              minPrice={filter.minPrice}
+              onMaxChange={(value) => updateFilter('maxPrice', Math.max(value, filter.minPrice))}
+              onMinChange={(value) => updateFilter('minPrice', Math.min(value, filter.maxPrice))}
+            />
+          </div>
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        {loading ? (
+          <div className="bg-surface-container-lowest p-5 rounded-xl soy-shadow text-center text-primary font-bold">
+            콩국수 맛집을 불러오는 중입니다...
+          </div>
+        ) : restaurants.length === 0 ? (
+          <div className="bg-surface-container-lowest p-5 rounded-xl soy-shadow text-center text-tertiary font-semibold">
+            조건에 맞는 식당이 없습니다.
+          </div>
+        ) : (
+          pagedRestaurants.map((restaurant) => (
+            <ListRestaurantCard
+              key={restaurant.id || `${restaurant.name}-${restaurant.address}`}
+              restaurant={restaurant}
+              onClick={() => navigate(`/v2/restaurant/${restaurant.id}`)}
+            />
+          ))
+        )}
+      </section>
+
+      <section className="mt-12 mb-8 flex justify-center items-center gap-3">
+        <button
+          className="w-12 h-12 rounded-full bg-surface-container-highest flex items-center justify-center text-primary active:scale-90 transition-all disabled:opacity-40"
+          disabled={listPage === 1}
+          onClick={() => setListPage((page) => Math.max(1, page - 1))}
+          type="button"
+        >
+          <span className="material-symbols-outlined font-bold">chevron_left</span>
+        </button>
+        <div className="flex gap-2">
+          {Array.from({ length: Math.min(totalListPages, 3) }, (_, index) => {
+            const page = index + 1;
+            return (
+              <button
+                key={page}
+                className={`w-10 h-10 rounded-full font-bold flex items-center justify-center transition-colors ${
+                  listPage === page
+                    ? 'bg-secondary text-white soy-shadow'
+                    : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest'
+                }`}
+                onClick={() => setListPage(page)}
+                type="button"
+              >
+                {page}
+              </button>
+            );
+          })}
+        </div>
+        <button
+          className="w-12 h-12 rounded-full bg-surface-container-highest flex items-center justify-center text-primary active:scale-90 transition-all disabled:opacity-40"
+          disabled={listPage === totalListPages}
+          onClick={() => setListPage((page) => Math.min(totalListPages, page + 1))}
+          type="button"
+        >
+          <span className="material-symbols-outlined font-bold">chevron_right</span>
+        </button>
+      </section>
+    </main>
+  );
+};
 
 const FilterChip = ({ active, children, onClick }) => (
   <button
@@ -668,12 +683,15 @@ const PriceRangeSlider = ({ maxPrice, minPrice, onMaxChange, onMinChange }) => {
   );
 };
 
-const ListRestaurantCard = ({ restaurant }) => {
+const ListRestaurantCard = ({ restaurant, onClick }) => {
   const selling = isCurrentlySelling(restaurant);
   const beanTypes = restaurant.beanTypes?.length ? restaurant.beanTypes : [restaurant.beanType].filter(Boolean);
 
   return (
-    <div className="bg-surface-container-lowest p-5 rounded-xl soy-shadow flex gap-4 items-start active:scale-[0.98] transition-transform">
+    <div
+      onClick={onClick}
+      className="bg-surface-container-lowest p-5 rounded-xl soy-shadow flex gap-4 items-start active:scale-[0.98] transition-transform cursor-pointer"
+    >
       <div className={`w-16 h-16 rounded-lg flex items-center justify-center flex-shrink-0 ${selling ? 'bg-primary-container' : 'bg-surface-container-highest'}`}>
         <span className={`material-symbols-outlined text-3xl ${selling ? 'text-primary' : 'text-outline'}`} style={{ fontVariationSettings: selling ? "'FILL' 1" : "'FILL' 0" }}>
           restaurant
@@ -702,8 +720,11 @@ const ListRestaurantCard = ({ restaurant }) => {
   );
 };
 
-const MapRestaurantCard = ({ restaurant }) => (
-  <div className="absolute bottom-36 left-6 right-6 z-20 md:max-w-sm">
+const MapRestaurantCard = ({ restaurant, onClick }) => (
+  <div
+    onClick={onClick}
+    className="absolute bottom-36 left-6 right-6 z-20 md:max-w-sm cursor-pointer active:scale-95 transition-transform"
+  >
     <div className="bg-surface-container-lowest p-5 rounded-[2.5rem] shadow-2xl flex gap-4 border border-white">
       <div className="w-24 h-24 rounded-[1.8rem] overflow-hidden flex-shrink-0 bg-primary-container">
         <img
