@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import api from '../api';
 import { toast } from 'react-hot-toast';
@@ -16,6 +16,10 @@ const V2SignupPage = () => {
   const [loading, setLoading] = useState(false);
   const [isGeneratingNickname, setIsGeneratingNickname] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const searchParams = new URLSearchParams(location.search);
+  const redirectPath = searchParams.get('redirect') || '/v2';
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -56,7 +60,7 @@ const V2SignupPage = () => {
 
       if (response.data && response.data.code === 0) {
         toast.success('회원가입에 성공했습니다! 로그인해주세요.');
-        navigate('/v2/login');
+        navigate(`/v2/login?redirect=${encodeURIComponent(redirectPath)}`);
       } else {
         toast.error(response.data?.message || '회원가입에 실패했습니다.');
       }
@@ -139,7 +143,10 @@ const V2SignupPage = () => {
         <div className="text-center pt-4">
           <p className="text-sm text-outline font-medium">
             이미 계정이 있으신가요?{' '}
-            <Link to="/v2/login" className="text-secondary font-bold hover:underline">
+            <Link 
+              to={`/v2/login?redirect=${encodeURIComponent(redirectPath)}`} 
+              className="text-secondary font-bold hover:underline"
+            >
               로그인하기
             </Link>
           </p>

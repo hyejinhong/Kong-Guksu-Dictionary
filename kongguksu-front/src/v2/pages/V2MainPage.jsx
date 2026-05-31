@@ -365,7 +365,7 @@ const V2MainPage = () => {
       <button
         onClick={() => {
           if (!isLoggedIn()) {
-            navigate('/v2/login');
+            navigate(`/v2/login?redirect=${encodeURIComponent(window.location.pathname)}`);
           } else {
             navigate('/v2/submit');
           }
@@ -400,7 +400,7 @@ const Header = () => {
       localStorage.removeItem('role');
       window.location.reload(); // 상태 반영을 위해 새로고침
     } else {
-      navigate('/v2/login');
+      navigate(`/v2/login?redirect=${encodeURIComponent(window.location.pathname)}`);
     }
   };
 
@@ -764,7 +764,7 @@ const BottomNav = ({ activeView, setActiveView }) => {
 
   const handleSavedClick = () => {
     if (!isLoggedIn()) {
-      navigate('/v2/login');
+      navigate(`/v2/login?redirect=${encodeURIComponent(window.location.pathname)}`);
     } else {
       // 추후 저장 목록 기능 구현 시 연결
       console.log('Token exists and is valid');

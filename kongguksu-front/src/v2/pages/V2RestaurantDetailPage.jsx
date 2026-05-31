@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import api from '../api';
 import './V2Main.css';
 
@@ -52,6 +52,7 @@ const formatPrice = (price) => {
 const V2RestaurantDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const mapRef = useRef(null);
   const [restaurant, setRestaurant] = useState(null);
   const [comments, setComments] = useState([]);
@@ -97,7 +98,7 @@ const V2RestaurantDetailPage = () => {
     const token = localStorage.getItem('token');
     if (!token) {
       alert('로그인이 필요한 서비스입니다.');
-      navigate('/v2/login');
+      navigate(`/v2/login?redirect=${encodeURIComponent(location.pathname)}`);
       return;
     }
 
@@ -262,9 +263,9 @@ const V2RestaurantDetailPage = () => {
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container text-xs font-bold">
-                      {comment.authorNickname?.charAt(0) || '익'}
+                      {comment.nickname?.charAt(0) || '익'}
                     </div>
-                    <span className="font-semibold text-sm">{comment.authorNickname || '익명'}</span>
+                    <span className="font-semibold text-sm">{comment.nickname || '익명'}</span>
                   </div>
                   <span className="text-tertiary text-[11px]">{new Date(comment.createdAt).toLocaleDateString()}</span>
                 </div>

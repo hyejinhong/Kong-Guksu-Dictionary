@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import './V2Main.css';
@@ -11,6 +11,11 @@ const V2LoginPage = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // URL 파라미터에서 redirect 경로 추출
+  const searchParams = new URLSearchParams(location.search);
+  const redirectPath = searchParams.get('redirect') || '/v2';
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -34,7 +39,7 @@ const V2LoginPage = () => {
         }
 
         toast.success('로그인에 성공했습니다!');
-        navigate('/v2');
+        navigate(redirectPath);
       } else {
         toast.error(response.data?.message || '로그인에 실패했습니다.');
       }
@@ -92,7 +97,10 @@ const V2LoginPage = () => {
         <div className="text-center pt-4">
           <p className="text-sm text-outline font-medium">
             계정이 없으신가요?{' '}
-            <Link to="/v2/signup" className="text-secondary font-bold hover:underline">
+            <Link 
+              to={`/v2/signup?redirect=${encodeURIComponent(redirectPath)}`} 
+              className="text-secondary font-bold hover:underline"
+            >
               회원가입하기
             </Link>
           </p>
