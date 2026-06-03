@@ -1,21 +1,26 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import api from '../api';
 import './V2Main.css';
 
 const KAKAO_MAP_SCRIPT_ID = 'kakao-map-sdk';
 
 const loadKakaoMapScript = () => {
-  if (window.kakao?.maps) {
-    return Promise.resolve(window.kakao);
-  }
-
   return new Promise((resolve, reject) => {
     const existingScript = document.getElementById(KAKAO_MAP_SCRIPT_ID);
+    
+    const handleResolve = () => {
+      window.kakao.maps.load(() => resolve(window.kakao));
+    };
+
+    if (window.kakao?.maps) {
+      handleResolve();
+      return;
+    }
+
     if (existingScript) {
-      existingScript.addEventListener('load', () => {
-        window.kakao.maps.load(() => resolve(window.kakao));
-      });
+      existingScript.addEventListener('load', handleResolve);
       existingScript.addEventListener('error', reject);
       return;
     }
@@ -30,9 +35,7 @@ const loadKakaoMapScript = () => {
     script.id = KAKAO_MAP_SCRIPT_ID;
     script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${kakaoMapApiKey}&autoload=false&libraries=services`;
     script.async = true;
-    script.onload = () => {
-      window.kakao.maps.load(() => resolve(window.kakao));
-    };
+    script.onload = handleResolve;
     script.onerror = reject;
     document.head.appendChild(script);
   });
@@ -117,13 +120,15 @@ const V2RestaurantDetailPage = () => {
 
   useEffect(() => {
     if (!restaurant || !restaurant.latitude || !restaurant.longitude) return;
-    // ... rest of map code
 
     const initMap = async () => {
       try {
         const kakao = await loadKakaoMapScript();
-        const container = document.getElementById('detail-map');
+        const container = mapRef.current;
         if (!container) return;
+
+        // 기존 맵 컨텐츠 초기화 (중복 생성 방지)
+        container.innerHTML = '';
 
         const options = {
           center: new kakao.maps.LatLng(restaurant.latitude, restaurant.longitude),
@@ -142,7 +147,7 @@ const V2RestaurantDetailPage = () => {
     };
 
     initMap();
-  }, [restaurant]);
+  }, [restaurant, loading]);
 
   if (loading) {
     return (
@@ -174,9 +179,7 @@ const V2RestaurantDetailPage = () => {
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
         <h1 className="text-[#695E34] font-['Plus_Jakarta_Sans'] font-semibold text-lg tracking-tight">콩국수 전문점</h1>
-        <button className="text-[#695E34] hover:bg-[#FCEBB6]/20 transition-colors active:scale-95 duration-200 p-2 rounded-full">
-          <span className="material-symbols-outlined">share</span>
-        </button>
+        <div className="w-10" /> {/* Spacer for balance */}
       </header>
 
       <main className="pt-20 pb-32 px-4 space-y-6 max-w-2xl mx-auto">
@@ -205,14 +208,11 @@ const V2RestaurantDetailPage = () => {
             <span className="material-symbols-outlined">favorite</span>
             저장하기
           </button>
-          <button className="bg-surface-container-highest text-primary w-14 h-14 rounded-full flex items-center justify-center hover:opacity-80 transition-opacity active:scale-95 duration-200">
-            <span className="material-symbols-outlined">ios_share</span>
-          </button>
         </section>
 
         {/* Location & Hours */}
         <section className="space-y-4 px-2">
-          <div id="detail-map" className="w-full h-48 rounded-xl overflow-hidden shadow-sm bg-surface-container-highest relative">
+          <div ref={mapRef} className="w-full h-48 rounded-xl overflow-hidden shadow-sm bg-surface-container-highest relative">
             {/* Map will be rendered here */}
           </div>
           <div className="space-y-2">
