@@ -286,14 +286,20 @@ public class RestaurantService {
 
         // 로그인 한 경우, 이미 저장 여부
         boolean isSaved = false;
+        Long visitId = null;
         if (username != null) {
             User user = userRepository.findByUsername(username).orElseThrow(() -> new BaseException(UserExceptionType.USER_NOT_FOUND));
-            isSaved = visitRepository.findByUserIdAndRestaurantId(user.getId(), id).isPresent();
+            var visitOpt = visitRepository.findByUserIdAndRestaurantId(user.getId(), id);
+            if (visitOpt.isPresent()) {
+                isSaved = true;
+                visitId = visitOpt.get().getId();
+            }
         }
 
         RestaurantResponseDto responseDto = entityToResponseDto(restaurant);
         responseDto.setViewCount(totalView);
         responseDto.setIsSaved(isSaved);
+        responseDto.setVisitId(visitId);
         return responseDto;
     }
 

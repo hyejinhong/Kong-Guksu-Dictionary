@@ -766,8 +766,7 @@ const BottomNav = ({ activeView, setActiveView }) => {
     if (!isLoggedIn()) {
       navigate(`/v2/login?redirect=${encodeURIComponent(window.location.pathname)}`);
     } else {
-      // 추후 저장 목록 기능 구현 시 연결
-      console.log('Token exists and is valid');
+      navigate('/v2/saved');
     }
   };
 

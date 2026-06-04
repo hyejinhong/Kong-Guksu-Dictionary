@@ -58,6 +58,8 @@ const V2RestaurantDetailPage = () => {
   const location = useLocation();
   const mapRef = useRef(null);
   const [restaurant, setRestaurant] = useState(null);
+  const [isSaved, setIsSaved] = useState(false);
+  const [visitId, setVisitId] = useState(null);
   const [comments, setComments] = useState([]);
   const [totalComments, setTotalComments] = useState(0);
   const [newComment, setNewComment] = useState('');
@@ -65,10 +67,15 @@ const V2RestaurantDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Save Modal States
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [userRating, setUserRating] = useState(5);
+  const [userMemo, setUserMemo] = useState('');
+  const [saving, setSaving] = useState(false);
+
   const fetchComments = async () => {
     try {
       const response = await api.get(`/restaurants/${id}/comments`);
-      // Page 객체이므로 content와 totalElements 접근
       setComments(response.data.data.content || []);
       setTotalComments(response.data.data.totalElements || 0);
     } catch (err) {
@@ -81,7 +88,10 @@ const V2RestaurantDetailPage = () => {
       try {
         setLoading(true);
         const resResponse = await api.get(`/restaurants/${id}`);
-        setRestaurant(resResponse.data.data);
+        const data = resResponse.data.data;
+        setRestaurant(data);
+        setIsSaved(data.isSaved);
+        setVisitId(data.visitId);
         await fetchComments();
       } catch (err) {
         console.error('Failed to fetch restaurant detail:', err);
@@ -94,13 +104,71 @@ const V2RestaurantDetailPage = () => {
     fetchDetail();
   }, [id]);
 
+  const handleToggleSave = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('로그인이 필요한 서비스입니다.');
+      navigate(`/v2/login?redirect=${encodeURIComponent(location.pathname)}`);
+      return;
+    }
+
+    if (isSaved) {
+      if (window.confirm('나의 사전에서 이 식당을 삭제할까요?')) {
+        try {
+          await api.delete(`/visited-restaurants/${visitId}`);
+          setIsSaved(false);
+          setVisitId(null);
+          toast.success('삭제되었습니다.');
+        } catch (err) {
+          console.error('Failed to delete visit:', err);
+          toast.error('삭제에 실패했습니다.');
+        }
+      }
+      return;
+    }
+
+    // Open Save Modal
+    setShowSaveModal(true);
+    setUserRating(5);
+    setUserMemo('');
+  };
+
+  const handleSaveSubmit = async () => {
+    try {
+      setSaving(true);
+      const today = new Date().toISOString().split('T')[0];
+      const response = await api.post('/visited-restaurants', {
+        restaurantId: parseInt(id),
+        visitDate: today,
+        rating: userRating,
+        memo: userMemo
+      });
+      
+      // backend should return some info or we can re-fetch
+      // Actually the backend BaseResponse<Void> doesn't return the ID.
+      // We need to re-fetch the detail to get the visitId for future deletion.
+      const resResponse = await api.get(`/restaurants/${id}`);
+      const data = resResponse.data.data;
+      setVisitId(data.visitId);
+      setIsSaved(true);
+      
+      setShowSaveModal(false);
+      toast.success('나의 사전에 저장되었습니다!');
+    } catch (err) {
+      console.error('Failed to save restaurant:', err);
+      toast.error('저장에 실패했습니다.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleCommentSubmit = async (e) => {
     e.preventDefault();
     if (!newComment.trim()) return;
 
     const token = localStorage.getItem('token');
     if (!token) {
-      alert('로그인이 필요한 서비스입니다.');
+      toast.error('로그인이 필요한 서비스입니다.');
       navigate(`/v2/login?redirect=${encodeURIComponent(location.pathname)}`);
       return;
     }
@@ -109,10 +177,11 @@ const V2RestaurantDetailPage = () => {
       setSubmitting(true);
       await api.post(`/restaurants/${id}/comments`, { content: newComment });
       setNewComment('');
+      toast.success('댓글이 등록되었습니다.');
       await fetchComments();
     } catch (err) {
       console.error('Failed to post comment:', err);
-      alert('댓글 등록에 실패했습니다.');
+      toast.error('댓글 등록에 실패했습니다.');
     } finally {
       setSubmitting(false);
     }
@@ -127,9 +196,7 @@ const V2RestaurantDetailPage = () => {
         const container = mapRef.current;
         if (!container) return;
 
-        // 기존 맵 컨텐츠 초기화 (중복 생성 방지)
         container.innerHTML = '';
-
         const options = {
           center: new kakao.maps.LatLng(restaurant.latitude, restaurant.longitude),
           level: 3,
@@ -179,7 +246,7 @@ const V2RestaurantDetailPage = () => {
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
         <h1 className="text-[#695E34] font-['Plus_Jakarta_Sans'] font-semibold text-lg tracking-tight">콩국수 전문점</h1>
-        <div className="w-10" /> {/* Spacer for balance */}
+        <div className="w-10" />
       </header>
 
       <main className="pt-20 pb-32 px-4 space-y-6 max-w-2xl mx-auto">
@@ -204,16 +271,23 @@ const V2RestaurantDetailPage = () => {
 
         {/* Action Row */}
         <section className="flex gap-3 px-2">
-          <button className="flex-1 bg-primary-container text-on-primary-container py-4 rounded-full font-bold flex items-center justify-center gap-2 hover:opacity-80 transition-opacity active:scale-95 duration-200 shadow-[0_10px_20px_rgba(105,94,52,0.05)]">
-            <span className="material-symbols-outlined">favorite</span>
-            저장하기
+          <button 
+            onClick={handleToggleSave}
+            className={`flex-1 ${isSaved ? 'bg-secondary-container text-on-secondary-container' : 'bg-primary-container text-on-primary-container'} py-4 rounded-full font-bold flex items-center justify-center gap-2 hover:opacity-80 transition-opacity active:scale-95 duration-200 shadow-[0_10px_20px_rgba(105,94,52,0.05)]`}
+          >
+            <span 
+              className="material-symbols-outlined"
+              style={{ fontVariationSettings: `'FILL' ${isSaved ? 1 : 0}, 'wght' 600, 'GRAD' 0, 'opsz' 24` }}
+            >
+              favorite
+            </span>
+            {isSaved ? '저장됨' : '저장하기'}
           </button>
         </section>
 
         {/* Location & Hours */}
         <section className="space-y-4 px-2">
           <div ref={mapRef} className="w-full h-48 rounded-xl overflow-hidden shadow-sm bg-surface-container-highest relative">
-            {/* Map will be rendered here */}
           </div>
           <div className="space-y-2">
             <div className="flex items-start gap-3">
@@ -230,7 +304,7 @@ const V2RestaurantDetailPage = () => {
           </div>
         </section>
 
-        {/* Comments */}
+        {/* Comments Section */}
         <section className="bg-surface-container-highest rounded-xl p-6 space-y-6">
           <div className="flex items-center justify-between">
             <h3 className="text-primary font-bold text-xl">댓글</h3>
@@ -239,12 +313,12 @@ const V2RestaurantDetailPage = () => {
             </span>
           </div>
 
-          {/* Comment Input */}
           <form onSubmit={handleCommentSubmit} className="space-y-3">
             <textarea
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               className="w-full px-4 py-3 rounded-xl bg-surface-container-lowest border-none focus:ring-2 focus:ring-primary text-sm min-h-[48px] h-[48px] resize-none soy-shadow transition-all flex items-center"
+              placeholder="댓글을 입력하세요..."
             />
             <div className="flex justify-end">
               <button
@@ -280,15 +354,104 @@ const V2RestaurantDetailPage = () => {
         </section>
       </main>
 
+      {/* Save Modal */}
+      {showSaveModal && (
+        <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center px-4 pb-10 sm:pb-0 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
+          <div 
+            className="w-full max-w-md bg-background rounded-[2.5rem] p-8 soy-shadow animate-in slide-in-from-bottom-10 duration-500"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-8">
+              <h3 className="text-2xl font-bold text-primary tracking-tight">나의 사전 등록</h3>
+              <button onClick={() => setShowSaveModal(false)} className="text-tertiary p-2 hover:bg-surface-container-low rounded-full transition-colors">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <div className="space-y-8">
+              {/* Rating */}
+              <div className="space-y-4">
+                <label className="text-sm font-bold text-tertiary uppercase tracking-wider block text-center">나의 별점</label>
+                <div className="flex justify-center gap-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button 
+                      key={star}
+                      onClick={() => setUserRating(star)}
+                      className="text-primary active:scale-90 transition-transform"
+                    >
+                      <span 
+                        className="material-symbols-outlined text-4xl"
+                        style={{ fontVariationSettings: `'FILL' ${star <= userRating ? 1 : 0}, 'wght' 600` }}
+                      >
+                        star
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Memo */}
+              <div className="space-y-3">
+                <label className="text-sm font-bold text-tertiary uppercase tracking-wider block">메모 (선택)</label>
+                <textarea
+                  value={userMemo}
+                  onChange={(e) => setUserMemo(e.target.value)}
+                  className="w-full px-5 py-4 rounded-2xl bg-surface-container-low border-none focus:ring-2 focus:ring-primary text-sm min-h-[120px] resize-none soy-shadow transition-all"
+                  placeholder="식당에 대한 짧은 평이나 기억하고 싶은 점을 적어주세요."
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowSaveModal(false)}
+                  className="flex-1 py-4 rounded-full font-bold text-tertiary hover:bg-surface-container-low transition-colors"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleSaveSubmit}
+                  disabled={saving}
+                  className="flex-1 bg-primary text-background py-4 rounded-full font-bold hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-primary/20 disabled:opacity-50"
+                >
+                  {saving ? '저장 중...' : '저장하기'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* BottomNavBar */}
       <nav className="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-3 bg-[#FDF9ED]/80 backdrop-blur-xl z-50 rounded-t-xl shadow-[0_-20px_40px_rgba(105,94,52,0.08)]">
-        <FooterItem icon="dictionary" label="목록" onClick={() => navigate('/v2/list')} />
+        <FooterItem icon="dictionary" label="목록" onClick={() => navigate('/v2')} />
         <FooterItem icon="map" label="지도" onClick={() => navigate('/v2')} />
-        <FooterItem icon="bookmark" label="저장" onClick={() => {}} />
+        <FooterItem icon="bookmark" label="저장" onClick={() => {
+          if (!isLoggedIn()) {
+            toast.error('로그인이 필요한 서비스입니다.');
+            navigate(`/v2/login?redirect=${encodeURIComponent(location.pathname)}`);
+          } else {
+            navigate('/v2/saved');
+          }
+        }} />
         <FooterItem icon="person" label="내 정보" onClick={() => {}} />
       </nav>
     </div>
   );
+};
+
+const isLoggedIn = () => {
+  const token = localStorage.getItem('token');
+  const exp = localStorage.getItem('exp');
+  if (!token || !exp) return false;
+
+  const now = Math.floor(Date.now() / 1000);
+  if (now >= Number(exp)) {
+    localStorage.removeItem('token');
+    localStorage.removeItem('exp');
+    localStorage.removeItem('role');
+    return false;
+  }
+  return true;
 };
 
 const FooterItem = ({ active = false, icon, label, onClick }) => (
@@ -301,7 +464,7 @@ const FooterItem = ({ active = false, icon, label, onClick }) => (
     onClick={onClick}
     type="button"
   >
-    <span className="material-symbols-outlined">{icon}</span>
+    <span className="material-symbols-outlined" style={{ fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0" }}>{icon}</span>
     <span className="font-label text-[10px] font-semibold tracking-wider uppercase">{label}</span>
   </button>
 );
