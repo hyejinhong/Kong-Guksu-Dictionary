@@ -16,6 +16,7 @@ import V2SignupPage from "./v2/pages/V2SignupPage";
 import V2SubmissionPage from "./v2/pages/V2SubmissionPage";
 import V2RestaurantDetailPage from "./v2/pages/V2RestaurantDetailPage";
 import V2SavedRestaurantsPage from "./v2/pages/V2SavedRestaurantsPage";
+import V2MyPage from "./v2/pages/V2MyPage";
 
 import { Toaster } from 'react-hot-toast';
 
@@ -31,6 +32,7 @@ function App() {
           <Route path="/v2/submit" element={<V2SubmissionPage />} />
           <Route path="/v2/restaurant/:id" element={<V2RestaurantDetailPage />} />
           <Route path="/v2/saved" element={<V2SavedRestaurantsPage />} />
+          <Route path="/v2/mypage" element={<V2MyPage />} />
           <Route path="/" element={<MainLayout />}> {/* MainLayout으로 감싸기 */}
             <Route index element={<HomePage />} /> {/* index 라우트로 홈페이지 설정 */}
             <Route path="/restaurant/:id" element={<RestaurantDetailPage />} />

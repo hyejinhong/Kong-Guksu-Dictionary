@@ -100,7 +100,10 @@ const V2SavedRestaurantsPage = () => {
         >
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
-        <h1 className="text-[#695E34] font-['Plus_Jakarta_Sans'] font-semibold text-lg tracking-tight">나의 저장 목록</h1>
+        <div className="flex items-center gap-2">
+          <img src="/images/noodles.png" alt="Icon" className="w-6 h-6 object-contain" />
+          <h1 className="text-[#695E34] font-['Plus_Jakarta_Sans'] font-semibold text-lg tracking-tight">나의 저장 목록</h1>
+        </div>
         <div className="w-10" />
       </header>
 
@@ -110,55 +113,60 @@ const V2SavedRestaurantsPage = () => {
             <div 
               key={item.id}
               onClick={() => navigate(`/v2/restaurant/${item.restaurant.id}`)}
-              className="bg-surface-container-lowest p-5 rounded-2xl shadow-sm hover:shadow-md transition-shadow cursor-pointer relative group"
+              className="bg-surface-container-lowest p-5 rounded-2xl shadow-sm hover:shadow-md transition-shadow cursor-pointer relative group flex gap-4 items-start"
             >
-              <div className="flex justify-between items-start mb-2">
-                <h3 className="text-xl font-bold text-primary group-hover:text-primary/80 transition-colors">
-                  {item.restaurant.name}
-                </h3>
-                <button 
-                  onClick={(e) => handleDelete(e, item.id, item.restaurant.name)}
-                  className="text-tertiary/40 hover:text-error transition-colors p-1"
-                >
-                  <span className="material-symbols-outlined text-[20px]">delete</span>
-                </button>
+              <div className="w-16 h-16 rounded-xl bg-primary-container flex items-center justify-center shrink-0">
+                <img src="/images/noodles.png" alt="Noodles" className="w-10 h-10 object-contain" />
               </div>
-
-              <div className="flex items-center gap-2 text-sm text-tertiary mb-3">
-                <span className="material-symbols-outlined text-[16px]">location_on</span>
-                <span className="truncate">{item.restaurant.address}</span>
-                {item.restaurant.distance != null && item.restaurant.distance !== -1 && (
-                  <span className="text-primary font-semibold ml-auto shrink-0">
-                    {item.restaurant.distance.toFixed(1)}km
-                  </span>
-                )}
-              </div>
-
-              <div className="flex flex-wrap gap-2 mb-4">
-                {(item.restaurant.beanTypes || []).map(bean => (
-                  <span key={bean} className="bg-secondary-container/50 text-on-secondary-container px-3 py-1 rounded-full text-[11px] font-bold">
-                    {getBeanLabel(bean)}
-                  </span>
-                ))}
-              </div>
-
-              {/* Visit Info */}
-              <div className="bg-surface-container-low/50 rounded-xl p-3 flex flex-col gap-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] text-tertiary font-medium">저장일: {item.visitedDate}</span>
-                  <div className="flex text-primary">
-                    {[...Array(5)].map((_, i) => (
-                      <span key={i} className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: `'FILL' ${i < (item.rating || 0) ? 1 : 0}` }}>
-                        star
-                      </span>
-                    ))}
-                  </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex justify-between items-start mb-1">
+                  <h3 className="text-xl font-bold text-primary group-hover:text-primary/80 transition-colors truncate">
+                    {item.restaurant.name}
+                  </h3>
+                  <button 
+                    onClick={(e) => handleDelete(e, item.id, item.restaurant.name)}
+                    className="text-tertiary/40 hover:text-error transition-colors p-1"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">delete</span>
+                  </button>
                 </div>
-                {item.memo && (
-                  <p className="text-xs text-on-surface/70 italic line-clamp-1 mt-1">
-                    "{item.memo}"
-                  </p>
-                )}
+
+                <div className="flex items-center gap-2 text-sm text-tertiary mb-2">
+                  <span className="material-symbols-outlined text-[16px]">location_on</span>
+                  <span className="truncate">{item.restaurant.address}</span>
+                  {item.restaurant.distance != null && item.restaurant.distance !== -1 && (
+                    <span className="text-primary font-semibold ml-auto shrink-0">
+                      {item.restaurant.distance.toFixed(1)}km
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {(item.restaurant.beanTypes || []).map(bean => (
+                    <span key={bean} className="bg-secondary-container/50 text-on-secondary-container px-3 py-1 rounded-full text-[11px] font-bold">
+                      {getBeanLabel(bean)}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Visit Info */}
+                <div className="bg-surface-container-low/50 rounded-xl p-3 flex flex-col gap-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-tertiary font-medium">저장일: {item.visitedDate}</span>
+                    <div className="flex text-primary">
+                      {[...Array(5)].map((_, i) => (
+                        <span key={i} className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: `'FILL' ${i < (item.rating || 0) ? 1 : 0}` }}>
+                          star
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  {item.memo && (
+                    <p className="text-xs text-on-surface/70 italic line-clamp-1 mt-1">
+                      "{item.memo}"
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
           ))
@@ -181,7 +189,7 @@ const V2SavedRestaurantsPage = () => {
         <FooterItem icon="dictionary" label="목록" onClick={() => navigate('/v2')} />
         <FooterItem icon="map" label="지도" onClick={() => navigate('/v2')} />
         <FooterItem active={true} icon="bookmark" label="저장" onClick={() => {}} />
-        <FooterItem icon="person" label="내 정보" onClick={() => {}} />
+        <FooterItem icon="person" label="내 정보" onClick={() => navigate('/v2/mypage')} />
       </nav>
     </div>
   );

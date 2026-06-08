@@ -5,7 +5,6 @@ import { toast } from 'react-hot-toast';
 import './V2Main.css';
 
 const KAKAO_MAP_SCRIPT_ID = 'kakao-map-sdk-submission';
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080';
 const SELECTED_PLACE_MAX_LEVEL = 4;
 
 const V2SubmissionPage = () => {
@@ -20,6 +19,8 @@ const V2SubmissionPage = () => {
     startMonth: '',
     endMonth: '',
     isAllYear: false,
+    dontKnowSeason: false,
+    dontKnowPrice: false,
     latitude: '',
     longitude: '',
     prices: [{ beanType: '', price: '' }],
@@ -136,10 +137,15 @@ const V2SubmissionPage = () => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value,
-    }));
+    setFormData((prev) => {
+      const next = { ...prev, [name]: type === 'checkbox' ? checked : value };
+      
+      // 상충되는 옵션 제어
+      if (name === 'isAllYear' && checked) next.dontKnowSeason = false;
+      if (name === 'dontKnowSeason' && checked) next.isAllYear = false;
+      
+      return next;
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -155,16 +161,18 @@ const V2SubmissionPage = () => {
         name: formData.name,
         address: formData.address,
         servesAllYear: formData.isAllYear,
-        startMonth: formData.isAllYear ? 0 : parseInt(formData.startMonth),
-        endMonth: formData.isAllYear ? 0 : parseInt(formData.endMonth),
+        startMonth: (formData.isAllYear || formData.dontKnowSeason) ? 0 : parseInt(formData.startMonth),
+        endMonth: (formData.isAllYear || formData.dontKnowSeason) ? 0 : parseInt(formData.endMonth),
         latitude: formData.latitude,
         longitude: formData.longitude,
-        prices: formData.prices
-          .map((item) => ({
-            beanType: item.beanType,
-            price: parseInt(item.price),
-          }))
-          .filter((item) => item.beanType && item.price),
+        prices: formData.dontKnowPrice 
+          ? [] 
+          : formData.prices
+            .map((item) => ({
+              beanType: item.beanType,
+              price: item.price ? parseInt(item.price) : 0,
+            }))
+            .filter((item) => item.beanType && item.price),
       };
 
       const res = await api.post('/restaurants/submissions', payload);
@@ -189,7 +197,10 @@ const V2SubmissionPage = () => {
         <button onClick={() => navigate(-1)} className="mr-4 text-primary p-1 active:scale-90 transition-transform">
           <span className="material-symbols-outlined text-2xl">arrow_back</span>
         </button>
-        <h1 className="text-xl font-black text-primary tracking-tight font-headline">식당 제보하기</h1>
+        <div className="flex items-center gap-2">
+          <img src="/images/noodles.png" alt="Icon" className="w-8 h-8 object-contain" />
+          <h1 className="text-xl font-black text-primary tracking-tight font-headline">식당 제보하기</h1>
+        </div>
       </header>
 
       <main className="px-6 py-8 max-w-2xl mx-auto space-y-10 box-border">
@@ -254,72 +265,113 @@ const V2SubmissionPage = () => {
             </div>
 
             <div className="space-y-4 pt-2">
-              <label className="text-xs font-bold text-outline uppercase ml-2">콩 종류 및 가격</label>
-              {formData.prices.map((priceItem, index) => (
-                <div key={index} className="flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
-                  <select
-                    name="beanType"
-                    value={priceItem.beanType}
-                    onChange={(e) => handlePriceItemChange(index, e)}
-                    className="flex-1 min-w-0 px-3 py-4 rounded-2xl bg-surface-container-low border-none focus:ring-2 focus:ring-secondary text-on-surface font-bold text-xs sm:text-sm appearance-none"
-                    required
+              <div className="flex justify-between items-center px-2">
+                <label className="text-xs font-bold text-outline uppercase">콩 종류 및 가격</label>
+                <label className="flex items-center gap-2 cursor-pointer group">
+                  <span className="text-[10px] font-bold text-outline group-hover:text-secondary transition-colors">가격 모름</span>
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      name="dontKnowPrice"
+                      checked={formData.dontKnowPrice}
+                      onChange={handleChange}
+                      className="sr-only"
+                    />
+                    <div className={`w-8 h-4 rounded-full transition-colors ${formData.dontKnowPrice ? 'bg-secondary' : 'bg-outline-variant'}`}></div>
+                    <div className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform ${formData.dontKnowPrice ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                  </div>
+                </label>
+              </div>
+
+              {!formData.dontKnowPrice ? (
+                <div className="space-y-4">
+                  {formData.prices.map((priceItem, index) => (
+                    <div key={index} className="flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+                      <select
+                        name="beanType"
+                        value={priceItem.beanType}
+                        onChange={(e) => handlePriceItemChange(index, e)}
+                        className="flex-1 min-w-0 px-3 py-4 rounded-2xl bg-surface-container-low border-none focus:ring-2 focus:ring-secondary text-on-surface font-bold text-xs sm:text-sm appearance-none"
+                        required={!formData.dontKnowPrice}
+                      >
+                        <option value="">콩 종류</option>
+                        <option value="SOY_BEAN">백태콩</option>
+                        <option value="BLACK_BEAN">서리태</option>
+                        <option value="OTHER_BEAN">기타콩</option>
+                      </select>
+                      <input
+                        type="number"
+                        name="price"
+                        value={priceItem.price}
+                        onChange={(e) => handlePriceItemChange(index, e)}
+                        className="flex-1 min-w-0 px-4 py-4 rounded-2xl bg-surface-container-low border-none focus:ring-2 focus:ring-secondary text-on-surface font-bold text-xs sm:text-sm"
+                        placeholder="가격"
+                        required={!formData.dontKnowPrice}
+                      />
+                      {formData.prices.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemovePriceItem(index)}
+                          className="p-1.5 text-red-400 active:scale-90 transition-transform shrink-0"
+                        >
+                          <span className="material-symbols-outlined text-xl">remove_circle</span>
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={handleAddPriceItem}
+                    className="w-full py-3 rounded-2xl border-2 border-dashed border-outline-variant text-outline hover:text-secondary hover:border-secondary transition-all flex items-center justify-center gap-2 font-bold text-sm"
                   >
-                    <option value="">콩 종류</option>
-                    <option value="SOY_BEAN">백태콩</option>
-                    <option value="BLACK_BEAN">서리태</option>
-                    <option value="OTHER_BEAN">기타콩</option>
-                  </select>
-                  <input
-                    type="number"
-                    name="price"
-                    value={priceItem.price}
-                    onChange={(e) => handlePriceItemChange(index, e)}
-                    className="flex-1 min-w-0 px-4 py-4 rounded-2xl bg-surface-container-low border-none focus:ring-2 focus:ring-secondary text-on-surface font-bold text-xs sm:text-sm"
-                    placeholder="가격"
-                    required
-                  />
-                  {formData.prices.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => handleRemovePriceItem(index)}
-                      className="p-1.5 text-red-400 active:scale-90 transition-transform shrink-0"
-                    >
-                      <span className="material-symbols-outlined text-xl">remove_circle</span>
-                    </button>
-                  )}
+                    <span className="material-symbols-outlined text-sm">add</span>
+                    콩 종류 추가하기
+                  </button>
                 </div>
-              ))}
-              <button
-                type="button"
-                onClick={handleAddPriceItem}
-                className="w-full py-3 rounded-2xl border-2 border-dashed border-outline-variant text-outline hover:text-secondary hover:border-secondary transition-all flex items-center justify-center gap-2 font-bold text-sm"
-              >
-                <span className="material-symbols-outlined text-sm">add</span>
-                콩 종류 추가하기
-              </button>
+              ) : (
+                <div className="py-4 px-6 rounded-2xl bg-surface-container-low/50 text-outline text-xs font-medium text-center italic">
+                  가격 정보 없이 식당 위치만 제보합니다.
+                </div>
+              )}
             </div>
 
             <div className="space-y-4 pt-2">
               <div className="flex justify-between items-center px-2">
-                <label className="text-xs font-bold text-outline uppercase">운영 기간</label>
-                <label className="flex items-center gap-2 cursor-pointer group">
-                  <span className="text-xs font-bold text-outline group-hover:text-secondary transition-colors">연중무휴</span>
-                  <div className="relative">
-                    <input
-                      type="checkbox"
-                      name="isAllYear"
-                      checked={formData.isAllYear}
-                      onChange={handleChange}
-                      className="sr-only"
-                    />
-                    <div className={`w-10 h-5 rounded-full transition-colors ${formData.isAllYear ? 'bg-secondary' : 'bg-outline-variant'}`}></div>
-                    <div className={`absolute top-1 left-1 w-3 h-3 bg-white rounded-full transition-transform ${formData.isAllYear ? 'translate-x-5' : 'translate-x-0'}`}></div>
-                  </div>
-                </label>
+                <label className="text-xs font-bold text-outline uppercase">개시 기간</label>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer group">
+                    <span className="text-[10px] font-bold text-outline group-hover:text-secondary transition-colors">연중무휴</span>
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        name="isAllYear"
+                        checked={formData.isAllYear}
+                        onChange={handleChange}
+                        className="sr-only"
+                      />
+                      <div className={`w-8 h-4 rounded-full transition-colors ${formData.isAllYear ? 'bg-secondary' : 'bg-outline-variant'}`}></div>
+                      <div className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform ${formData.isAllYear ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                    </div>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer group">
+                    <span className="text-[10px] font-bold text-outline group-hover:text-secondary transition-colors">모름</span>
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        name="dontKnowSeason"
+                        checked={formData.dontKnowSeason}
+                        onChange={handleChange}
+                        className="sr-only"
+                      />
+                      <div className={`w-8 h-4 rounded-full transition-colors ${formData.dontKnowSeason ? 'bg-secondary' : 'bg-outline-variant'}`}></div>
+                      <div className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform ${formData.dontKnowSeason ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                    </div>
+                  </label>
+                </div>
               </div>
               
-              {!formData.isAllYear && (
-                <div className="flex items-center gap-3 px-2">
+              {!formData.isAllYear && !formData.dontKnowSeason ? (
+                <div className="flex items-center gap-3 px-2 animate-in fade-in">
                   <div className="flex-1">
                     <select
                       name="startMonth"
@@ -348,7 +400,11 @@ const V2SubmissionPage = () => {
                     </select>
                   </div>
                 </div>
-              )}
+              ) : formData.dontKnowSeason ? (
+                <div className="py-4 px-6 rounded-2xl bg-surface-container-low/50 text-outline text-xs font-medium text-center italic">
+                  정확한 개시 기간을 나중에 보완할 수 있습니다.
+                </div>
+              ) : null}
             </div>
           </div>
 

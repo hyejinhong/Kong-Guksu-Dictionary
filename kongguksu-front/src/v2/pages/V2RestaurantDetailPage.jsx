@@ -234,6 +234,15 @@ const V2RestaurantDetailPage = () => {
   }
 
   const beanTypes = restaurant.beanTypes?.length ? restaurant.beanTypes : [restaurant.beanType].filter(Boolean);
+  const selling = restaurant.servesAllYear || (restaurant.startMonth && restaurant.endMonth && (
+    (() => {
+      const currentMonth = new Date().getMonth() + 1;
+      if (restaurant.startMonth <= restaurant.endMonth) {
+        return currentMonth >= restaurant.startMonth && currentMonth <= restaurant.endMonth;
+      }
+      return currentMonth >= restaurant.startMonth || currentMonth <= restaurant.endMonth;
+    })()
+  ));
 
   return (
     <div className="v2-root bg-background text-on-surface min-h-screen relative overflow-x-hidden">
@@ -245,14 +254,27 @@ const V2RestaurantDetailPage = () => {
         >
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
-        <h1 className="text-[#695E34] font-['Plus_Jakarta_Sans'] font-semibold text-lg tracking-tight">콩국수 전문점</h1>
+        <div className="flex items-center gap-2">
+          <img src="/images/noodles.png" alt="Icon" className="w-6 h-6 object-contain" />
+          <h1 className="text-[#695E34] font-['Plus_Jakarta_Sans'] font-semibold text-lg tracking-tight">콩국수 전문점</h1>
+        </div>
         <div className="w-10" />
       </header>
 
       <main className="pt-20 pb-32 px-4 space-y-6 max-w-2xl mx-auto">
         {/* Title Section */}
-        <section className="px-2">
+        <section className="px-2 flex justify-between items-start">
           <h2 className="text-primary font-bold text-4xl tracking-tight">{restaurant.name}</h2>
+          <div className="flex flex-col items-center gap-1">
+            <img 
+              src={selling ? "/images/open.png" : "/images/closed.png"} 
+              alt={selling ? "Open" : "Closed"} 
+              className="w-10 h-10 object-contain"
+            />
+            <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wide ${selling ? 'bg-secondary/10 text-secondary' : 'bg-outline-variant/10 text-outline-variant'}`}>
+              {selling ? '콩국수 개시' : '시즌 종료'}
+            </span>
+          </div>
         </section>
 
         {/* Info Tags */}
@@ -296,10 +318,6 @@ const V2RestaurantDetailPage = () => {
                 <p className="font-semibold text-on-surface">{restaurant.address}</p>
                 {restaurant.roadAddress && <p className="text-tertiary text-sm">{restaurant.roadAddress}</p>}
               </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="material-symbols-outlined text-primary">schedule</span>
-              <p className="font-semibold text-secondary">영업 정보: {restaurant.businessHours || '정보 없음'}</p>
             </div>
           </div>
         </section>
@@ -433,7 +451,13 @@ const V2RestaurantDetailPage = () => {
             navigate('/v2/saved');
           }
         }} />
-        <FooterItem icon="person" label="내 정보" onClick={() => {}} />
+        <FooterItem icon="person" label="내 정보" onClick={() => {
+          if (!isLoggedIn()) {
+            navigate(`/v2/login?redirect=${encodeURIComponent(location.pathname)}`);
+          } else {
+            navigate('/v2/mypage');
+          }
+        }} />
       </nav>
     </div>
   );

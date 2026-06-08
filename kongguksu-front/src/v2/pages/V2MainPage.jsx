@@ -44,7 +44,7 @@ const loadKakaoMapScript = () => {
   });
 };
 
-const isCurrentlySelling = (restaurant) => {
+const isCurrentlyServing = (restaurant) => {
   const { startMonth, endMonth, servesAllYear } = restaurant;
   const currentMonth = new Date().getMonth() + 1;
 
@@ -253,7 +253,7 @@ const V2MainPage = () => {
 
       const markerPosition = new kakao.maps.LatLng(position.latitude, position.longitude);
       const markerImage = new kakao.maps.MarkerImage(
-        isCurrentlySelling(restaurant) ? '/images/on.png' : '/images/off.png',
+        isCurrentlyServing(restaurant) ? '/images/on.png' : '/images/off.png',
         new kakao.maps.Size(42, 42),
         { offset: new kakao.maps.Point(21, 42) }
       );
@@ -406,8 +406,14 @@ const Header = () => {
 
   return (
     <header className="fixed top-0 w-full z-50 bg-[#FDF9ED]/80 backdrop-blur-xl flex justify-between items-center px-6 py-4">
-      <div className="text-xl font-bold text-primary tracking-tight font-headline">
-        콩국수사전
+      <div 
+        onClick={() => navigate('/v2')}
+        className="flex items-center gap-2 cursor-pointer"
+      >
+        <img src="/images/noodles.png" alt="Logo" className="w-8 h-8 object-contain" />
+        <div className="text-xl font-bold text-primary tracking-tight font-headline">
+          콩국수사전
+        </div>
       </div>
       <button
         onClick={handleAuthAction}
@@ -521,7 +527,7 @@ const ListView = ({
         <div className="bg-surface-container-low p-6 rounded-xl space-y-6">
           <div className="flex justify-between items-center">
             <label className="text-sm font-bold text-primary tracking-tight" htmlFor="open-now-toggle">
-              현재 영업 중만 보기
+              현재 개시 중인 식당만
             </label>
             <button
               id="open-now-toggle"
@@ -684,7 +690,7 @@ const PriceRangeSlider = ({ maxPrice, minPrice, onMaxChange, onMinChange }) => {
 };
 
 const ListRestaurantCard = ({ restaurant, onClick }) => {
-  const selling = isCurrentlySelling(restaurant);
+  const serving = isCurrentlyServing(restaurant);
   const beanTypes = restaurant.beanTypes?.length ? restaurant.beanTypes : [restaurant.beanType].filter(Boolean);
 
   return (
@@ -692,17 +698,17 @@ const ListRestaurantCard = ({ restaurant, onClick }) => {
       onClick={onClick}
       className="bg-surface-container-lowest p-5 rounded-xl soy-shadow flex gap-4 items-start active:scale-[0.98] transition-transform cursor-pointer"
     >
-      <div className={`w-16 h-16 rounded-lg flex items-center justify-center flex-shrink-0 ${selling ? 'bg-primary-container' : 'bg-surface-container-highest'}`}>
-        <span className={`material-symbols-outlined text-3xl ${selling ? 'text-primary' : 'text-outline'}`} style={{ fontVariationSettings: selling ? "'FILL' 1" : "'FILL' 0" }}>
-          restaurant
-        </span>
+      <div className={`w-16 h-16 rounded-lg flex items-center justify-center flex-shrink-0 ${serving ? 'bg-primary-container' : 'bg-surface-container-highest'}`}>
+        <img src="/images/noodles.png" alt="Noodles" className={`w-10 h-10 object-contain ${!serving && 'grayscale opacity-50'}`} />
       </div>
       <div className="flex-1 space-y-2 min-w-0">
         <div className="flex justify-between items-start gap-3">
           <h3 className="font-bold text-lg text-on-surface leading-tight truncate">{restaurant.name}</h3>
-          <span className={`material-symbols-outlined flex-shrink-0 ${selling ? 'text-secondary' : 'text-outline-variant'}`} style={{ fontVariationSettings: selling ? "'FILL' 1" : "'FILL' 0" }}>
-            {selling ? 'check_circle' : 'cancel'}
-          </span>
+          <img 
+            src={serving ? "/images/open.png" : "/images/closed.png"} 
+            alt={serving ? "Open" : "Closed"} 
+            className="w-6 h-6 object-contain flex-shrink-0"
+          />
         </div>
         <div className="flex flex-wrap gap-2">
           {beanTypes.map((beanType) => (
@@ -714,50 +720,63 @@ const ListRestaurantCard = ({ restaurant, onClick }) => {
             {formatPrice(restaurant.price)}
           </span>
         </div>
-        <p className="text-tertiary text-sm leading-relaxed line-clamp-2">{restaurant.address}</p>
+        <div className="flex items-center gap-1">
+          <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wide ${serving ? 'bg-secondary/10 text-secondary' : 'bg-outline-variant/10 text-outline-variant'}`}>
+            {serving ? '콩국수 개시' : '시즌 종료'}
+          </span>
+        </div>
+        <p className="text-tertiary text-sm leading-relaxed line-clamp-1">{restaurant.address}</p>
       </div>
     </div>
   );
 };
 
-const MapRestaurantCard = ({ restaurant, onClick }) => (
-  <div
-    onClick={onClick}
-    className="absolute bottom-36 left-6 right-6 z-20 md:max-w-sm cursor-pointer active:scale-95 transition-transform"
-  >
-    <div className="bg-surface-container-lowest p-5 rounded-[2.5rem] shadow-2xl flex gap-4 border border-white">
-      <div className="w-24 h-24 rounded-[1.8rem] overflow-hidden flex-shrink-0 bg-primary-container">
-        <img
-          alt={`${restaurant.name} 콩국수`}
-          className="w-full h-full object-cover"
-          src="https://images.unsplash.com/photo-1612929633738-8fe44f7ec841?q=80&w=200&auto=format&fit=crop"
-        />
-      </div>
-      <div className="flex-grow py-1 min-w-0">
-        <div className="flex justify-between items-start mb-1 gap-2">
-          <h3 className="font-black text-lg text-on-surface tracking-tight truncate">{restaurant.name}</h3>
-          <div className="bg-primary-container/30 px-2 py-1 rounded-full flex items-center gap-1">
-            <span className="material-symbols-outlined text-primary text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-            <span className="text-[10px] font-black text-primary">
-              {restaurant.averageRating ? restaurant.averageRating.toFixed(1) : '0.0'}
-            </span>
-          </div>
+const MapRestaurantCard = ({ restaurant, onClick }) => {
+  const serving = isCurrentlyServing(restaurant);
+  return (
+    <div
+      onClick={onClick}
+      className="absolute bottom-36 left-6 right-6 z-20 md:max-w-sm cursor-pointer active:scale-95 transition-transform"
+    >
+      <div className="bg-surface-container-lowest p-5 rounded-[2.5rem] shadow-2xl flex gap-4 border border-white">
+        <div className="w-24 h-24 rounded-[1.8rem] overflow-hidden flex-shrink-0 bg-primary-container flex items-center justify-center">
+          <img
+            alt={`${restaurant.name} 콩국수`}
+            className="w-16 h-16 object-contain"
+            src="/images/noodles.png"
+          />
         </div>
-        <p className="text-xs text-outline font-medium mb-3 truncate">{restaurant.address}</p>
-        <div className="flex items-center gap-2">
-          <span className="px-3 py-1 bg-secondary-container text-on-secondary-container rounded-full text-[10px] font-black">
-            {isCurrentlySelling(restaurant) ? '영업 중' : '시즌 외'}
-          </span>
-          {restaurant.price && (
-            <span className="text-[10px] font-black text-primary">
-              {formatPrice(restaurant.price)}
+        <div className="flex-grow py-1 min-w-0">
+          <div className="flex justify-between items-start mb-1 gap-2">
+            <h3 className="font-black text-lg text-on-surface tracking-tight truncate">{restaurant.name}</h3>
+            <div className="bg-primary-container/30 px-2 py-1 rounded-full flex items-center gap-1">
+              <span className="material-symbols-outlined text-primary text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+              <span className="text-[10px] font-black text-primary">
+                {restaurant.averageRating ? restaurant.averageRating.toFixed(1) : '0.0'}
+              </span>
+            </div>
+          </div>
+          <p className="text-xs text-outline font-medium mb-3 truncate">{restaurant.address}</p>
+          <div className="flex items-center gap-2">
+            <img 
+              src={serving ? "/images/open.png" : "/images/closed.png"} 
+              alt={serving ? "Open" : "Closed"} 
+              className="w-5 h-5 object-contain"
+            />
+            <span className="px-3 py-1 bg-secondary-container text-on-secondary-container rounded-full text-[10px] font-black">
+              {serving ? '콩국수 개시' : '시즌 종료'}
             </span>
-          )}
+            {restaurant.price && (
+              <span className="text-[10px] font-black text-primary">
+                {formatPrice(restaurant.price)}
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 const BottomNav = ({ activeView, setActiveView }) => {
   const navigate = useNavigate();
@@ -770,12 +789,20 @@ const BottomNav = ({ activeView, setActiveView }) => {
     }
   };
 
+  const handleMyPageClick = () => {
+    if (!isLoggedIn()) {
+      navigate(`/v2/login?redirect=${encodeURIComponent(window.location.pathname)}`);
+    } else {
+      navigate('/v2/mypage');
+    }
+  };
+
   return (
     <nav className="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-3 bg-[#FDF9ED]/80 backdrop-blur-xl z-50 rounded-t-xl shadow-[0_-20px_40px_rgba(105,94,52,0.08)]">
       <FooterItem active={activeView === 'list'} icon="dictionary" label="목록" onClick={() => setActiveView('list')} />
       <FooterItem active={activeView === 'map'} icon="map" label="지도" onClick={() => setActiveView('map')} />
       <FooterItem icon="bookmark" label="저장" onClick={handleSavedClick} />
-      <FooterItem icon="person" label="내 정보" onClick={() => {}} />
+      <FooterItem icon="person" label="내 정보" onClick={handleMyPageClick} />
     </nav>
   );
 };
