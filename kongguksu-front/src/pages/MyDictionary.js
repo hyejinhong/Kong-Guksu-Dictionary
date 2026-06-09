@@ -153,7 +153,7 @@ const MyDictionary = () => {
       <div className="p-6 bg-[#FCEBB6] min-h-screen text-center text-gray-600">
         <h1 className="text-2xl font-bold mb-4 text-[#5C5C5C]">📌 나의 사전</h1>
         <p>아직 나의 사전에 저장된 콩국수 식당이 없습니다.</p>
-        <Link to="/" className="text-blue-500 hover:underline mt-2 inline-block">
+        <Link to="/v2" className="text-blue-500 hover:underline mt-2 inline-block">
           지금 식당 찾아보기
         </Link>
       </div>

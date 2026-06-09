@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kong.kong_dic.common.response.BaseResponse;
 import com.kong.kong_dic.domain.auth.dto.LoginResponseDto;
+import com.kong.kong_dic.domain.auth.service.RefreshTokenService;
 import com.kong.kong_dic.domain.user.entity.User;
 import com.kong.kong_dic.global.jwt.JwtProvider;
 import jakarta.servlet.FilterChain;
@@ -25,11 +26,13 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
 
     private final AuthenticationManager authenticationManager;
     private final JwtProvider jwtProvider;
+    private final RefreshTokenService refreshTokenService;
     private final ObjectMapper objectMapper = new ObjectMapper(); // JSON 파싱용
 
-    public LoginFilter(AuthenticationManager authenticationManager, JwtProvider jwtProvider) {
+    public LoginFilter(AuthenticationManager authenticationManager, JwtProvider jwtProvider, RefreshTokenService refreshTokenService) {
         this.authenticationManager = authenticationManager;
         this.jwtProvider = jwtProvider;
+        this.refreshTokenService = refreshTokenService;
         setFilterProcessesUrl("/login"); // "/login" 경로에서 동작하도록 설정
     }
 
@@ -57,7 +60,11 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
                                             FilterChain chain, Authentication authResult) throws IOException, ServletException {
         log.info("### Login success");
 
-        LoginResponseDto loginResponse = jwtProvider.generateToken((User) authResult.getPrincipal());
+        User user = (User) authResult.getPrincipal();
+        LoginResponseDto loginResponse = jwtProvider.generateToken(user);
+
+        // Refresh Token 저장
+        refreshTokenService.saveRefreshToken(user.getUsername(), loginResponse.getRefreshToken());
 
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");

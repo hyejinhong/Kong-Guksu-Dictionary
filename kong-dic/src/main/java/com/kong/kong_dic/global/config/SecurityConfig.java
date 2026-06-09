@@ -1,6 +1,7 @@
 package com.kong.kong_dic.global.config;
 
 import com.kong.kong_dic.domain.auth.filter.LoginFilter;
+import com.kong.kong_dic.domain.auth.service.RefreshTokenService;
 import com.kong.kong_dic.domain.user.entity.Role;
 import com.kong.kong_dic.domain.user.service.CustomUserDetailsService;
 import com.kong.kong_dic.global.jwt.JwtAuthenticationFilter;
@@ -30,6 +31,7 @@ public class SecurityConfig {
     private final JwtProvider jwtProvider;
     private final CustomUserDetailsService userDetailsService;
     private final AuthenticationConfiguration authenticationConfiguration;
+    private final RefreshTokenService refreshTokenService;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -48,7 +50,7 @@ public class SecurityConfig {
                         .requestMatchers("/admin/**").hasAuthority(Role.ADMIN.getAuthority())
                         .anyRequest().permitAll()
                 )
-                .addFilter(new LoginFilter(authenticationManager(authenticationConfiguration), jwtProvider))
+                .addFilter(new LoginFilter(authenticationManager(authenticationConfiguration), jwtProvider, refreshTokenService))
                 .sessionManagement(AbstractHttpConfigurer::disable)
                 .addFilterBefore(new JwtAuthenticationFilter(jwtProvider, userDetailsService), UsernamePasswordAuthenticationFilter.class);
 

@@ -12,5 +12,6 @@ import java.util.Date;
 @AllArgsConstructor
 public class LoginResponseDto {
     private String token;
+    private String refreshToken;
     private Date exp;
 }

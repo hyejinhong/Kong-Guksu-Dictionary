@@ -23,6 +23,7 @@ public class RestaurantResponseDto {
     private Double distance;
     private List<BeanPrice> prices;
     private Boolean isSaved;
+    private Long visitId;
     private Double averageRating;
     private Long totalScraps;
     private Long viewCount;
