@@ -1,15 +1,10 @@
 // App.js
 import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import MainLayout from "./MainLayout"; // 새로운 MainLayout 임포트
-import HomePage from "./pages/Homepage";
 import RestaurantDetailPage from "./components/RestaurantDetail";
-import RestaurantSubmissionForm from "./components/RestaurantSubmissionForm";
 import AdminRestaurantSubmissions from "./pages/AdminRestaurantSubmissions";
-import LoginPage from "./pages/LoginPage";
-import SignupPage from "./pages/SignupPage";
 import MyDictionary from "./pages/MyDictionary";
-import MyPageProfile from "./pages/MyPageProfile";
 import V2MainPage from "./v2/pages/V2MainPage";
 import V2LoginPage from "./v2/pages/V2LoginPage";
 import V2SignupPage from "./v2/pages/V2SignupPage";
@@ -25,21 +20,26 @@ function App() {
     <>
       <Router>
         <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<SignupPage />} />
+          {/* V1 -> V2 Redirects */}
+          <Route path="/login" element={<Navigate to="/v2/login" replace />} />
+          <Route path="/signup" element={<Navigate to="/v2/signup" replace />} />
+          <Route path="/mypage" element={<Navigate to="/v2/mypage" replace />} />
+          <Route path="/submit-restaurant" element={<Navigate to="/v2/submit" replace />} />
+          <Route path="/restaurant/:id" element={<Navigate to="/v2/restaurant/:id" replace />} />
+          {/* 나의 사전(visited-restaurants)은 V2의 '저장됨(saved)'과 매칭되므로 리다이렉트 */}
+          <Route path="/visited-restaurants" element={<Navigate to="/v2/saved" replace />} />
+
           <Route path="/v2/login" element={<V2LoginPage />} />
           <Route path="/v2/signup" element={<V2SignupPage />} />
           <Route path="/v2/submit" element={<V2SubmissionPage />} />
           <Route path="/v2/restaurant/:id" element={<V2RestaurantDetailPage />} />
           <Route path="/v2/saved" element={<V2SavedRestaurantsPage />} />
           <Route path="/v2/mypage" element={<V2MyPage />} />
-          <Route path="/" element={<MainLayout />}> {/* MainLayout으로 감싸기 */}
-            <Route index element={<HomePage />} /> {/* index 라우트로 홈페이지 설정 */}
-            <Route path="/restaurant/:id" element={<RestaurantDetailPage />} />
-            <Route path="/visited-restaurants" element={<MyDictionary />} />
-            <Route path="/submit-restaurant" element={<RestaurantSubmissionForm />} />
+          
+          <Route path="/" element={<MainLayout />}>
+            <Route index element={<Navigate to="/v2" replace />} />
+            {/* 관리자 페이지는 아직 V2가 없으므로 V1 유지 */}
             <Route path="/admin/restaurant-submissions" element={<AdminRestaurantSubmissions />} />
-            <Route path="/mypage" element={<MyPageProfile />} />
           </Route>
 
           <Route path="/v2/*" element={<V2MainPage />} />

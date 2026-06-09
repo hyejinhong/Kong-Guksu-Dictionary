@@ -219,7 +219,7 @@ function BaseLayout({ children }) {
       </main>
 
       <nav className="bg-[#5C5C5C] text-white p-4 flex justify-around text-sm md:text-lg fixed bottom-0 w-full">
-        <Link to="/" className="flex flex-col items-center">
+        <Link to="/v2" className="flex flex-col items-center">
           <span>🏠</span>
           <span>홈</span>
         </Link>
