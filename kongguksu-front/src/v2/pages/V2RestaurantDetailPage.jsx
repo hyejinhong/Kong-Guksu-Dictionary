@@ -264,7 +264,16 @@ const V2RestaurantDetailPage = () => {
       <main className="pt-20 pb-32 px-4 space-y-6 max-w-2xl mx-auto">
         {/* Title Section */}
         <section className="px-2 flex justify-between items-start">
-          <h2 className="text-primary font-bold text-4xl tracking-tight">{restaurant.name}</h2>
+          <div className="flex flex-col gap-1">
+            <h2 className="text-primary font-bold text-4xl tracking-tight">{restaurant.name}</h2>
+            {restaurant.averageRating > 0 && (
+              <div className="flex items-center gap-1.5 mt-1">
+                <span className="material-symbols-outlined text-secondary text-[22px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                <span className="text-secondary font-bold text-xl">{restaurant.averageRating.toFixed(1)}</span>
+                <span className="text-tertiary text-sm font-medium ml-0.5">평점</span>
+              </div>
+            )}
+          </div>
           <div className="flex flex-col items-center gap-1">
             <img 
               src={selling ? "/images/open.png" : "/images/closed.png"} 
@@ -282,7 +291,7 @@ const V2RestaurantDetailPage = () => {
           {beanTypes.map(bean => (
             <span key={bean} className="bg-secondary-container text-on-secondary-container px-4 py-1.5 rounded-full text-sm font-semibold flex items-center gap-1">
               <span className="material-symbols-outlined text-[18px]">eco</span>
-              {getBeanLabel(bean)}: {formatPrice(restaurant.price)}
+              {getBeanLabel(bean)}
             </span>
           ))}
           <span className="bg-primary-container text-on-primary-container px-4 py-1.5 rounded-full text-sm font-semibold flex items-center gap-1">
@@ -321,6 +330,38 @@ const V2RestaurantDetailPage = () => {
             </div>
           </div>
         </section>
+
+        {/* Menu Section */}
+        {restaurant.prices && restaurant.prices.length > 0 && (
+          <section className="px-2 space-y-3">
+            <h3 className="text-primary font-bold text-xl flex items-center gap-2">
+              <span className="material-symbols-outlined">menu_book</span>
+              메뉴
+            </h3>
+            <div className="bg-surface-container-low rounded-2xl overflow-hidden shadow-sm">
+              {restaurant.prices.map((p, index) => {
+                let beanIcon = "/images/other_bean_!28.png";
+                if (p.beanType === 'SOY_BEAN') beanIcon = "/images/soy_bean_128.png";
+                else if (p.beanType === 'BLACK_BEAN') beanIcon = "/images/black_bean_128.png";
+
+                return (
+                  <div 
+                    key={p.beanType} 
+                    className={`flex justify-between items-center px-6 py-4 ${index !== restaurant.prices.length - 1 ? 'border-b border-outline-variant/20' : ''}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center overflow-hidden">
+                        <img src={beanIcon} alt={p.beanType} className="w-8 h-8 object-contain" />
+                      </div>
+                      <span className="font-bold text-on-surface">{getBeanLabel(p.beanType)} 콩국수</span>
+                    </div>
+                    <span className="font-black text-primary text-lg">{formatPrice(p.price)}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         {/* Comments Section */}
         <section className="bg-surface-container-highest rounded-xl p-6 space-y-6">

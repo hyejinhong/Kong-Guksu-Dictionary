@@ -303,6 +303,13 @@ const V2MyPage = () => {
               <span className="material-symbols-outlined text-lg">logout</span>
               로그아웃
             </button>
+
+            {/* Credits Section */}
+            <div className="pt-12 pb-4 opacity-40">
+              <p className="text-[10px] font-medium text-tertiary">
+                Bean Icons created by <span className="font-bold">imaginationlol</span> - Flaticon
+              </p>
+            </div>
           </div>
         ) : (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">

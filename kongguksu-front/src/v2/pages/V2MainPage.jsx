@@ -703,7 +703,15 @@ const ListRestaurantCard = ({ restaurant, onClick }) => {
       </div>
       <div className="flex-1 space-y-2 min-w-0">
         <div className="flex justify-between items-start gap-3">
-          <h3 className="font-bold text-lg text-on-surface leading-tight truncate">{restaurant.name}</h3>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-bold text-lg text-on-surface leading-tight truncate">{restaurant.name}</h3>
+            {restaurant.averageRating > 0 && (
+              <div className="flex items-center gap-1 mt-0.5">
+                <span className="material-symbols-outlined text-secondary text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                <span className="text-secondary font-bold text-xs">{restaurant.averageRating.toFixed(1)}</span>
+              </div>
+            )}
+          </div>
           <img 
             src={serving ? "/images/open.png" : "/images/closed.png"} 
             alt={serving ? "Open" : "Closed"} 
