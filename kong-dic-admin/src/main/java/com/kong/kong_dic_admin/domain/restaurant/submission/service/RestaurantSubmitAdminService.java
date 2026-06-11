@@ -117,6 +117,22 @@ public class RestaurantSubmitAdminService {
     }
 
     private RestaurantSubmitRequestDto entityToRequestDto(RestaurantSubmission submission) {
+        String submitterName = null;
+        String submitterNickname = null;
+
+        log.info("### Processing Submission ID: {}, userId: {}", submission.getId(), submission.getUserId());
+
+        if (submission.getUserId() != null) {
+            User user = userRepository.findById(submission.getUserId()).orElse(null);
+            if (user != null) {
+                submitterName = user.getUsername();
+                submitterNickname = user.getNickname();
+                log.info("### Found Submitter: {} ({})", submitterNickname, submitterName);
+            } else {
+                log.warn("### User not found for ID: {}", submission.getUserId());
+            }
+        }
+
         return RestaurantSubmitRequestDto.builder()
                 .id(submission.getId())
                 .name(submission.getName())
@@ -127,6 +143,8 @@ public class RestaurantSubmitAdminService {
                 .endMonth(submission.getEndMonth())
                 .status(submission.getStatus())
                 .userId(submission.getUserId())
+                .submitterName(submitterName)
+                .submitterNickname(submitterNickname)
                 .build();
     }
 }

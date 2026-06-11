@@ -35,8 +35,7 @@ public class RestaurantSubmission {
     private Double latitude;
     private Double longitude;
 
-    // @ManyToOne(fetch = FetchType.LAZY)
-    // @JoinColumn(name = "user_id")
+    @Column(name = "user_id")
     private Long userId;
 
     @Builder.Default

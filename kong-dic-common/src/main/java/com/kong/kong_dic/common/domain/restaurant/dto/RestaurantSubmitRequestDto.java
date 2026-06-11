@@ -31,4 +31,6 @@ public class RestaurantSubmitRequestDto {
     private SubmissionStatus status;
 
     private Long userId;
+    private String submitterName;
+    private String submitterNickname;
 }

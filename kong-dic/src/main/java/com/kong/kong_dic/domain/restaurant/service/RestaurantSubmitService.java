@@ -27,6 +27,9 @@ public class RestaurantSubmitService {
         if (username != null && !username.trim().isEmpty())  {
             User user = userRepository.findByUsername(username).orElseThrow(() -> new BaseException(UserExceptionType.USER_NOT_FOUND));
             userId = user.getId();
+            log.info("### Submitting as User: {} (ID: {})", username, userId);
+        } else {
+            log.info("### Submitting as Anonymous");
         }
 
         log.info("### Restaurant Submission Requested : {}", request.toString());

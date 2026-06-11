@@ -107,6 +107,9 @@ const AdminRestaurantSubmissions = () => {
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
                 <div className="mb-2 sm:mb-0">
                   <p className="text-xl font-bold text-gray-800">{submission.name}</p>
+                  <p className="text-gray-500 text-xs mb-2">
+                    제보자: {submission.submitterNickname ? `${submission.submitterNickname} (${submission.submitterName})` : "익명 제보"}
+                  </p>
                   <p className="text-gray-600 text-sm">{submission.address}</p>
                   <div className="flex flex-wrap gap-2 mt-1">
                     {/* 콩 종류 표시 - beanTypes가 배열이라고 가정 */}

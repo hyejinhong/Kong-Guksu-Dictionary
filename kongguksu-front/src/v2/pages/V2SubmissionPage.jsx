@@ -156,6 +156,9 @@ const V2SubmissionPage = () => {
     }
 
     setLoading(true);
+    const token = localStorage.getItem('token');
+    console.log('### Submitting restaurant report. Token present:', !!token);
+
     try {
       const payload = {
         name: formData.name,
