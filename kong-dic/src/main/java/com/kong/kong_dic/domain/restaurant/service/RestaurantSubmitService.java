@@ -12,6 +12,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -20,6 +23,16 @@ public class RestaurantSubmitService {
     private final RestaurantSubmitRepository submitRepository;
     private final KakaoMapUtil kakaoMapUtil;
     private final UserRepository userRepository;
+
+    public List<RestaurantSubmitRequestDto> getMySubmissions(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new BaseException(UserExceptionType.USER_NOT_FOUND));
+        
+        return submitRepository.findByUserIdOrderByIdDesc(user.getId())
+                .stream()
+                .map(this::entityToRequestDto)
+                .collect(Collectors.toList());
+    }
 
     public void addRestaurantSubmission(String username, RestaurantSubmitRequestDto request) {
         Long userId = null;

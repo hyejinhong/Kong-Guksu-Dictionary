@@ -5,6 +5,7 @@ import com.kong.kong_dic.common.model.BeanPrice;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
@@ -38,8 +39,15 @@ public class RestaurantSubmission {
     @Column(name = "user_id")
     private Long userId;
 
+    private LocalDateTime createdAt;
+
     @Builder.Default
     private SubmissionStatus status = SubmissionStatus.PENDING;
+
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+    }
 
     public void approved() {
         this.status = SubmissionStatus.APPROVED;

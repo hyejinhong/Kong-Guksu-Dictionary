@@ -41,6 +41,9 @@ const V2MyPage = () => {
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
 
+  // Submissions state
+  const [mySubmissions, setMySubmissions] = useState([]);
+
   const fetchUserProfile = useCallback(async () => {
     try {
       const response = await api.get('/users/me');
@@ -79,6 +82,20 @@ const V2MyPage = () => {
     }
   }, []);
 
+  const fetchMySubmissions = useCallback(async () => {
+    try {
+      const response = await api.get('/users/me/submissions');
+      if (response.data?.data) {
+        setMySubmissions(response.data.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch submissions:', err);
+      toast.error('제보 내역을 불러오지 못했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!isLoggedIn()) {
       navigate(`/v2/login?redirect=${encodeURIComponent(location.pathname)}`);
@@ -88,10 +105,12 @@ const V2MyPage = () => {
     setLoading(true);
     if (activeTab === 'profile') {
       fetchUserProfile();
-    } else {
+    } else if (activeTab === 'comments') {
       fetchMyComments(commentPage);
+    } else if (activeTab === 'submissions') {
+      fetchMySubmissions();
     }
-  }, [activeTab, commentPage, fetchUserProfile, fetchMyComments, navigate, location.pathname]);
+  }, [activeTab, commentPage, fetchUserProfile, fetchMyComments, fetchMySubmissions, navigate, location.pathname]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -215,10 +234,21 @@ const V2MyPage = () => {
           >
             내가 쓴 댓글
           </button>
+          <button
+            onClick={() => setActiveTab('submissions')}
+            className={`flex-1 py-3 rounded-[1.25rem] font-bold text-sm transition-all ${
+              activeTab === 'submissions'
+                ? 'bg-primary text-background soy-shadow'
+                : 'text-tertiary hover:bg-surface-container-high'
+            }`}
+          >
+            제보 내역
+          </button>
         </div>
 
-        {activeTab === 'profile' ? (
+        {activeTab === 'profile' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 text-center">
+            {/* ... (profile content) ... */}
             <div className="py-4">
               <div className="w-24 h-24 bg-primary-container rounded-full mx-auto flex items-center justify-center mb-4 soy-shadow">
                 <img src="/images/noodles.png" alt="Profile" className="w-14 h-14 object-contain" />
@@ -311,7 +341,9 @@ const V2MyPage = () => {
               </p>
             </div>
           </div>
-        ) : (
+        )}
+
+        {activeTab === 'comments' && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="px-4 flex justify-between items-center">
               <span className="text-sm font-bold text-tertiary">총 {totalElements}개</span>
@@ -382,6 +414,55 @@ const V2MyPage = () => {
             )}
           </div>
         )}
+
+        {activeTab === 'submissions' && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="px-4 flex justify-between items-center">
+              <span className="text-sm font-bold text-tertiary">총 {mySubmissions.length}개</span>
+            </div>
+
+            {loading ? (
+              <div className="text-center py-20 text-primary font-bold">제보 내역을 불러오는 중...</div>
+            ) : mySubmissions.length > 0 ? (
+              <div className="space-y-4">
+                {mySubmissions.map((sub) => (
+                  <div 
+                    key={sub.id}
+                    className="bg-surface-container-lowest p-6 rounded-[2rem] shadow-sm border border-surface-container"
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="font-black text-primary text-lg">{sub.name}</h4>
+                      <SubmissionStatusBadge status={sub.status} />
+                    </div>
+                    <p className="text-outline text-xs font-bold mb-3 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-sm">location_on</span>
+                      {sub.address}
+                    </p>
+                    
+                    <div className="flex flex-wrap gap-2 mt-4">
+                      {sub.prices?.map((p, idx) => (
+                        <span key={idx} className="px-3 py-1 bg-surface-container rounded-full text-[10px] font-black text-secondary">
+                          {p.beanType}: {p.price.toLocaleString()}원
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
+                <span className="material-symbols-outlined text-6xl text-tertiary/20">restaurant</span>
+                <p className="text-tertiary font-medium">아직 제보한 식당이 없습니다.</p>
+                <button
+                  onClick={() => navigate('/v2/submission')}
+                  className="px-6 py-3 bg-primary text-background rounded-full font-bold text-sm active:scale-95 transition-all"
+                >
+                  식당 제보하러 가기
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </main>
 
       {/* Footer Nav */}
@@ -411,5 +492,21 @@ const FooterItem = ({ active = false, icon, label, onClick }) => (
     <span className="font-label text-[10px] font-semibold tracking-wider uppercase">{label}</span>
   </button>
 );
+
+const SubmissionStatusBadge = ({ status }) => {
+  const statusConfig = {
+    PENDING: { label: '검토 중', color: 'bg-amber-100 text-amber-700' },
+    APPROVED: { label: '승인됨', color: 'bg-emerald-100 text-emerald-700' },
+    REJECTED: { label: '반려됨', color: 'bg-rose-100 text-rose-700' },
+  };
+
+  const config = statusConfig[status] || statusConfig.PENDING;
+
+  return (
+    <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${config.color}`}>
+      {config.label}
+    </span>
+  );
+};
 
 export default V2MyPage;
