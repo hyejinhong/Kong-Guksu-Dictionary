@@ -143,6 +143,7 @@ public class RestaurantSubmitAdminService {
                 .endMonth(submission.getEndMonth())
                 .status(submission.getStatus())
                 .userId(submission.getUserId())
+                .restaurantId(submission.getRestaurantId())
                 .submitterName(submitterName)
                 .submitterNickname(submitterNickname)
                 .build();

@@ -425,29 +425,44 @@ const V2MyPage = () => {
               <div className="text-center py-20 text-primary font-bold">제보 내역을 불러오는 중...</div>
             ) : mySubmissions.length > 0 ? (
               <div className="space-y-4">
-                {mySubmissions.map((sub) => (
-                  <div 
-                    key={sub.id}
-                    className="bg-surface-container-lowest p-6 rounded-[2rem] shadow-sm border border-surface-container"
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <h4 className="font-black text-primary text-lg">{sub.name}</h4>
-                      <SubmissionStatusBadge status={sub.status} />
+                {mySubmissions.map((sub) => {
+                  const status = sub.status?.toUpperCase();
+                  const isApproved = status === 'APPROVED';
+                  const rid = sub.restaurantId || sub.restaurant_id;
+                  const canNavigate = isApproved && rid;
+
+                  return (
+                    <div 
+                      key={sub.id}
+                      onClick={() => canNavigate && navigate(`/v2/restaurant/${rid}`)}
+                      className={`bg-surface-container-lowest p-6 rounded-[2rem] shadow-sm border border-surface-container transition-all ${
+                        canNavigate ? 'cursor-pointer hover:scale-[1.02] active:scale-95 hover:shadow-md' : ''
+                      }`}
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-black text-primary text-lg">{sub.name}</h4>
+                          {canNavigate && (
+                            <span className="material-symbols-outlined text-primary text-sm opacity-50">arrow_forward_ios</span>
+                          )}
+                        </div>
+                        <SubmissionStatusBadge status={sub.status} />
+                      </div>
+                      <p className="text-outline text-xs font-bold mb-3 flex items-center gap-1">
+                        <span className="material-symbols-outlined text-sm">location_on</span>
+                        {sub.address}
+                      </p>
+                      
+                      <div className="flex flex-wrap gap-2 mt-4">
+                        {sub.prices?.map((p, idx) => (
+                          <span key={idx} className="px-3 py-1 bg-surface-container rounded-full text-[10px] font-black text-secondary">
+                            {p.beanType}: {p.price.toLocaleString()}원
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                    <p className="text-outline text-xs font-bold mb-3 flex items-center gap-1">
-                      <span className="material-symbols-outlined text-sm">location_on</span>
-                      {sub.address}
-                    </p>
-                    
-                    <div className="flex flex-wrap gap-2 mt-4">
-                      {sub.prices?.map((p, idx) => (
-                        <span key={idx} className="px-3 py-1 bg-surface-container rounded-full text-[10px] font-black text-secondary">
-                          {p.beanType}: {p.price.toLocaleString()}원
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">

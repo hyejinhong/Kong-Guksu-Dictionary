@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kong.kong_dic.common.event.RestaurantApprovedEvent;
 import com.kong.kong_dic.domain.restaurant.entity.Restaurant;
 import com.kong.kong_dic.domain.restaurant.repository.RestaurantRepository;
+import com.kong.kong_dic.domain.restaurant.repository.RestaurantSubmitRepository;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +28,7 @@ public class RestaurantEventConsumer {
 
     private final RedisTemplate<String, String> redisTemplate;
     private final RestaurantRepository restaurantRepository;
+    private final RestaurantSubmitRepository submitRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private String lastProcessedId = "0-0"; // 마지막으로 처리한 Stream ID
@@ -81,6 +83,15 @@ public class RestaurantEventConsumer {
                     restaurantRepository.save(restaurant);
 
                     log.info("### Saved Restaurant entity id={}", restaurant.getId());
+
+                    // Submission 에 restaurantId 업데이트
+                    if (event.getSubmissionId() != null) {
+                        submitRepository.findById(event.getSubmissionId()).ifPresent(submission -> {
+                            submission.setRestaurantId(restaurant.getId());
+                            submitRepository.save(submission);
+                            log.info("### Updated RestaurantSubmission id={} with restaurantId={}", submission.getId(), restaurant.getId());
+                        });
+                    }
 
                     // 마지막 처리 ID 갱신
                     lastProcessedId = message.getId().getValue();
