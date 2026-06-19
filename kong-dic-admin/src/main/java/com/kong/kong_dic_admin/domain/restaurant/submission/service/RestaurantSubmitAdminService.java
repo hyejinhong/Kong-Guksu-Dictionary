@@ -93,22 +93,28 @@ public class RestaurantSubmitAdminService {
         }
     }
 
-    public void rejectSubmission(Long id) {
+    public void rejectSubmission(Long id, String rejectReason) {
         RestaurantSubmission submission = submitRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Submission not found"));
-        submission.reject();
+        submission.reject(rejectReason);
         submitRepository.save(submission);
 
         // 로그인한 유저가 요청한 경우에만 알림 발행
         if (submission.getUserId() != null) {
             User user = userRepository.findById(submission.getUserId()).orElseThrow();
 
+            // 거절 사유 포맷팅
+            String notificationContent = "💔 요청하신 " + submission.getName() + " 식당 등록이 거절되었습니다.";
+            if (rejectReason != null && !rejectReason.trim().isEmpty()) {
+                notificationContent += " (사유: " + rejectReason + ")";
+            }
+
             // 알림 메시지 생성
             NotificationMessage notification = NotificationMessage.builder()
                     .username(user.getUsername())
                     .title("Reject")
                     .type("alert")
-                    .content("💔 요청하신 " + submission.getName() + "식당 등록이 거절되었습니다.")
+                    .content(notificationContent)
                     .build();
 
             // Redis Stream 발행
@@ -146,6 +152,7 @@ public class RestaurantSubmitAdminService {
                 .restaurantId(submission.getRestaurantId())
                 .submitterName(submitterName)
                 .submitterNickname(submitterNickname)
+                .rejectReason(submission.getRejectReason())
                 .build();
     }
 }

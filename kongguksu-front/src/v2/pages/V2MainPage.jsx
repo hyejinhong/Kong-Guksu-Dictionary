@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import './V2Main.css';
+import { useNotification } from '../contexts/NotificationContext';
 
 const KAKAO_MAP_SCRIPT_ID = 'kakao-map-sdk';
 const DEFAULT_LOCATION = { latitude: 37.5665, longitude: 126.9780 };
@@ -383,6 +384,7 @@ const V2MainPage = () => {
 const Header = () => {
   const navigate = useNavigate();
   const loggedIn = isLoggedIn();
+  const { unread, openModal } = useNotification();
 
   const handleAuthAction = async () => {
     if (loggedIn) {
@@ -415,12 +417,25 @@ const Header = () => {
           콩국수사전
         </div>
       </div>
-      <button
-        onClick={handleAuthAction}
-        className="bg-primary-container text-on-primary-container font-semibold px-6 py-2 rounded-full active:scale-95 transition-transform"
-      >
-        {loggedIn ? '로그아웃' : '로그인'}
-      </button>
+      <div className="flex items-center gap-4">
+        {loggedIn && (
+          <button 
+            onClick={openModal}
+            className="relative w-10 h-10 rounded-full flex items-center justify-center text-primary hover:bg-[#695E34]/5 active:scale-95 transition-all"
+          >
+            <span className="material-symbols-outlined text-2xl">notifications</span>
+            {unread && (
+              <span className="absolute top-2.5 right-2.5 w-2.5 h-2.5 bg-red-500 rounded-full border border-[#FDF9ED]" />
+            )}
+          </button>
+        )}
+        <button
+          onClick={handleAuthAction}
+          className="bg-primary-container text-on-primary-container font-semibold px-6 py-2 rounded-full active:scale-95 transition-transform"
+        >
+          {loggedIn ? '로그아웃' : '로그인'}
+        </button>
+      </div>
     </header>
   );
 };

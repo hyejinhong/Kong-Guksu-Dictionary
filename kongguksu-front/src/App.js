@@ -13,12 +13,14 @@ import V2RestaurantDetailPage from "./v2/pages/V2RestaurantDetailPage";
 import V2SavedRestaurantsPage from "./v2/pages/V2SavedRestaurantsPage";
 import V2MyPage from "./v2/pages/V2MyPage";
 import V2RankingPage from "./v2/pages/V2RankingPage";
+import { NotificationProvider } from "./v2/contexts/NotificationContext";
+import V2NotificationModal from "./v2/components/V2NotificationModal";
 
 import { Toaster } from 'react-hot-toast';
 
 function App() {
   return (
-    <>
+    <NotificationProvider>
       <Router>
         <Routes>
           {/* V1 -> V2 Redirects */}
@@ -48,9 +50,10 @@ function App() {
           <Route path="/v2/*" element={<V2MainPage />} />
         </Routes>
       </Router>
+      <V2NotificationModal />
       <Toaster position="top-right" reverseOrder={false} />
-    </>
+    </NotificationProvider>
   );
 }
 
-export default App;
+export default App;

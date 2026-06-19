@@ -59,9 +59,15 @@ const AdminRestaurantSubmissions = () => {
   };
 
   const handleReject = async (submissionId) => {
+    const rejectReason = prompt("식당 등록 거절 사유를 입력하세요:");
+    if (rejectReason === null) {
+      return; // 취소 버튼을 클릭한 경우 중단
+    }
+
     try {
       const response = await axios.patch(
-        `${ADMIN_API_BASE_URL}/admin/restaurants/submissions/${submissionId}/reject`, {},
+        `${ADMIN_API_BASE_URL}/admin/restaurants/submissions/${submissionId}/reject`, 
+        { rejectReason },
         { headers: getAuthHeader() }
       );
       if (response.data.code === 0) {

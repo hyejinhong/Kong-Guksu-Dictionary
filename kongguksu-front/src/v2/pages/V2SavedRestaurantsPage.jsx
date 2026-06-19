@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../api';
 import './V2Main.css';
+import { useNotification } from '../contexts/NotificationContext';
 
 const getBeanLabel = (beanType) => {
   if (beanType === 'SOY_BEAN') return '백태';
@@ -34,6 +35,7 @@ const isLoggedIn = () => {
 const V2SavedRestaurantsPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { unread, openModal } = useNotification();
   const [savedItems, setSavedItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -104,7 +106,17 @@ const V2SavedRestaurantsPage = () => {
           <img src="/images/noodles.png" alt="Icon" className="w-6 h-6 object-contain" />
           <h1 className="text-[#695E34] font-['Plus_Jakarta_Sans'] font-semibold text-lg tracking-tight">나의 저장 목록</h1>
         </div>
-        <div className="w-10" />
+        <div className="flex items-center justify-end w-10">
+          <button 
+            onClick={openModal}
+            className="relative w-10 h-10 rounded-full flex items-center justify-center text-[#695E34] hover:bg-[#695E34]/5 active:scale-95 transition-all"
+          >
+            <span className="material-symbols-outlined text-2xl">notifications</span>
+            {unread && (
+              <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border border-[#FDF9ED]" />
+            )}
+          </button>
+        </div>
       </header>
 
       <main className="flex-1 pt-20 pb-32 px-4 space-y-4 max-w-2xl mx-auto w-full overflow-y-auto no-scrollbar">

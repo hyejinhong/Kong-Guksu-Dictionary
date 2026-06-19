@@ -44,6 +44,8 @@ public class RestaurantSubmission {
 
     private LocalDateTime createdAt;
 
+    private String rejectReason;
+
     @Builder.Default
     private SubmissionStatus status = SubmissionStatus.PENDING;
 
@@ -58,5 +60,10 @@ public class RestaurantSubmission {
 
     public void reject() {
         this.status = SubmissionStatus.REJECTED;
+    }
+
+    public void reject(String rejectReason) {
+        this.status = SubmissionStatus.REJECTED;
+        this.rejectReason = rejectReason;
     }
 }

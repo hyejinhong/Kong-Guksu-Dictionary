@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../api';
 import './V2Main.css';
+import { useNotification } from '../contexts/NotificationContext';
 
 const isLoggedIn = () => {
   const token = localStorage.getItem('token');
@@ -23,6 +24,7 @@ const isLoggedIn = () => {
 const V2MyPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { unread, openModal } = useNotification();
 
   const [activeTab, setActiveTab] = useState('profile'); // 'profile' or 'comments'
   const [loading, setLoading] = useState(true);
@@ -205,7 +207,17 @@ const V2MyPage = () => {
           <img src="/images/noodles.png" alt="Icon" className="w-6 h-6 object-contain" />
           <h1 className="text-[#695E34] font-['Plus_Jakarta_Sans'] font-semibold text-lg tracking-tight">내 정보</h1>
         </div>
-        <div className="w-10" />
+        <div className="flex items-center justify-end w-10">
+          <button 
+            onClick={openModal}
+            className="relative w-10 h-10 rounded-full flex items-center justify-center text-[#695E34] hover:bg-[#695E34]/5 active:scale-95 transition-all"
+          >
+            <span className="material-symbols-outlined text-2xl">notifications</span>
+            {unread && (
+              <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border border-[#FDF9ED]" />
+            )}
+          </button>
+        </div>
       </header>
 
       <main className="flex-1 pt-24 pb-32 px-6 max-w-2xl mx-auto w-full overflow-y-auto no-scrollbar">
@@ -460,6 +472,16 @@ const V2MyPage = () => {
                           </span>
                         ))}
                       </div>
+
+                      {status === 'REJECTED' && sub.rejectReason && (
+                        <div className="mt-4 p-3.5 bg-[#C96868]/5 rounded-2xl border border-[#C96868]/15 flex items-start gap-2.5">
+                          <span className="material-symbols-outlined text-[#C96868] text-[18px] shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>error</span>
+                          <div className="min-w-0">
+                            <span className="text-[10px] font-black text-[#C96868] uppercase tracking-wider block">거절 사유</span>
+                            <p className="text-[#695E34] text-xs font-bold mt-0.5 leading-relaxed">{sub.rejectReason}</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
