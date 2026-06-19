@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../api';
 import './V2Main.css';
 import { useNotification } from '../contexts/NotificationContext';
@@ -98,10 +98,16 @@ const isLoggedIn = () => {
 
 const V2MainPage = () => {
   const navigate = useNavigate();
+  const routeLocation = useLocation();
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
   const markersRef = useRef([]);
-  const [activeView, setActiveView] = useState('map');
+
+  // URL의 view 파라미터를 읽어 초기값 세팅 ('map' 혹은 'list')
+  const searchParams = new URLSearchParams(routeLocation.search);
+  const initialView = searchParams.get('view') || 'map';
+  const [activeView, setActiveView] = useState(initialView);
+
   const [location, setLocation] = useState(DEFAULT_LOCATION);
   const [restaurants, setRestaurants] = useState([]);
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
@@ -179,6 +185,15 @@ const V2MainPage = () => {
   useEffect(() => {
     fetchRestaurants();
   }, [fetchRestaurants]);
+
+  // URL 쿼리 파라미터 변경 감지하여 뷰 업데이트 (뒤로가기/앞으로가기 등 동기화)
+  useEffect(() => {
+    const searchParams = new URLSearchParams(routeLocation.search);
+    const view = searchParams.get('view');
+    if (view && (view === 'map' || view === 'list')) {
+      setActiveView(view);
+    }
+  }, [routeLocation.search]);
 
   useEffect(() => {
     if (activeView !== 'map') return undefined;
@@ -823,8 +838,8 @@ const BottomNav = ({ activeView, setActiveView }) => {
   return (
     <nav className="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-3 bg-[#FDF9ED]/80 backdrop-blur-xl z-50 rounded-t-xl shadow-[0_-20px_40px_rgba(105,94,52,0.08)]">
       <FooterItem icon="leaderboard" label="랭킹" onClick={() => navigate('/v2/ranking')} />
-      <FooterItem active={activeView === 'list'} icon="dictionary" label="목록" onClick={() => setActiveView('list')} />
-      <FooterItem active={activeView === 'map'} icon="map" label="지도" onClick={() => setActiveView('map')} />
+      <FooterItem active={activeView === 'list'} icon="dictionary" label="목록" onClick={() => { setActiveView('list'); navigate('/v2?view=list', { replace: true }); }} />
+      <FooterItem active={activeView === 'map'} icon="map" label="지도" onClick={() => { setActiveView('map'); navigate('/v2?view=map', { replace: true }); }} />
       <FooterItem icon="bookmark" label="저장" onClick={handleSavedClick} />
       <FooterItem icon="person" label="내 정보" onClick={handleMyPageClick} />
     </nav>
