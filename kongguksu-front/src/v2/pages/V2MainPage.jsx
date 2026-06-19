@@ -50,13 +50,16 @@ const isCurrentlyServing = (restaurant) => {
   const currentMonth = new Date().getMonth() + 1;
 
   if (servesAllYear) return true;
-  if (!startMonth || !endMonth) return false;
+  
+  // 개시월 정보가 없으면 여름 시즌(6월 ~ 8월)을 기본값으로 적용
+  const actualStart = startMonth || 6;
+  const actualEnd = endMonth || 8;
 
-  if (startMonth <= endMonth) {
-    return startMonth <= currentMonth && currentMonth <= endMonth;
+  if (actualStart <= actualEnd) {
+    return actualStart <= currentMonth && currentMonth <= actualEnd;
   }
 
-  return currentMonth >= startMonth || currentMonth <= endMonth;
+  return currentMonth >= actualStart || currentMonth <= actualEnd;
 };
 
 const getRestaurantPosition = (restaurant) => {
@@ -781,14 +784,16 @@ const MapRestaurantCard = ({ restaurant, onClick }) => {
           </div>
           <p className="text-xs text-outline font-medium mb-3 truncate">{restaurant.address}</p>
           <div className="flex items-center gap-2">
-            <img 
-              src={serving ? "/images/open.png" : "/images/closed.png"} 
-              alt={serving ? "Open" : "Closed"} 
-              className="w-5 h-5 object-contain"
-            />
-            <span className="px-3 py-1 bg-secondary-container text-on-secondary-container rounded-full text-[10px] font-black">
-              {serving ? '콩국수 개시' : '시즌 종료'}
-            </span>
+            <>
+              <img 
+                src={serving ? "/images/open.png" : "/images/closed.png"} 
+                alt={serving ? "Open" : "Closed"} 
+                className="w-5 h-5 object-contain"
+              />
+              <span className="px-3 py-1 bg-secondary-container text-on-secondary-container rounded-full text-[10px] font-black">
+                {serving ? '콩국수 개시' : '시즌 종료'}
+              </span>
+            </>
             {restaurant.price && (
               <span className="text-[10px] font-black text-primary">
                 {formatPrice(restaurant.price)}

@@ -14,13 +14,16 @@ const isCurrentlyServing = (restaurant) => {
   const currentMonth = new Date().getMonth() + 1;
 
   if (servesAllYear) return true;
-  if (!startMonth || !endMonth) return false;
+  
+  // 개시월 정보가 없으면 여름 시즌(6월 ~ 8월)을 기본값으로 적용
+  const actualStart = startMonth || 6;
+  const actualEnd = endMonth || 8;
 
-  if (startMonth <= endMonth) {
-    return startMonth <= currentMonth && currentMonth <= endMonth;
+  if (actualStart <= actualEnd) {
+    return actualStart <= currentMonth && currentMonth <= actualEnd;
   }
 
-  return currentMonth >= startMonth || currentMonth <= endMonth;
+  return currentMonth >= actualStart || currentMonth <= actualEnd;
 };
 
 const V2RankingPage = () => {
