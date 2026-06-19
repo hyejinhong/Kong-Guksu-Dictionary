@@ -12,6 +12,7 @@ import V2SubmissionPage from "./v2/pages/V2SubmissionPage";
 import V2RestaurantDetailPage from "./v2/pages/V2RestaurantDetailPage";
 import V2SavedRestaurantsPage from "./v2/pages/V2SavedRestaurantsPage";
 import V2MyPage from "./v2/pages/V2MyPage";
+import V2RankingPage from "./v2/pages/V2RankingPage";
 
 import { Toaster } from 'react-hot-toast';
 
@@ -26,6 +27,7 @@ function App() {
           <Route path="/mypage" element={<Navigate to="/v2/mypage" replace />} />
           <Route path="/submit-restaurant" element={<Navigate to="/v2/submit" replace />} />
           <Route path="/restaurant/:id" element={<Navigate to="/v2/restaurant/:id" replace />} />
+          <Route path="/ranking" element={<Navigate to="/v2/ranking" replace />} />
           {/* 나의 사전(visited-restaurants)은 V2의 '저장됨(saved)'과 매칭되므로 리다이렉트 */}
           <Route path="/visited-restaurants" element={<Navigate to="/v2/saved" replace />} />
 
@@ -35,6 +37,7 @@ function App() {
           <Route path="/v2/restaurant/:id" element={<V2RestaurantDetailPage />} />
           <Route path="/v2/saved" element={<V2SavedRestaurantsPage />} />
           <Route path="/v2/mypage" element={<V2MyPage />} />
+          <Route path="/v2/ranking" element={<V2RankingPage />} />
           
           <Route path="/" element={<MainLayout />}>
             <Route index element={<Navigate to="/v2" replace />} />

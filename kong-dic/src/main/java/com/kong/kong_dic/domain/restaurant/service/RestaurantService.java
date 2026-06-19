@@ -214,7 +214,18 @@ public class RestaurantService {
         int rank = 1;
         for (Long id : topIds) {
             if (restaurantMap.containsKey(id)) {
-                rankingList.add(RestaurantRankingDto.of(restaurantMap.get(id), rank++));
+                Restaurant restaurant = restaurantMap.get(id);
+                // Redis에서 최신 점수 가져오기 (전체 누적 및 일간)
+                Double totalScore = stringRedisTemplate.opsForZSet().score(ZSET_VIEWS_ALL_KEY, id.toString());
+                Double dailyScore = stringRedisTemplate.opsForZSet().score(ZSET_VIEWS_DAILY_KEY, id.toString());
+                
+                Long totalView = (totalScore != null) ? totalScore.longValue() : restaurant.getViewCount();
+                Long dailyView = (dailyScore != null) ? dailyScore.longValue() : 0L;
+
+                rankingList.add(RestaurantRankingDto.of(restaurant, rank++, dailyView));
+                // Note: DTO.of(restaurant, rank, dailyView) sets viewCount from restaurant.viewCount,
+                // but we might want to override it with totalView if they differ significantly.
+                // However, restaurant.viewCount should be synced anyway.
             }
         }
 
@@ -344,6 +355,10 @@ public class RestaurantService {
     public void deleteRestaurant(Long id) {
         Restaurant restaurant = restaurantRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("식당을 찾을 수 없습니다: " + id));
+
+        // Redis ZSet에서도 삭제 (유령 랭킹 방지)
+        stringRedisTemplate.opsForZSet().remove(ZSET_VIEWS_ALL_KEY, id.toString());
+        stringRedisTemplate.opsForZSet().remove(ZSET_VIEWS_DAILY_KEY, id.toString());
 
         restaurantRepository.delete(restaurant);
     }
