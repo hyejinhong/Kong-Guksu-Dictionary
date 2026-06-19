@@ -4,8 +4,12 @@
 .v2-root {
   font-family: 'Plus Jakarta Sans', sans-serif !important;
   background-color: #fdf9ed;
+  min-height: 100dvh;
+}
+
+.v2-root.v2-map-root {
   height: 100dvh;
-  min-height: 100vh;
+  overflow: hidden;
   overscroll-behavior: none;
 }
 
@@ -13,7 +17,6 @@
   height: auto;
   min-height: 100dvh;
   overflow-x: hidden;
-  overflow-y: auto;
   padding-bottom: 0;
 }
 

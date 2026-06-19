@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../api';
 import './V2Main.css';
 import { useNotification } from '../contexts/NotificationContext';
@@ -104,7 +104,20 @@ const V2MainPage = () => {
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
   const markersRef = useRef([]);
-  const [activeView, setActiveView] = useState('map');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const viewParam = searchParams.get('view') || 'map';
+  const [activeView, setActiveView] = useState(viewParam);
+
+  useEffect(() => {
+    if (viewParam === 'list' || viewParam === 'map') {
+      setActiveView(viewParam);
+    }
+  }, [viewParam]);
+
+  const handleViewChange = (view) => {
+    setActiveView(view);
+    setSearchParams({ view });
+  };
   const [location, setLocation] = useState(DEFAULT_LOCATION);
   const [restaurants, setRestaurants] = useState([]);
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
@@ -331,7 +344,7 @@ const V2MainPage = () => {
   return (
     <div
       className={`v2-root bg-background text-on-surface min-h-screen relative ${
-        activeView === 'map' ? 'overflow-hidden' : 'v2-list-root'
+        activeView === 'map' ? 'v2-map-root' : 'v2-list-root'
       }`}
     >
       <Header />
@@ -363,7 +376,7 @@ const V2MainPage = () => {
         />
       )}
 
-      <BottomNav activeView={activeView} setActiveView={setActiveView} />
+      <BottomNav activeView={activeView} setActiveView={handleViewChange} />
 
       {/* 식당 제보 Floating Action Button */}
       <button
