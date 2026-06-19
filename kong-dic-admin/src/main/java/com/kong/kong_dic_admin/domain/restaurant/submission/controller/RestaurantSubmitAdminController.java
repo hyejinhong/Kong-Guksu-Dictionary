@@ -36,8 +36,11 @@ public class RestaurantSubmitAdminController {
 
     @PatchMapping("/{id}/reject")
     @PreAuthorize("hasAuthority('ADMIN')")
-    public ResponseEntity<BaseResponse<Void>> rejectRestaurantSubmission(@PathVariable Long id) {
-        submitAdminService.rejectSubmission(id);
+    public ResponseEntity<BaseResponse<Void>> rejectRestaurantSubmission(
+            @PathVariable Long id,
+            @RequestBody(required = false) java.util.Map<String, String> body) {
+        String rejectReason = body != null ? body.get("rejectReason") : null;
+        submitAdminService.rejectSubmission(id, rejectReason);
         return ResponseEntity.ok(BaseResponse.success());
     }
 

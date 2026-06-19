@@ -31,4 +31,8 @@ public class RestaurantSubmitRequestDto {
     private SubmissionStatus status;
 
     private Long userId;
+    private Long restaurantId;
+    private String submitterName;
+    private String submitterNickname;
+    private String rejectReason;
 }

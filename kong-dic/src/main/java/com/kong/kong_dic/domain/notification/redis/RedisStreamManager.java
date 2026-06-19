@@ -1,6 +1,9 @@
 package com.kong.kong_dic.domain.notification.redis;
 
 import com.kong.kong_dic.common.dto.NotificationMessage;
+import com.kong.kong_dic.domain.notification.entity.Notification;
+import com.kong.kong_dic.domain.notification.repository.NotificationRepository;
+import com.kong.kong_dic.domain.user.repository.UserRepository;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +15,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -24,6 +28,8 @@ public class RedisStreamManager {
 
     private final StringRedisTemplate redisTemplate;
     private final SimpMessagingTemplate messagingTemplate;
+    private final NotificationRepository notificationRepository;
+    private final UserRepository userRepository;
 
     // 단일 스레드로 글로벌 스트림 처리
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
@@ -122,6 +128,23 @@ public class RedisStreamManager {
                 return;
             }
 
+            // 1. DB에 알림 저장 (과거 알림 목록 조회용)
+            userRepository.findByUsername(targetUsername).ifPresentOrElse(user -> {
+                Notification dbNotification = Notification.builder()
+                        .receiverId(user.getId())
+                        .title(title)
+                        .content(content)
+                        .type(type)
+                        .isRead(false)
+                        .createdAt(LocalDateTime.now())
+                        .build();
+                notificationRepository.save(dbNotification);
+                log.info("💾 [Redis Stream -> DB] 알림 저장 완료. User: {}, Title: {}", targetUsername, title);
+            }, () -> {
+                log.warn("⚠️ [Redis Stream -> DB] 알림 저장 실패 - 존재하지 않는 사용자: {}", targetUsername);
+            });
+
+            // 2. 실시간 WebSocket 전송
             NotificationMessage notification = new NotificationMessage(targetUsername, title, content, type);
 
             // 해당 유저의 전용 토픽으로 WebSocket 전송

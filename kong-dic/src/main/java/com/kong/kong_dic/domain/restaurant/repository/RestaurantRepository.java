@@ -10,9 +10,12 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface RestaurantRepository extends JpaRepository<Restaurant, Long>, JpaSpecificationExecutor<Restaurant> {
     Page<Restaurant> findByBeanTypesContains(BeanType beanType, Pageable pageable);
+
+    Optional<Restaurant> findByNameAndAddress(String name, String address);
 
     @Query(value = """
     SELECT *, 

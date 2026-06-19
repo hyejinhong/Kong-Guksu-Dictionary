@@ -3,6 +3,7 @@ package com.kong.kong_dic.global.resolver;
 import com.kong.kong_dic.common.exception.BaseException;
 import com.kong.kong_dic.domain.user.exception.UserExceptionType;
 import com.kong.kong_dic.global.annotation.AuthUser;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.MethodParameter;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -13,6 +14,7 @@ import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 
+@Slf4j
 @Component
 public class AuthUserArgumentResolver implements HandlerMethodArgumentResolver {
 
@@ -28,6 +30,7 @@ public class AuthUserArgumentResolver implements HandlerMethodArgumentResolver {
                                   NativeWebRequest webRequest, WebDataBinderFactory binderFactory) {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        log.info("### AuthUserArgumentResolver - Authentication: {}", authentication);
 
         // 1. 어노테이션에 설정된 required 값 가져오기
         AuthUser authUser = parameter.getParameterAnnotation(AuthUser.class);
@@ -39,6 +42,7 @@ public class AuthUserArgumentResolver implements HandlerMethodArgumentResolver {
                 !authentication.isAuthenticated();
 
         if (isUnauthenticated) {
+            log.info("### AuthUserArgumentResolver - Unauthenticated");
             // 필수(required=true)인 경우에만 예외를 던지고,
             // 필수가 아니면(required=false) null을 반환해서 비회원도 통과
             if (isRequired) {
@@ -49,7 +53,9 @@ public class AuthUserArgumentResolver implements HandlerMethodArgumentResolver {
 
         // 3. Principal 반환 (UserDetails로 캐스팅)
         Object principal = authentication.getPrincipal();
+        log.info("### AuthUserArgumentResolver - Principal: {}", principal);
         if (!(principal instanceof UserDetails)) {
+            log.warn("### AuthUserArgumentResolver - Principal is not UserDetails");
             // 상황에 따라 500 에러나 401 에러로 처리
             throw new BaseException(UserExceptionType.USER_NOT_FOUND);
         }

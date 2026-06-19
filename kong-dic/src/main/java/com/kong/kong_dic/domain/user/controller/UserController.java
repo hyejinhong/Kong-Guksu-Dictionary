@@ -2,7 +2,9 @@ package com.kong.kong_dic.domain.user.controller;
 
 import com.kong.kong_dic.common.exception.BaseException;
 import com.kong.kong_dic.common.response.BaseResponse;
+import com.kong.kong_dic.common.domain.restaurant.dto.RestaurantSubmitRequestDto;
 import com.kong.kong_dic.domain.restaurant.service.RestaurantCommentService;
+import com.kong.kong_dic.domain.restaurant.service.RestaurantSubmitService;
 import com.kong.kong_dic.domain.user.dto.*;
 import com.kong.kong_dic.domain.user.entity.User;
 import com.kong.kong_dic.domain.user.exception.UserExceptionType;
@@ -18,6 +20,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/users")
 @RequiredArgsConstructor
@@ -25,6 +29,7 @@ public class UserController {
 
     private final UserService userService;
     private final RestaurantCommentService commentService;
+    private final RestaurantSubmitService submitService;
 
     /**
      * 사용자 정보 조회 API
@@ -62,5 +67,12 @@ public class UserController {
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
         return ResponseEntity.ok(BaseResponse.success("success", commentService.getMyComments(userDetails.getUsername(), pageable)));
+    }
+
+    @GetMapping("/me/submissions")
+    public ResponseEntity<BaseResponse<List<RestaurantSubmitRequestDto>>> getMySubmissions(
+            @AuthUser UserDetails userDetails
+    ) {
+        return ResponseEntity.ok(BaseResponse.success("success", submitService.getMySubmissions(userDetails.getUsername())));
     }
 }

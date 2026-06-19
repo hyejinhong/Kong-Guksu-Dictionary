@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import './V2Main.css';
+import { useNotification } from '../contexts/NotificationContext';
 
 const KAKAO_MAP_SCRIPT_ID = 'kakao-map-sdk';
 const DEFAULT_LOCATION = { latitude: 37.5665, longitude: 126.9780 };
@@ -383,6 +384,7 @@ const V2MainPage = () => {
 const Header = () => {
   const navigate = useNavigate();
   const loggedIn = isLoggedIn();
+  const { unread, openModal } = useNotification();
 
   const handleAuthAction = async () => {
     if (loggedIn) {
@@ -415,12 +417,25 @@ const Header = () => {
           콩국수사전
         </div>
       </div>
-      <button
-        onClick={handleAuthAction}
-        className="bg-primary-container text-on-primary-container font-semibold px-6 py-2 rounded-full active:scale-95 transition-transform"
-      >
-        {loggedIn ? '로그아웃' : '로그인'}
-      </button>
+      <div className="flex items-center gap-4">
+        {loggedIn && (
+          <button 
+            onClick={openModal}
+            className="relative w-10 h-10 rounded-full flex items-center justify-center text-primary hover:bg-[#695E34]/5 active:scale-95 transition-all"
+          >
+            <span className="material-symbols-outlined text-2xl">notifications</span>
+            {unread && (
+              <span className="absolute top-2.5 right-2.5 w-2.5 h-2.5 bg-red-500 rounded-full border border-[#FDF9ED]" />
+            )}
+          </button>
+        )}
+        <button
+          onClick={handleAuthAction}
+          className="bg-primary-container text-on-primary-container font-semibold px-6 py-2 rounded-full active:scale-95 transition-transform"
+        >
+          {loggedIn ? '로그아웃' : '로그인'}
+        </button>
+      </div>
     </header>
   );
 };
@@ -703,7 +718,15 @@ const ListRestaurantCard = ({ restaurant, onClick }) => {
       </div>
       <div className="flex-1 space-y-2 min-w-0">
         <div className="flex justify-between items-start gap-3">
-          <h3 className="font-bold text-lg text-on-surface leading-tight truncate">{restaurant.name}</h3>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-bold text-lg text-on-surface leading-tight truncate">{restaurant.name}</h3>
+            {restaurant.averageRating > 0 && (
+              <div className="flex items-center gap-1 mt-0.5">
+                <span className="material-symbols-outlined text-secondary text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                <span className="text-secondary font-bold text-xs">{restaurant.averageRating.toFixed(1)}</span>
+              </div>
+            )}
+          </div>
           <img 
             src={serving ? "/images/open.png" : "/images/closed.png"} 
             alt={serving ? "Open" : "Closed"} 
@@ -799,6 +822,7 @@ const BottomNav = ({ activeView, setActiveView }) => {
 
   return (
     <nav className="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-3 bg-[#FDF9ED]/80 backdrop-blur-xl z-50 rounded-t-xl shadow-[0_-20px_40px_rgba(105,94,52,0.08)]">
+      <FooterItem icon="leaderboard" label="랭킹" onClick={() => navigate('/v2/ranking')} />
       <FooterItem active={activeView === 'list'} icon="dictionary" label="목록" onClick={() => setActiveView('list')} />
       <FooterItem active={activeView === 'map'} icon="map" label="지도" onClick={() => setActiveView('map')} />
       <FooterItem icon="bookmark" label="저장" onClick={handleSavedClick} />

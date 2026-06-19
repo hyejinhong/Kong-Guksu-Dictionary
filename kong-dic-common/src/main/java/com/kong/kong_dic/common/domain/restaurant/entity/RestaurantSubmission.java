@@ -5,6 +5,7 @@ import com.kong.kong_dic.common.model.BeanPrice;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
@@ -35,12 +36,23 @@ public class RestaurantSubmission {
     private Double latitude;
     private Double longitude;
 
-    // @ManyToOne(fetch = FetchType.LAZY)
-    // @JoinColumn(name = "user_id")
+    @Column(name = "user_id")
     private Long userId;
+
+    @Column(name = "restaurant_id")
+    private Long restaurantId;
+
+    private LocalDateTime createdAt;
+
+    private String rejectReason;
 
     @Builder.Default
     private SubmissionStatus status = SubmissionStatus.PENDING;
+
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+    }
 
     public void approved() {
         this.status = SubmissionStatus.APPROVED;
@@ -48,5 +60,10 @@ public class RestaurantSubmission {
 
     public void reject() {
         this.status = SubmissionStatus.REJECTED;
+    }
+
+    public void reject(String rejectReason) {
+        this.status = SubmissionStatus.REJECTED;
+        this.rejectReason = rejectReason;
     }
 }

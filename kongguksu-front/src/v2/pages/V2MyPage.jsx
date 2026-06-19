@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../api';
 import './V2Main.css';
+import { useNotification } from '../contexts/NotificationContext';
 
 const isLoggedIn = () => {
   const token = localStorage.getItem('token');
@@ -23,6 +24,7 @@ const isLoggedIn = () => {
 const V2MyPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { unread, openModal } = useNotification();
 
   const [activeTab, setActiveTab] = useState('profile'); // 'profile' or 'comments'
   const [loading, setLoading] = useState(true);
@@ -40,6 +42,9 @@ const V2MyPage = () => {
   const [commentPage, setCommentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
+
+  // Submissions state
+  const [mySubmissions, setMySubmissions] = useState([]);
 
   const fetchUserProfile = useCallback(async () => {
     try {
@@ -79,6 +84,20 @@ const V2MyPage = () => {
     }
   }, []);
 
+  const fetchMySubmissions = useCallback(async () => {
+    try {
+      const response = await api.get('/users/me/submissions');
+      if (response.data?.data) {
+        setMySubmissions(response.data.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch submissions:', err);
+      toast.error('제보 내역을 불러오지 못했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!isLoggedIn()) {
       navigate(`/v2/login?redirect=${encodeURIComponent(location.pathname)}`);
@@ -88,10 +107,12 @@ const V2MyPage = () => {
     setLoading(true);
     if (activeTab === 'profile') {
       fetchUserProfile();
-    } else {
+    } else if (activeTab === 'comments') {
       fetchMyComments(commentPage);
+    } else if (activeTab === 'submissions') {
+      fetchMySubmissions();
     }
-  }, [activeTab, commentPage, fetchUserProfile, fetchMyComments, navigate, location.pathname]);
+  }, [activeTab, commentPage, fetchUserProfile, fetchMyComments, fetchMySubmissions, navigate, location.pathname]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -186,7 +207,17 @@ const V2MyPage = () => {
           <img src="/images/noodles.png" alt="Icon" className="w-6 h-6 object-contain" />
           <h1 className="text-[#695E34] font-['Plus_Jakarta_Sans'] font-semibold text-lg tracking-tight">내 정보</h1>
         </div>
-        <div className="w-10" />
+        <div className="flex items-center justify-end w-10">
+          <button 
+            onClick={openModal}
+            className="relative w-10 h-10 rounded-full flex items-center justify-center text-[#695E34] hover:bg-[#695E34]/5 active:scale-95 transition-all"
+          >
+            <span className="material-symbols-outlined text-2xl">notifications</span>
+            {unread && (
+              <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border border-[#FDF9ED]" />
+            )}
+          </button>
+        </div>
       </header>
 
       <main className="flex-1 pt-24 pb-32 px-6 max-w-2xl mx-auto w-full overflow-y-auto no-scrollbar">
@@ -215,10 +246,21 @@ const V2MyPage = () => {
           >
             내가 쓴 댓글
           </button>
+          <button
+            onClick={() => setActiveTab('submissions')}
+            className={`flex-1 py-3 rounded-[1.25rem] font-bold text-sm transition-all ${
+              activeTab === 'submissions'
+                ? 'bg-primary text-background soy-shadow'
+                : 'text-tertiary hover:bg-surface-container-high'
+            }`}
+          >
+            제보 내역
+          </button>
         </div>
 
-        {activeTab === 'profile' ? (
+        {activeTab === 'profile' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 text-center">
+            {/* ... (profile content) ... */}
             <div className="py-4">
               <div className="w-24 h-24 bg-primary-container rounded-full mx-auto flex items-center justify-center mb-4 soy-shadow">
                 <img src="/images/noodles.png" alt="Profile" className="w-14 h-14 object-contain" />
@@ -303,8 +345,17 @@ const V2MyPage = () => {
               <span className="material-symbols-outlined text-lg">logout</span>
               로그아웃
             </button>
+
+            {/* Credits Section */}
+            <div className="pt-12 pb-4 opacity-40">
+              <p className="text-[10px] font-medium text-tertiary">
+                Bean Icons created by <span className="font-bold">imaginationlol</span> - Flaticon
+              </p>
+            </div>
           </div>
-        ) : (
+        )}
+
+        {activeTab === 'comments' && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="px-4 flex justify-between items-center">
               <span className="text-sm font-bold text-tertiary">총 {totalElements}개</span>
@@ -375,17 +426,92 @@ const V2MyPage = () => {
             )}
           </div>
         )}
+
+        {activeTab === 'submissions' && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="px-4 flex justify-between items-center">
+              <span className="text-sm font-bold text-tertiary">총 {mySubmissions.length}개</span>
+            </div>
+
+            {loading ? (
+              <div className="text-center py-20 text-primary font-bold">제보 내역을 불러오는 중...</div>
+            ) : mySubmissions.length > 0 ? (
+              <div className="space-y-4">
+                {mySubmissions.map((sub) => {
+                  const status = sub.status?.toUpperCase();
+                  const isApproved = status === 'APPROVED';
+                  const rid = sub.restaurantId || sub.restaurant_id;
+                  const canNavigate = isApproved && rid;
+
+                  return (
+                    <div 
+                      key={sub.id}
+                      onClick={() => canNavigate && navigate(`/v2/restaurant/${rid}`)}
+                      className={`bg-surface-container-lowest p-6 rounded-[2rem] shadow-sm border border-surface-container transition-all ${
+                        canNavigate ? 'cursor-pointer hover:scale-[1.02] active:scale-95 hover:shadow-md' : ''
+                      }`}
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-black text-primary text-lg">{sub.name}</h4>
+                          {canNavigate && (
+                            <span className="material-symbols-outlined text-primary text-sm opacity-50">arrow_forward_ios</span>
+                          )}
+                        </div>
+                        <SubmissionStatusBadge status={sub.status} />
+                      </div>
+                      <p className="text-outline text-xs font-bold mb-3 flex items-center gap-1">
+                        <span className="material-symbols-outlined text-sm">location_on</span>
+                        {sub.address}
+                      </p>
+                      
+                      <div className="flex flex-wrap gap-2 mt-4">
+                        {sub.prices?.map((p, idx) => (
+                          <span key={idx} className="px-3 py-1 bg-surface-container rounded-full text-[10px] font-black text-secondary">
+                            {p.beanType}: {p.price.toLocaleString()}원
+                          </span>
+                        ))}
+                      </div>
+
+                      {status === 'REJECTED' && sub.rejectReason && (
+                        <div className="mt-4 p-3.5 bg-[#C96868]/5 rounded-2xl border border-[#C96868]/15 flex items-start gap-2.5">
+                          <span className="material-symbols-outlined text-[#C96868] text-[18px] shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>error</span>
+                          <div className="min-w-0">
+                            <span className="text-[10px] font-black text-[#C96868] uppercase tracking-wider block">거절 사유</span>
+                            <p className="text-[#695E34] text-xs font-bold mt-0.5 leading-relaxed">{sub.rejectReason}</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
+                <span className="material-symbols-outlined text-6xl text-tertiary/20">restaurant</span>
+                <p className="text-tertiary font-medium">아직 제보한 식당이 없습니다.</p>
+                <button
+                  onClick={() => navigate('/v2/submission')}
+                  className="px-6 py-3 bg-primary text-background rounded-full font-bold text-sm active:scale-95 transition-all"
+                >
+                  식당 제보하러 가기
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </main>
 
-      {/* Footer Nav */}
+      {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-3 bg-[#FDF9ED]/80 backdrop-blur-xl z-50 rounded-t-xl shadow-[0_-20px_40px_rgba(105,94,52,0.08)]">
+        <FooterItem icon="leaderboard" label="랭킹" onClick={() => navigate('/v2/ranking')} />
         <FooterItem icon="dictionary" label="목록" onClick={() => navigate('/v2')} />
         <FooterItem icon="map" label="지도" onClick={() => navigate('/v2')} />
         <FooterItem icon="bookmark" label="저장" onClick={() => navigate('/v2/saved')} />
         <FooterItem active={true} icon="person" label="내 정보" onClick={() => {}} />
       </nav>
-    </div>
-  );
+      </div>
+      );
 };
 
 const FooterItem = ({ active = false, icon, label, onClick }) => (
@@ -404,5 +530,21 @@ const FooterItem = ({ active = false, icon, label, onClick }) => (
     <span className="font-label text-[10px] font-semibold tracking-wider uppercase">{label}</span>
   </button>
 );
+
+const SubmissionStatusBadge = ({ status }) => {
+  const statusConfig = {
+    PENDING: { label: '검토 중', color: 'bg-amber-100 text-amber-700' },
+    APPROVED: { label: '승인됨', color: 'bg-emerald-100 text-emerald-700' },
+    REJECTED: { label: '반려됨', color: 'bg-rose-100 text-rose-700' },
+  };
+
+  const config = statusConfig[status] || statusConfig.PENDING;
+
+  return (
+    <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${config.color}`}>
+      {config.label}
+    </span>
+  );
+};
 
 export default V2MyPage;
