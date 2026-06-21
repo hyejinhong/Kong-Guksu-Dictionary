@@ -41,9 +41,33 @@ public class RestaurantSubmitAdminService {
         return entityToRequestDto(submission);
     }
 
-    public void approveSubmission(Long id) {
+    public void approveSubmission(Long id, RestaurantSubmitRequestDto updateDto) {
         RestaurantSubmission submission = submitRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Submission not found"));
+
+        if (updateDto != null) {
+            if (updateDto.getName() != null) {
+                submission.setName(updateDto.getName());
+            }
+            if (updateDto.getAddress() != null) {
+                submission.setAddress(updateDto.getAddress());
+            }
+            if (updateDto.getServesAllYear() != null) {
+                submission.setServesAllYear(updateDto.getServesAllYear());
+            }
+            submission.setStartMonth(updateDto.getStartMonth());
+            submission.setEndMonth(updateDto.getEndMonth());
+            if (updateDto.getPrices() != null) {
+                submission.setPrices(updateDto.getPrices());
+            }
+            if (updateDto.getLatitude() != null) {
+                submission.setLatitude(updateDto.getLatitude());
+            }
+            if (updateDto.getLongitude() != null) {
+                submission.setLongitude(updateDto.getLongitude());
+            }
+        }
+
         submission.approved();
         submitRepository.save(submission);
 

@@ -5,6 +5,7 @@ const AdminRestaurantSubmissions = () => {
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
+  const [editingSubmission, setEditingSubmission] = useState(null);
   const itemsPerPage = 3;
 
   const ADMIN_API_BASE_URL = process.env.REACT_APP_ADMIN_API_BASE_URL || 'http://localhost:8080';
@@ -34,21 +35,63 @@ const AdminRestaurantSubmissions = () => {
     fetchSubmissions();
   }, []);
 
-  const handleApprove = async (submissionId) => {
+  const openApproveModal = (submission) => {
+    const prices = submission.prices || [];
+    const soyPrice = prices.find(p => p.beanType === 'SOY_BEAN')?.price ?? '';
+    const blackPrice = prices.find(p => p.beanType === 'BLACK_BEAN')?.price ?? '';
+    const otherPrice = prices.find(p => p.beanType === 'OTHER_BEAN')?.price ?? '';
+
+    setEditingSubmission({
+      ...submission,
+      soyPrice,
+      blackPrice,
+      otherPrice,
+      servesAllYear: submission.servesAllYear ?? true,
+      startMonth: submission.startMonth || '',
+      endMonth: submission.endMonth || '',
+    });
+  };
+
+  const handleApproveSubmit = async (e) => {
+    e.preventDefault();
+    if (!editingSubmission) return;
+
+    const prices = [];
+    if (editingSubmission.soyPrice !== '' && editingSubmission.soyPrice !== null) {
+      prices.push({ beanType: 'SOY_BEAN', price: parseInt(editingSubmission.soyPrice) });
+    }
+    if (editingSubmission.blackPrice !== '' && editingSubmission.blackPrice !== null) {
+      prices.push({ beanType: 'BLACK_BEAN', price: parseInt(editingSubmission.blackPrice) });
+    }
+    if (editingSubmission.otherPrice !== '' && editingSubmission.otherPrice !== null) {
+      prices.push({ beanType: 'OTHER_BEAN', price: parseInt(editingSubmission.otherPrice) });
+    }
+
+    const payload = {
+      name: editingSubmission.name,
+      address: editingSubmission.address,
+      servesAllYear: editingSubmission.servesAllYear,
+      startMonth: editingSubmission.servesAllYear ? null : (parseInt(editingSubmission.startMonth) || null),
+      endMonth: editingSubmission.servesAllYear ? null : (parseInt(editingSubmission.endMonth) || null),
+      prices: prices,
+      latitude: editingSubmission.latitude ? parseFloat(editingSubmission.latitude) : null,
+      longitude: editingSubmission.longitude ? parseFloat(editingSubmission.longitude) : null,
+    };
+
     try {
       const response = await axios.patch(
-        `${ADMIN_API_BASE_URL}/admin/restaurants/submissions/${submissionId}/approve`, 
-        {},
+        `${ADMIN_API_BASE_URL}/admin/restaurants/submissions/${editingSubmission.id}/approve`, 
+        payload,
         { headers: getAuthHeader() }
       );
       if (response.data.code === 0) {
-        // 승인된 항목은 상태를 APPROVED로 변경하여 UI 업데이트
         setSubmissions(prevSubmissions =>
           prevSubmissions.map(sub =>
-            sub.id === submissionId ? { ...sub, status: "APPROVED" } : sub
+            sub.id === editingSubmission.id ? { ...sub, ...payload, status: "APPROVED" } : sub
           )
         );
-        alert(`"${submissions.find(sub => sub.id === submissionId)?.name}" 요청을 승인했습니다.`);
+        alert(`"${editingSubmission.name}" 요청을 승인했습니다.`);
+        setEditingSubmission(null);
       } else {
         alert(`승인 실패: ${response.data.message}`);
       }
@@ -145,7 +188,7 @@ const AdminRestaurantSubmissions = () => {
                 {submission.status === "PENDING" && (
                   <div className="flex flex-row space-x-2 mt-2 sm:mt-0">
                     <button
-                      onClick={() => handleApprove(submission.id)}
+                      onClick={() => openApproveModal(submission)}
                       className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md text-sm font-semibold transition-colors duration-200"
                     >
                       승인
@@ -186,6 +229,158 @@ const AdminRestaurantSubmissions = () => {
           >
             다음 ▶
           </button>
+        </div>
+      )}
+
+      {/* 승인 모달 */}
+      {editingSubmission && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
+            <h2 className="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">
+              식당 정보 검토 및 승인
+            </h2>
+            <form onSubmit={handleApproveSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1">식당 이름</label>
+                <input
+                  type="text"
+                  required
+                  value={editingSubmission.name || ''}
+                  onChange={e => setEditingSubmission({...editingSubmission, name: e.target.value})}
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1">주소</label>
+                <input
+                  type="text"
+                  required
+                  value={editingSubmission.address || ''}
+                  onChange={e => setEditingSubmission({...editingSubmission, address: e.target.value})}
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div className="flex items-center space-x-4 py-2">
+                <label className="flex items-center space-x-2 text-sm font-bold text-gray-700 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editingSubmission.servesAllYear}
+                    onChange={e => setEditingSubmission({...editingSubmission, servesAllYear: e.target.checked})}
+                    className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <span>사계절 판매</span>
+                </label>
+              </div>
+
+              {!editingSubmission.servesAllYear && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">개시 시작 월 (1~12)</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="12"
+                      required
+                      value={editingSubmission.startMonth || ''}
+                      onChange={e => setEditingSubmission({...editingSubmission, startMonth: e.target.value})}
+                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">개시 종료 월 (1~12)</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="12"
+                      required
+                      value={editingSubmission.endMonth || ''}
+                      onChange={e => setEditingSubmission({...editingSubmission, endMonth: e.target.value})}
+                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="border-t pt-4">
+                <h3 className="text-sm font-bold text-gray-800 mb-2">가격 정보 (입력하지 않으면 미판매 처리)</h3>
+                <div className="space-y-2">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">백태콩 가격</label>
+                    <input
+                      type="number"
+                      value={editingSubmission.soyPrice || ''}
+                      onChange={e => setEditingSubmission({...editingSubmission, soyPrice: e.target.value})}
+                      placeholder="가격 입력 (원)"
+                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">검은콩 가격</label>
+                    <input
+                      type="number"
+                      value={editingSubmission.blackPrice || ''}
+                      onChange={e => setEditingSubmission({...editingSubmission, blackPrice: e.target.value})}
+                      placeholder="가격 입력 (원)"
+                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">기타콩 가격</label>
+                    <input
+                      type="number"
+                      value={editingSubmission.otherPrice || ''}
+                      onChange={e => setEditingSubmission({...editingSubmission, otherPrice: e.target.value})}
+                      placeholder="가격 입력 (원)"
+                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 border-t pt-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">위도 (Latitude)</label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={editingSubmission.latitude || ''}
+                    onChange={e => setEditingSubmission({...editingSubmission, latitude: e.target.value})}
+                    placeholder="자동 계산 또는 직접 입력"
+                    className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">경도 (Longitude)</label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={editingSubmission.longitude || ''}
+                    onChange={e => setEditingSubmission({...editingSubmission, longitude: e.target.value})}
+                    placeholder="자동 계산 또는 직접 입력"
+                    className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-4 border-t">
+                <button
+                  type="button"
+                  onClick={() => setEditingSubmission(null)}
+                  className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded text-sm font-bold transition"
+                >
+                  취소
+                </button>
+                <button
+                  type="submit"
+                  className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded text-sm font-bold transition"
+                >
+                  수정 및 승인 완료
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

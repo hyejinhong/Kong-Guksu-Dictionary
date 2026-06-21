@@ -29,8 +29,10 @@ public class RestaurantSubmitAdminController {
 
     @PatchMapping("/{id}/approve")
     @PreAuthorize("hasAuthority('ADMIN')")
-    public ResponseEntity<BaseResponse<Void>> approveRestaurantSubmission(@PathVariable Long id) {
-        submitAdminService.approveSubmission(id);
+    public ResponseEntity<BaseResponse<Void>> approveRestaurantSubmission(
+            @PathVariable Long id,
+            @RequestBody(required = false) RestaurantSubmitRequestDto updateDto) {
+        submitAdminService.approveSubmission(id, updateDto);
         return ResponseEntity.ok(BaseResponse.success());
     }
 
