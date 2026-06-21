@@ -236,15 +236,17 @@ const V2RestaurantDetailPage = () => {
   }
 
   const beanTypes = restaurant.beanTypes?.length ? restaurant.beanTypes : [restaurant.beanType].filter(Boolean);
-  const selling = restaurant.servesAllYear || (restaurant.startMonth && restaurant.endMonth && (
+  const selling = restaurant.servesAllYear || (
     (() => {
       const currentMonth = new Date().getMonth() + 1;
-      if (restaurant.startMonth <= restaurant.endMonth) {
-        return currentMonth >= restaurant.startMonth && currentMonth <= restaurant.endMonth;
+      const start = restaurant.startMonth || 6;
+      const end = restaurant.endMonth || 8;
+      if (start <= end) {
+        return currentMonth >= start && currentMonth <= end;
       }
-      return currentMonth >= restaurant.startMonth || currentMonth <= restaurant.endMonth;
+      return currentMonth >= start || currentMonth <= end;
     })()
-  ));
+  );
 
   return (
     <div className="v2-root bg-background text-on-surface min-h-screen relative overflow-x-hidden">
@@ -306,10 +308,12 @@ const V2RestaurantDetailPage = () => {
               {getBeanLabel(bean)}
             </span>
           ))}
-          <span className="bg-primary-container text-on-primary-container px-4 py-1.5 rounded-full text-sm font-semibold flex items-center gap-1">
-            <span className="material-symbols-outlined text-[18px]">calendar_month</span>
-            개시 월: {restaurant.servesAllYear ? '연중무휴' : `${restaurant.startMonth}월 ~ ${restaurant.endMonth}월`}
-          </span>
+          {(restaurant.servesAllYear || (restaurant.startMonth > 0 && restaurant.endMonth > 0)) && (
+            <span className="bg-primary-container text-on-primary-container px-4 py-1.5 rounded-full text-sm font-semibold flex items-center gap-1">
+              <span className="material-symbols-outlined text-[18px]">calendar_month</span>
+              개시 월: {restaurant.servesAllYear ? '연중무휴' : `${restaurant.startMonth}월 ~ ${restaurant.endMonth}월`}
+            </span>
+          )}
         </section>
 
         {/* Action Row */}
@@ -494,8 +498,8 @@ const V2RestaurantDetailPage = () => {
 
       {/* BottomNavBar */}
       <nav className="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-3 bg-[#FDF9ED]/80 backdrop-blur-xl z-50 rounded-t-xl shadow-[0_-20px_40px_rgba(105,94,52,0.08)]">
-        <FooterItem icon="dictionary" label="목록" onClick={() => navigate('/v2')} />
-        <FooterItem icon="map" label="지도" onClick={() => navigate('/v2')} />
+        <FooterItem icon="dictionary" label="목록" onClick={() => navigate('/v2?view=list')} />
+        <FooterItem icon="map" label="지도" onClick={() => navigate('/v2?view=map')} />
         <FooterItem icon="bookmark" label="저장" onClick={() => {
           if (!isLoggedIn()) {
             toast.error('로그인이 필요한 서비스입니다.');

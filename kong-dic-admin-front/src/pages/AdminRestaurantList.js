@@ -183,7 +183,7 @@ const AdminRestaurantList = () => {
                   ))}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {restaurant.servesAllYear ? '연중무휴' : `${restaurant.startMonth}~${restaurant.endMonth}월`}
+                  {restaurant.servesAllYear ? '연중무휴' : (restaurant.startMonth > 0 && restaurant.endMonth > 0 ? `${restaurant.startMonth}~${restaurant.endMonth}월` : '')}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex space-x-2 justify-center">
                   <Link

@@ -220,7 +220,7 @@ const V2MyPage = () => {
         </div>
       </header>
 
-      <main className="flex-1 pt-24 pb-32 px-6 max-w-2xl mx-auto w-full overflow-y-auto no-scrollbar">
+      <main className="flex-1 pt-24 pb-32 px-6 max-w-2xl mx-auto w-full">
         {/* Tabs */}
         <div className="flex gap-2 mb-8 bg-surface-container-low p-1.5 rounded-3xl">
           <button
