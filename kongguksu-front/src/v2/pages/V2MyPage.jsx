@@ -35,7 +35,15 @@ const V2MyPage = () => {
     nickname: '',
     currentPassword: '',
     newPassword: '',
+    email: '',
   });
+
+  const [emailInput, setEmailInput] = useState('');
+  const [verificationCode, setVerificationCode] = useState('');
+  const [isVerificationSent, setIsVerificationSent] = useState(false);
+  const [isEditingEmail, setIsEditingEmail] = useState(false);
+  const [sendingVerification, setSendingVerification] = useState(false);
+  const [verifyingEmail, setVerifyingEmail] = useState(false);
 
   // Comments state
   const [myComments, setMyComments] = useState([]);
@@ -55,7 +63,14 @@ const V2MyPage = () => {
           ...prev,
           username: userData.username,
           nickname: userData.nickname || '',
+          email: userData.email || '',
         }));
+        setEmailInput(userData.email || '');
+        if (!userData.email) {
+          setIsEditingEmail(true);
+        } else {
+          setIsEditingEmail(false);
+        }
       }
     } catch (err) {
       console.error('Failed to fetch profile:', err);
@@ -117,6 +132,55 @@ const V2MyPage = () => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSendVerificationCode = async () => {
+    if (!emailInput || !emailInput.includes('@')) {
+      toast.error('올바른 이메일 주소를 입력해주세요.');
+      return;
+    }
+    setSendingVerification(true);
+    try {
+      const response = await api.post('/users/email/verification-request', { email: emailInput });
+      if (response.data?.code === 0) {
+        toast.success('인증 코드가 이메일로 전송되었습니다.');
+        setIsVerificationSent(true);
+      } else {
+        toast.error(response.data?.message || '인증 코드 발송에 실패했습니다.');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || '이미 등록된 이메일이거나 발송 오류가 발생했습니다.');
+    } finally {
+      setSendingVerification(false);
+    }
+  };
+
+  const handleVerifyAndRegisterEmail = async () => {
+    if (!verificationCode) {
+      toast.error('인증 코드를 입력해주세요.');
+      return;
+    }
+    setVerifyingEmail(true);
+    try {
+      const response = await api.post('/users/email/verify-and-register', {
+        email: emailInput,
+        code: verificationCode
+      });
+      if (response.data?.code === 0) {
+        toast.success('이메일이 성공적으로 등록되었습니다.');
+        const updatedUser = response.data.data;
+        setFormData(prev => ({ ...prev, email: updatedUser.email }));
+        setIsVerificationSent(false);
+        setVerificationCode('');
+        setIsEditingEmail(false);
+      } else {
+        toast.error(response.data?.message || '인증에 실패했습니다.');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || '인증 코드가 유효하지 않거나 만료되었습니다.');
+    } finally {
+      setVerifyingEmail(false);
+    }
   };
 
   const handleRandomNickname = async () => {
@@ -279,6 +343,77 @@ const V2MyPage = () => {
                   className="w-full px-6 py-4 rounded-3xl bg-surface-container text-outline font-bold cursor-not-allowed border-none"
                 />
               </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-outline uppercase ml-4">이메일</label>
+                <div className="flex gap-2">
+                  <input
+                    type="email"
+                    value={emailInput}
+                    onChange={(e) => setEmailInput(e.target.value)}
+                    disabled={!isEditingEmail || isVerificationSent}
+                    className={`flex-1 px-6 py-4 rounded-3xl border-none focus:ring-2 focus:ring-secondary text-on-surface font-bold ${
+                      !isEditingEmail ? 'bg-surface-container text-outline cursor-not-allowed' : 'bg-surface-container'
+                    }`}
+                    placeholder="이메일을 입력하세요"
+                    required
+                  />
+                  {!isEditingEmail ? (
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingEmail(true)}
+                      className="px-5 rounded-3xl bg-secondary text-white font-bold text-xs active:scale-95 transition-all"
+                    >
+                      변경
+                    </button>
+                  ) : (
+                    !isVerificationSent && (
+                      <button
+                        type="button"
+                        onClick={handleSendVerificationCode}
+                        disabled={sendingVerification}
+                        className="px-5 rounded-3xl bg-primary text-background font-bold text-xs active:scale-95 transition-all disabled:opacity-50"
+                      >
+                        {sendingVerification ? '전송 중' : '인증 요청'}
+                      </button>
+                    )
+                  )}
+                </div>
+              </div>
+
+              {isEditingEmail && isVerificationSent && (
+                <div className="space-y-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <label className="text-xs font-bold text-secondary uppercase ml-4">인증 번호 입력</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={verificationCode}
+                      onChange={(e) => setVerificationCode(e.target.value)}
+                      className="flex-1 px-6 py-4 rounded-3xl bg-surface-container border-none focus:ring-2 focus:ring-secondary text-on-surface font-bold"
+                      placeholder="6자리 인증 번호를 입력하세요"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={handleVerifyAndRegisterEmail}
+                      disabled={verifyingEmail}
+                      className="px-5 rounded-3xl bg-secondary text-white font-bold text-xs active:scale-95 transition-all disabled:opacity-50"
+                    >
+                      {verifyingEmail ? '확인 중' : '인증 완료'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsVerificationSent(false);
+                        setVerificationCode('');
+                      }}
+                      className="px-3 rounded-3xl bg-surface-container-highest text-on-surface-variant font-bold text-xs active:scale-95 transition-all"
+                    >
+                      취소
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <label className="text-xs font-bold text-outline uppercase ml-4">닉네임</label>

@@ -16,6 +16,7 @@ public class UserProfileResponseDto {
     private String nickname;
     private String role;
     private Date registeredAt;
+    private String email;
 
     public static UserProfileResponseDto of(User user) {
         return UserProfileResponseDto.builder()
@@ -24,6 +25,7 @@ public class UserProfileResponseDto {
                 .nickname(user.getNickname())
                 .role(user.getRole().name())
                 .registeredAt(user.getRegisteredAt())
+                .email(user.getEmail())
                 .build();
     }
 }

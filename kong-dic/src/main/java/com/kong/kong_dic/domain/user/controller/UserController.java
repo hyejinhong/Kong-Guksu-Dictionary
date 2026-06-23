@@ -75,4 +75,28 @@ public class UserController {
     ) {
         return ResponseEntity.ok(BaseResponse.success("success", submitService.getMySubmissions(userDetails.getUsername())));
     }
+
+    /**
+     * 이메일 등록을 위한 인증번호 전송 API
+     */
+    @PostMapping("/email/verification-request")
+    public ResponseEntity<BaseResponse<Void>> sendEmailVerification(
+            @AuthUser UserDetails userDetails,
+            @RequestBody EmailVerificationRequestDto request
+    ) throws Exception {
+        userService.sendVerificationCode(userDetails.getUsername(), request);
+        return ResponseEntity.ok(BaseResponse.success());
+    }
+
+    /**
+     * 이메일 인증번호 확인 및 이메일 등록 API
+     */
+    @PostMapping("/email/verify-and-register")
+    public ResponseEntity<BaseResponse<UserProfileResponseDto>> verifyAndRegisterEmail(
+            @AuthUser UserDetails userDetails,
+            @RequestBody EmailRegisterRequestDto request
+    ) {
+        UserProfileResponseDto response = userService.verifyAndRegisterEmail(userDetails.getUsername(), request);
+        return ResponseEntity.ok(BaseResponse.success("Email verified and registered successfully.", response));
+    }
 }

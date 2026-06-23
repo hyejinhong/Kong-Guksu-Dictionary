@@ -13,6 +13,8 @@ import V2RestaurantDetailPage from "./v2/pages/V2RestaurantDetailPage";
 import V2SavedRestaurantsPage from "./v2/pages/V2SavedRestaurantsPage";
 import V2MyPage from "./v2/pages/V2MyPage";
 import V2RankingPage from "./v2/pages/V2RankingPage";
+import V2ForgotPasswordPage from "./v2/pages/V2ForgotPasswordPage";
+import V2ResetPasswordPage from "./v2/pages/V2ResetPasswordPage";
 import { NotificationProvider } from "./v2/contexts/NotificationContext";
 import V2NotificationModal from "./v2/components/V2NotificationModal";
 
@@ -40,6 +42,8 @@ function App() {
           <Route path="/v2/saved" element={<V2SavedRestaurantsPage />} />
           <Route path="/v2/mypage" element={<V2MyPage />} />
           <Route path="/v2/ranking" element={<V2RankingPage />} />
+          <Route path="/v2/forgot-password" element={<V2ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<V2ResetPasswordPage />} />
           
           <Route path="/" element={<MainLayout />}>
             <Route index element={<Navigate to="/v2" replace />} />

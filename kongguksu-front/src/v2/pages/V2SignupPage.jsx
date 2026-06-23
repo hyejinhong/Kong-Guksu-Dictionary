@@ -12,6 +12,7 @@ const V2SignupPage = () => {
     username: '',
     nickname: '',
     password: '',
+    email: '',
   });
   const [loading, setLoading] = useState(false);
   const [isGeneratingNickname, setIsGeneratingNickname] = useState(false);
@@ -56,6 +57,7 @@ const V2SignupPage = () => {
         username: formData.username,
         password: formData.password,
         nickname: formData.nickname,
+        email: formData.email,
       });
 
       if (response.data && response.data.code === 0) {
@@ -117,6 +119,19 @@ const V2SignupPage = () => {
                 {isGeneratingNickname ? '생성 중...' : '랜덤 생성'}
               </button>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-outline uppercase ml-4">이메일</label>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              className="w-full px-6 py-4 rounded-3xl bg-surface-container border-none focus:ring-2 focus:ring-secondary text-on-surface font-bold placeholder-outline-variant transition-all"
+              placeholder="이메일을 입력하세요 (비밀번호 분실 시 필요)"
+              required
+            />
           </div>
 
           <div className="space-y-2">

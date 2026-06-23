@@ -1,15 +1,14 @@
 package com.kong.kong_dic.domain.user.service;
 
 import com.kong.kong_dic.common.exception.BaseException;
-import com.kong.kong_dic.common.exception.BaseExceptionType;
-import com.kong.kong_dic.domain.user.dto.UserProfileResponseDto;
-import com.kong.kong_dic.domain.user.dto.UserProfileUpdateRequestDto;
-import com.kong.kong_dic.domain.user.dto.UserResponseDto;
-import com.kong.kong_dic.domain.user.dto.UserUpdateRequestDto;
+import com.kong.kong_dic.domain.auth.exception.AuthExceptionType;
+import com.kong.kong_dic.domain.user.dto.*;
 import com.kong.kong_dic.domain.user.entity.User;
 import com.kong.kong_dic.domain.user.exception.UserExceptionType;
 import com.kong.kong_dic.domain.user.repository.UserRepository;
 import com.kong.kong_dic.domain.user.util.NicknameGenerator;
+import com.kong.kong_dic.global.service.RedisService;
+import com.kong.kong_dic.global.service.EmailService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
@@ -25,6 +24,11 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final RedisService redisService;
+    private final EmailService emailService;
+
+    private static final String EMAIL_VERIFICATION_PREFIX = "EV:";
+    private static final long EMAIL_VERIFICATION_EXPIRATION = 5; // 5 minutes
 
     public UserResponseDto getMyInfo(User user) {
         return UserResponseDto.builder()
@@ -98,6 +102,44 @@ public class UserService {
         }
 
         User updatedUser = userRepository.save(user);
+        return UserProfileResponseDto.of(updatedUser);
+    }
+
+    public void sendVerificationCode(String username, EmailVerificationRequestDto request) throws Exception {
+        userRepository.findByUsername(username)
+                .orElseThrow(() -> new BaseException(UserExceptionType.USER_NOT_FOUND));
+
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new BaseException(AuthExceptionType.DUPLICATED_EMAIL);
+        }
+
+        String code = String.format("%06d", new java.util.Random().nextInt(1000000));
+
+        redisService.setData(
+                EMAIL_VERIFICATION_PREFIX + request.getEmail(),
+                code,
+                EMAIL_VERIFICATION_EXPIRATION,
+                java.util.concurrent.TimeUnit.MINUTES
+        );
+
+        emailService.sendVerificationEmail(request.getEmail(), code);
+    }
+
+    @Transactional
+    public UserProfileResponseDto verifyAndRegisterEmail(String username, EmailRegisterRequestDto request) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new BaseException(UserExceptionType.USER_NOT_FOUND));
+
+        String savedCode = redisService.getData(EMAIL_VERIFICATION_PREFIX + request.getEmail());
+        if (savedCode == null || !savedCode.equals(request.getCode())) {
+            throw new BaseException(AuthExceptionType.INVALID_VERIFICATION_CODE);
+        }
+
+        user.setEmail(request.getEmail());
+        User updatedUser = userRepository.save(user);
+
+        redisService.deleteData(EMAIL_VERIFICATION_PREFIX + request.getEmail());
+
         return UserProfileResponseDto.of(updatedUser);
     }
 }

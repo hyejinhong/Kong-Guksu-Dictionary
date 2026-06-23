@@ -4,6 +4,9 @@ import com.kong.kong_dic.common.response.BaseResponse;
 import com.kong.kong_dic.domain.auth.dto.LoginResponseDto;
 import com.kong.kong_dic.domain.auth.dto.RefreshRequestDto;
 import com.kong.kong_dic.domain.auth.dto.SignupRequestDto;
+import com.kong.kong_dic.domain.auth.dto.PasswordResetRequestDto;
+import com.kong.kong_dic.domain.auth.dto.PasswordResetConfirmDto;
+import jakarta.servlet.http.HttpServletRequest;
 import com.kong.kong_dic.domain.auth.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -36,5 +39,23 @@ public class AuthController {
     @GetMapping("/verify-token")
     public ResponseEntity<BaseResponse<Boolean>> verifyToken(@RequestParam String token) {
         return ResponseEntity.ok(BaseResponse.success(authService.verifyToken(token)));
+    }
+
+    @PostMapping("/reset-password/request")
+    public ResponseEntity<BaseResponse<Void>> requestPasswordReset(
+            @RequestBody PasswordResetRequestDto request,
+            HttpServletRequest servletRequest
+    ) throws Exception {
+        String origin = servletRequest.getHeader("Origin");
+        authService.requestPasswordReset(request, origin);
+        return ResponseEntity.ok(BaseResponse.success());
+    }
+
+    @PostMapping("/reset-password/confirm")
+    public ResponseEntity<BaseResponse<Void>> confirmPasswordReset(
+            @RequestBody PasswordResetConfirmDto request
+    ) {
+        authService.confirmPasswordReset(request);
+        return ResponseEntity.ok(BaseResponse.success());
     }
 }
