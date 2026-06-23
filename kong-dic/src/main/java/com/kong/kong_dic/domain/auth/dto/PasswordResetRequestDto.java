@@ -4,9 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Getter @Setter
-public class SignupRequestDto {
+public class PasswordResetRequestDto {
     private String username;
-    private String password;
-    private String nickname;
     private String email;
 }

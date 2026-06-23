@@ -95,7 +95,7 @@ const V2LoginPage = () => {
           </button>
         </form>
 
-        <div className="text-center pt-4">
+        <div className="text-center pt-4 space-y-2">
           <p className="text-sm text-outline font-medium">
             계정이 없으신가요?{' '}
             <Link 
@@ -103,6 +103,14 @@ const V2LoginPage = () => {
               className="text-secondary font-bold hover:underline"
             >
               회원가입하기
+            </Link>
+          </p>
+          <p className="text-sm">
+            <Link 
+              to="/v2/forgot-password" 
+              className="text-outline hover:text-secondary font-bold text-xs transition-colors"
+            >
+              비밀번호를 분실하셨나요?
             </Link>
           </p>
         </div>
