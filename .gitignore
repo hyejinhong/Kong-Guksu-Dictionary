@@ -24,3 +24,4 @@ kong-dic-admin/src/main/resources/application-dev.yml
 kong-dic-admin-front/.env
 GEMINI.md
 .agents/AGENTS.md
+PR.md
