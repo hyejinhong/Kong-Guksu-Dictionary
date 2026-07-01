@@ -248,6 +248,11 @@ const V2RestaurantDetailPage = () => {
     })()
   );
 
+  const kakaoMapLink = (restaurant.latitude && restaurant.longitude)
+    ? `https://map.kakao.com/link/map/${encodeURIComponent(restaurant.name)},${restaurant.latitude},${restaurant.longitude}`
+    : `https://map.kakao.com/link/search/${encodeURIComponent(restaurant.address || restaurant.name)}`;
+
+
   return (
     <div className="v2-root bg-background text-on-surface min-h-screen relative overflow-x-hidden">
       {/* TopAppBar */}
@@ -339,10 +344,18 @@ const V2RestaurantDetailPage = () => {
           <div className="space-y-2">
             <div className="flex items-start gap-3">
               <span className="material-symbols-outlined text-primary mt-1">location_on</span>
-              <div>
-                <p className="font-semibold text-on-surface">{restaurant.address}</p>
-                {restaurant.roadAddress && <p className="text-tertiary text-sm">{restaurant.roadAddress}</p>}
-              </div>
+              <a 
+                href={kakaoMapLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group cursor-pointer block"
+              >
+                <div className="flex items-center gap-1">
+                  <p className="font-semibold text-on-surface group-hover:text-primary transition-colors">{restaurant.address}</p>
+                  <span className="material-symbols-outlined text-sm text-tertiary opacity-0 group-hover:opacity-100 transition-opacity">open_in_new</span>
+                </div>
+                {restaurant.roadAddress && <p className="text-tertiary text-sm group-hover:text-primary transition-colors">{restaurant.roadAddress}</p>}
+              </a>
             </div>
           </div>
         </section>

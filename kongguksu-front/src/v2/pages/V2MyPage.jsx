@@ -21,6 +21,12 @@ const isLoggedIn = () => {
   return true;
 };
 
+const getBeanLabel = (beanType) => {
+  if (beanType === 'SOY_BEAN') return '백태';
+  if (beanType === 'BLACK_BEAN') return '서리태';
+  return beanType || '기타';
+};
+
 const V2MyPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -603,7 +609,7 @@ const V2MyPage = () => {
                       <div className="flex flex-wrap gap-2 mt-4">
                         {sub.prices?.map((p, idx) => (
                           <span key={idx} className="px-3 py-1 bg-surface-container rounded-full text-[10px] font-black text-secondary">
-                            {p.beanType}: {p.price.toLocaleString()}원
+                            {getBeanLabel(p.beanType)}: {p.price.toLocaleString()}원
                           </span>
                         ))}
                       </div>

@@ -91,6 +91,7 @@ public class RestaurantSubmitService {
                 .status(submission.getStatus())
                 .userId(submission.getUserId())
                 .restaurantId(submission.getRestaurantId())
+                .rejectReason(submission.getRejectReason())
                 .build();
     }
 
