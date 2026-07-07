@@ -43,6 +43,10 @@ public class User implements UserDetails {
     @Builder.Default
     private Date modifiedAt = new Date(System.currentTimeMillis());
 
+    @Column(nullable = false, columnDefinition = "tinyint(1) default 1")
+    @Builder.Default
+    private boolean enabled = true;
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<UserRestaurantVisit> visitedRestaurants = new ArrayList<>();
@@ -69,6 +73,6 @@ public class User implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return true;
+        return enabled;
     }
 }
