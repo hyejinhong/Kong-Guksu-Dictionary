@@ -78,6 +78,25 @@ const formatPrice = (price) => {
   return Number.isFinite(numericPrice) ? `${numericPrice.toLocaleString()}원` : '가격 정보 없음';
 };
 
+const getRestaurantPriceLabel = (restaurant) => {
+  const prices = restaurant.prices;
+  if (!prices || prices.length === 0) return '가격 정보 없음';
+
+  const validPrices = prices
+    .map((p) => Number(p.price))
+    .filter(Number.isFinite);
+
+  if (validPrices.length === 0) return '가격 정보 없음';
+
+  const minPrice = Math.min(...validPrices);
+  const maxPrice = Math.max(...validPrices);
+
+  if (minPrice === maxPrice) {
+    return formatPrice(minPrice);
+  }
+  return `${formatPrice(minPrice)}~`;
+};
+
 const getBeanLabel = (beanType) => {
   if (beanType === 'SOY_BEAN') return '백태';
   if (beanType === 'BLACK_BEAN') return '서리태';
@@ -139,7 +158,6 @@ const V2MainPage = () => {
     setError('');
 
     try {
-      const url = `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080'}/restaurants/filter`;
       const params = {
         lan: location.latitude,
         lon: location.longitude,
@@ -756,7 +774,7 @@ const ListRestaurantCard = ({ restaurant, onClick }) => {
             </span>
           ))}
           <span className="bg-surface-container text-tertiary text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">
-            {formatPrice(restaurant.price)}
+            {getRestaurantPriceLabel(restaurant)}
           </span>
         </div>
         <div className="flex items-center gap-1">
@@ -807,9 +825,9 @@ const MapRestaurantCard = ({ restaurant, onClick }) => {
                 {serving ? '콩국수 개시' : '시즌 종료'}
               </span>
             </>
-            {restaurant.price && (
+            {restaurant.prices && restaurant.prices.length > 0 && (
               <span className="text-[10px] font-black text-primary">
-                {formatPrice(restaurant.price)}
+                {getRestaurantPriceLabel(restaurant)}
               </span>
             )}
           </div>

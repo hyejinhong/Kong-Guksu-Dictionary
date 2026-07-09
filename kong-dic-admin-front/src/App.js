@@ -4,6 +4,7 @@ import AdminRestaurantSubmissions from './pages/AdminRestaurantSubmissions';
 import Login from './pages/Login';
 import AdminRestaurantList from './pages/AdminRestaurantList';
 import AdminRestaurantEdit from './pages/AdminRestaurantEdit';
+import AdminUserList from './pages/AdminUserList';
 
 // JWT 토큰 파싱
 const parseJwt = (token) => {
@@ -97,19 +98,7 @@ const HomePage = () => (
   </div>
 );
 
-// 사용자 관리 페이지 컴포넌트
-const UserManagementPage = () => (
-  <div className="flex flex-col items-center justify-center min-h-screen bg-white text-gray-800 p-4">
-    <h2 className="text-3xl font-bold mb-4 text-center">사용자 관리 페이지 🧑‍💻</h2>
-    <p className="text-md text-center">여기서 사용자 목록을 보고 계정 정지/권한 변경 작업을 할 수 있습니다.</p>
-    <Link
-      to="/"
-      className="mt-6 px-4 py-2 text-blue-600 border border-blue-600 rounded-md hover:bg-blue-50 hover:text-blue-700 transition-colors duration-200"
-    >
-      🏠 홈으로 돌아가기
-    </Link>
-  </div>
-);
+
 
 // 메인 App 컴포넌트
 function App() {
@@ -168,7 +157,7 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/restaurants/submissions" element={<AdminRestaurantSubmissions />} />
         <Route path="/restaurants/list" element={<AdminRestaurantList />} />
-        <Route path="/users" element={<UserManagementPage />} />
+        <Route path="/users" element={<AdminUserList />} />
         <Route path="/restaurants/edit/:id" element={<AdminRestaurantEdit />} />
       </Routes>
     </div>
