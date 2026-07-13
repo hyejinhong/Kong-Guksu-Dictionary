@@ -255,6 +255,12 @@ const V2RestaurantDetailPage = () => {
 
   return (
     <div className="v2-root bg-background text-on-surface min-h-screen relative overflow-x-hidden">
+      <title>{`${restaurant.name} | 콩국수 사전`}</title>
+      <meta name="description" content={`${restaurant.name} - ${restaurant.address}. 콩 종류: ${beanTypes.map(getBeanLabel).join(', ')}. 가격: ${formatPrice(restaurant.price)}. 맛있는 콩국수 맛집 정보를 확인해 보세요!`} />
+      <meta property="og:title" content={`${restaurant.name} | 콩국수 사전`} />
+      <meta property="og:description" content={`${restaurant.name} - ${restaurant.address}. 콩 종류: ${beanTypes.map(getBeanLabel).join(', ')}`} />
+      <meta property="og:url" content={`https://kong-guksu-dictionary.vercel.app/v2/restaurant/${id}`} />
+
       {/* TopAppBar */}
       <header className="fixed top-0 w-full z-50 bg-[#FDF9ED]/80 backdrop-blur-xl flex items-center justify-between px-6 py-4">
         <button 

@@ -365,6 +365,10 @@ const V2MainPage = () => {
         activeView === 'map' ? 'v2-map-root' : 'v2-list-root'
       }`}
     >
+      <title>{submittedSearchTerm ? `"${submittedSearchTerm}" 검색 결과 | 콩국수 사전` : "콩국수 사전 - 전국의 콩국수 맛집 찾기"}</title>
+      <meta name="description" content="전국의 맛있는 콩국수 맛집 정보를 한눈에 확인하고 기록하는 콩국수 사전입니다. 내 주변의 콩국수 맛집을 지도와 목록으로 찾아보세요!" />
+      <meta property="og:title" content="콩국수 사전 - 전국의 콩국수 맛집 찾기" />
+      <meta property="og:description" content="전국의 맛있는 콩국수 맛집 정보를 한눈에 확인하고 기록하는 콩국수 사전입니다. 내 주변의 콩국수 맛집을 지도와 목록으로 찾아보세요!" />
       <Header />
 
       {activeView === 'map' ? (
