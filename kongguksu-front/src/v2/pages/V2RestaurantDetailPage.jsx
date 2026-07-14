@@ -45,6 +45,7 @@ const loadKakaoMapScript = () => {
 const getBeanLabel = (beanType) => {
   if (beanType === 'SOY_BEAN') return '백태';
   if (beanType === 'BLACK_BEAN') return '서리태';
+  if (beanType === 'OTHER_BEAN') return '기타';
   return beanType || '기타';
 };
 
