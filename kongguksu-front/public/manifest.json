@@ -1,6 +1,6 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "콩국수 사전",
+  "name": "콩국수 사전 - 전국의 콩국수 맛집 찾기",
   "icons": [
     {
       "src": "favicon.ico",
