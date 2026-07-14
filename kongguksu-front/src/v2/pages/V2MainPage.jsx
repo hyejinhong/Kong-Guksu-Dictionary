@@ -129,6 +129,7 @@ const V2MainPage = () => {
     openNow: false,
     minPrice: INITIAL_MIN_PRICE,
     maxPrice: INITIAL_MAX_PRICE,
+    nearMe: false,
   });
   const [listPage, setListPage] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -142,8 +143,8 @@ const V2MainPage = () => {
     try {
       const url = `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080'}/restaurants/filter`;
       const params = {
-        lan: location.latitude,
-        lon: location.longitude,
+        lan: filter.nearMe ? location.latitude : null,
+        lon: filter.nearMe ? location.longitude : null,
         page: 0,
         size: 50,
         searchTerm: submittedSearchTerm || null,
@@ -174,6 +175,7 @@ const V2MainPage = () => {
     filter.maxPrice,
     filter.minPrice,
     filter.openNow,
+    filter.nearMe,
     location.latitude,
     location.longitude,
     submittedSearchTerm,
@@ -186,6 +188,7 @@ const V2MainPage = () => {
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
         });
+        setFilter((prev) => ({ ...prev, nearMe: true }));
       },
       () => {
         setLocation(DEFAULT_LOCATION);
@@ -375,6 +378,7 @@ const V2MainPage = () => {
           searchTerm={searchTerm}
           setListPage={setListPage}
           setSearchTerm={setSearchTerm}
+          setLocation={setLocation}
           totalListPages={totalListPages}
           updateFilter={updateFilter}
         />
@@ -543,6 +547,7 @@ const ListView = ({
   searchTerm,
   setListPage,
   setSearchTerm,
+  setLocation,
   totalListPages,
   updateFilter,
 }) => {
@@ -569,15 +574,42 @@ const ListView = ({
       </form>
 
       <section className="space-y-6 mb-10">
-        <div className="flex gap-2 overflow-x-auto pb-2 -mx-2 px-2 no-scrollbar">
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-2 px-2 no-scrollbar">
+          <FilterChip
+            active={filter.nearMe}
+            onClick={() => {
+              if (!filter.nearMe) {
+                navigator.geolocation.getCurrentPosition(
+                  (position) => {
+                    setLocation({
+                      latitude: position.coords.latitude,
+                      longitude: position.coords.longitude,
+                    });
+                    updateFilter('nearMe', true);
+                  },
+                  () => {
+                    alert('위치 정보 조회를 허용해주세요.');
+                  }
+                );
+              } else {
+                updateFilter('nearMe', false);
+              }
+            }}
+          >
+            📍 내 주변
+          </FilterChip>
+
+          {/* 세로 구분선 */}
+          <div className="h-6 w-[1px] bg-outline-variant/30 mx-1 shrink-0" />
+
           <FilterChip active={filter.beanType === 'SOY_BEAN'} onClick={() => updateFilter('beanType', filter.beanType === 'SOY_BEAN' ? 'all' : 'SOY_BEAN')}>
-            백태
+            🟡 백태
           </FilterChip>
           <FilterChip active={filter.beanType === 'BLACK_BEAN'} onClick={() => updateFilter('beanType', filter.beanType === 'BLACK_BEAN' ? 'all' : 'BLACK_BEAN')}>
-            서리태
+            ⚫ 서리태
           </FilterChip>
           <FilterChip active={filter.beanType === 'OTHER_BEAN'} onClick={() => updateFilter('beanType', filter.beanType === 'OTHER_BEAN' ? 'all' : 'OTHER_BEAN')}>
-            기타
+            🫘 기타
           </FilterChip>
         </div>
 
@@ -746,6 +778,14 @@ const PriceRangeSlider = ({ maxPrice, minPrice, onMaxChange, onMinChange }) => {
   );
 };
 
+const formatDistance = (distance) => {
+  if (distance == null || distance < 0) return null;
+  if (distance < 1) {
+    return `${Math.round(distance * 1000)}m`;
+  }
+  return `${distance.toFixed(1)}km`;
+};
+
 const ListRestaurantCard = ({ restaurant, onClick }) => {
   const serving = isCurrentlyServing(restaurant);
   const beanTypes = restaurant.beanTypes?.length ? restaurant.beanTypes : [restaurant.beanType].filter(Boolean);
@@ -762,12 +802,20 @@ const ListRestaurantCard = ({ restaurant, onClick }) => {
         <div className="flex justify-between items-start gap-3">
           <div className="flex-1 min-w-0">
             <h3 className="font-bold text-lg text-on-surface leading-tight truncate">{restaurant.name}</h3>
-            {restaurant.averageRating > 0 && (
-              <div className="flex items-center gap-1 mt-0.5">
-                <span className="material-symbols-outlined text-secondary text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                <span className="text-secondary font-bold text-xs">{restaurant.averageRating.toFixed(1)}</span>
-              </div>
-            )}
+            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+              {restaurant.averageRating > 0 && (
+                <div className="flex items-center gap-1">
+                  <span className="material-symbols-outlined text-secondary text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                  <span className="text-secondary font-bold text-xs">{restaurant.averageRating.toFixed(1)}</span>
+                </div>
+              )}
+              {restaurant.distance != null && restaurant.distance >= 0 && (
+                <div className="flex items-center gap-1 text-outline font-bold text-xs">
+                  <span className="material-symbols-outlined text-[16px]">distance</span>
+                  <span>{formatDistance(restaurant.distance)}</span>
+                </div>
+              )}
+            </div>
           </div>
           <img 
             src={serving ? "/images/open.png" : "/images/closed.png"} 
