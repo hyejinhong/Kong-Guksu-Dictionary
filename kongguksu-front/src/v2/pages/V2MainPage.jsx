@@ -367,11 +367,14 @@ const V2MainPage = () => {
       ) : (
         <ListView
           filter={filter}
+          handleSearchSubmit={handleSearchSubmit}
           listPage={listPage}
           loading={loading}
           pagedRestaurants={pagedRestaurants}
           restaurants={restaurants}
+          searchTerm={searchTerm}
           setListPage={setListPage}
+          setSearchTerm={setSearchTerm}
           totalListPages={totalListPages}
           updateFilter={updateFilter}
         />
@@ -532,17 +535,39 @@ const MapView = ({
 
 const ListView = ({
   filter,
+  handleSearchSubmit,
   listPage,
   loading,
   pagedRestaurants,
   restaurants,
+  searchTerm,
   setListPage,
+  setSearchTerm,
   totalListPages,
   updateFilter,
 }) => {
   const navigate = useNavigate();
   return (
     <main className="pt-24 px-6 max-w-2xl mx-auto pb-36">
+      <form onSubmit={handleSearchSubmit} className="w-full mb-6">
+        <div className="bg-surface-container-lowest glass-panel flex items-center gap-3 px-6 py-4 rounded-[2rem] shadow-sm relative overflow-hidden border border-outline-variant/10">
+          <div className="absolute -right-1 -top-1 opacity-20 pointer-events-none">
+            <span className="material-symbols-outlined text-primary text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>ramen_dining</span>
+          </div>
+          <span className="material-symbols-outlined text-outline text-xl">search</span>
+          <input
+            className="bg-transparent border-none focus:ring-0 text-on-surface placeholder-outline-variant/70 w-full font-bold text-sm"
+            onChange={(event) => setSearchTerm(event.target.value)}
+            placeholder="식당 이름이나 주소로 검색..."
+            type="text"
+            value={searchTerm}
+          />
+          <button className="flex items-center justify-center p-1.5 bg-primary-container rounded-full squishy" type="submit" aria-label="검색">
+            <span className="material-symbols-outlined text-primary text-xl">search</span>
+          </button>
+        </div>
+      </form>
+
       <section className="space-y-6 mb-10">
         <div className="flex gap-2 overflow-x-auto pb-2 -mx-2 px-2 no-scrollbar">
           <FilterChip active={filter.beanType === 'SOY_BEAN'} onClick={() => updateFilter('beanType', filter.beanType === 'SOY_BEAN' ? 'all' : 'SOY_BEAN')}>
