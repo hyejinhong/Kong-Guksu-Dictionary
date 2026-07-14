@@ -67,7 +67,7 @@ const V2RankingPage = () => {
             <span className="material-symbols-outlined text-primary text-2xl">leaderboard</span>
             <h1 className="text-[#695E34] font-['Plus_Jakarta_Sans'] font-black text-xl tracking-tight">실시간 랭킹</h1>
           </div>
-          <img src="/images/noodles.png" alt="Icon" className="w-8 h-8 object-contain" />
+          <img src="/apple-touch-icon.png" alt="Icon" className="w-8 h-8 object-contain" />
         </div>
 
         {/* Ranking Type Tabs */}

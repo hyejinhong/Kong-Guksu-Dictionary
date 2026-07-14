@@ -271,7 +271,7 @@ const V2RestaurantDetailPage = () => {
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
         <div className="flex items-center gap-2">
-          <img src="/images/noodles.png" alt="Icon" className="w-6 h-6 object-contain" />
+          <img src="/apple-touch-icon.png" alt="Icon" className="w-6 h-6 object-contain" />
           <h1 className="text-[#695E34] font-['Plus_Jakarta_Sans'] font-semibold text-lg tracking-tight">콩국수 전문점</h1>
         </div>
         <div className="flex items-center justify-end w-10">

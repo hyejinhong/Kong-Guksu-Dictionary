@@ -56,7 +56,7 @@ const V2ResetPasswordPage = () => {
     <div className="v2-root bg-background flex flex-col items-center justify-center px-6">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
-          <img src="/images/noodles.png" alt="Logo" className="w-20 h-20 mx-auto mb-4 object-contain animate-bounce-slow" />
+          <img src="/apple-touch-icon.png" alt="Logo" className="w-20 h-20 mx-auto mb-4 object-contain animate-bounce-slow" />
           <h1 className="text-4xl font-black text-primary tracking-tighter font-headline mb-2">
             새 비밀번호 설정
           </h1>

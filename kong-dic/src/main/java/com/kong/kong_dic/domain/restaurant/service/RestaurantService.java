@@ -88,6 +88,7 @@ public class RestaurantService {
 
         // Specification 동적 생성
         Specification<Restaurant> spec = (root, query, criteriaBuilder) -> {
+            query.distinct(true); // 중복 조회 방지
             List<Predicate> predicates = new ArrayList<>();
 
             // 1. 텍스트 검색어 필터링 (이름 또는 주소)
@@ -103,8 +104,18 @@ public class RestaurantService {
             // 2. 콩 종류 필터링 (beanTypes 컬렉션 대신 prices 컬렉션 내의 beanType을 확인)
             if (StringUtils.hasText(beanType) && !"all".equalsIgnoreCase(beanType)) {
                 BeanType enumBeanType = BeanType.valueOf(beanType.toUpperCase());
-                pricesJoin = root.join("prices", JoinType.INNER);
-                predicates.add(criteriaBuilder.equal(pricesJoin.get("beanType"), enumBeanType));
+                if (enumBeanType == BeanType.OTHER_BEAN) {
+                    // '기타' 필터인 경우: 콩 종류가 OTHER_BEAN 이거나, 콩 종류 정보가 아예 없는 경우(prices가 비어있는 경우) 둘 다 포함
+                    pricesJoin = root.join("prices", JoinType.LEFT);
+                    Predicate isOtherBean = criteriaBuilder.equal(pricesJoin.get("beanType"), BeanType.OTHER_BEAN);
+                    Predicate noPriceInfo = criteriaBuilder.isEmpty(root.get("prices"));
+                    Predicate beanTypeIsNull = criteriaBuilder.isNull(pricesJoin.get("beanType"));
+                    predicates.add(criteriaBuilder.or(isOtherBean, noPriceInfo, beanTypeIsNull));
+                } else {
+                    // 백태 또는 서리태인 경우: 해당 콩 종류 정보가 확실히 있어야 함
+                    pricesJoin = root.join("prices", JoinType.INNER);
+                    predicates.add(criteriaBuilder.equal(pricesJoin.get("beanType"), enumBeanType));
+                }
             }
 
             // 3. 판매 기간 필터링

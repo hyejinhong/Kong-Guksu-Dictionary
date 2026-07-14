@@ -274,7 +274,7 @@ const V2MyPage = () => {
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
         <div className="flex items-center gap-2">
-          <img src="/images/noodles.png" alt="Icon" className="w-6 h-6 object-contain" />
+          <img src="/apple-touch-icon.png" alt="Icon" className="w-6 h-6 object-contain" />
           <h1 className="text-[#695E34] font-['Plus_Jakarta_Sans'] font-semibold text-lg tracking-tight">내 정보</h1>
         </div>
         <div className="flex items-center justify-end w-10">
@@ -333,7 +333,7 @@ const V2MyPage = () => {
             {/* ... (profile content) ... */}
             <div className="py-4">
               <div className="w-24 h-24 bg-primary-container rounded-full mx-auto flex items-center justify-center mb-4 soy-shadow">
-                <img src="/images/noodles.png" alt="Profile" className="w-14 h-14 object-contain" />
+                <img src="/apple-touch-icon.png" alt="Profile" className="w-14 h-14 object-contain" />
               </div>
               <h2 className="text-2xl font-black text-primary">{formData.nickname}님</h2>
               <p className="text-sm text-outline font-bold">오늘도 맛있는 콩국수 어떠신가요?</p>
