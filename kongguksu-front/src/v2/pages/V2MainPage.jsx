@@ -81,6 +81,7 @@ const formatPrice = (price) => {
 const getBeanLabel = (beanType) => {
   if (beanType === 'SOY_BEAN') return '백태';
   if (beanType === 'BLACK_BEAN') return '서리태';
+  if (beanType === 'OTHER_BEAN') return '기타';
   return beanType || '기타';
 };
 
@@ -550,7 +551,7 @@ const ListView = ({
           <FilterChip active={filter.beanType === 'BLACK_BEAN'} onClick={() => updateFilter('beanType', filter.beanType === 'BLACK_BEAN' ? 'all' : 'BLACK_BEAN')}>
             서리태
           </FilterChip>
-          <FilterChip active={filter.beanType === 'ETC'} onClick={() => updateFilter('beanType', filter.beanType === 'ETC' ? 'all' : 'ETC')}>
+          <FilterChip active={filter.beanType === 'OTHER_BEAN'} onClick={() => updateFilter('beanType', filter.beanType === 'OTHER_BEAN' ? 'all' : 'OTHER_BEAN')}>
             기타
           </FilterChip>
         </div>
