@@ -1,10 +1,12 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import Avatar from 'boring-avatars';
 import api from '../api';
 import './V2Main.css';
 import { useNotification } from '../contexts/NotificationContext';
 
+const KONG_COLORS = ["#FFFDF0", "#FFD369", "#3D3D3D", "#A9B388", "#FF9F29"];
 const KAKAO_MAP_SCRIPT_ID = 'kakao-map-sdk';
 
 const loadKakaoMapScript = () => {
@@ -431,8 +433,13 @@ const V2RestaurantDetailPage = () => {
               <div key={comment.id} className="bg-surface-container-lowest p-4 shadow-sm rounded-lg">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container text-xs font-bold">
-                      {comment.nickname?.charAt(0) || '익'}
+                    <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center overflow-hidden border border-surface-container shadow-sm">
+                      <Avatar
+                        size={32}
+                        name={comment.avatarSeed || comment.nickname || 'anonymous'}
+                        variant={comment.avatarVariant || 'beam'}
+                        colors={KONG_COLORS}
+                      />
                     </div>
                     <span className="font-semibold text-sm">{comment.nickname || '익명'}</span>
                   </div>

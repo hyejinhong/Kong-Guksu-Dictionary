@@ -12,4 +12,6 @@ public class RestaurantCommentResponseDto {
     private String nickname;
     private String content;
     private LocalDateTime createdAt;
+    private String avatarVariant;
+    private String avatarSeed;
 }

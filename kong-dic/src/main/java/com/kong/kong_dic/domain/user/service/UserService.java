@@ -101,6 +101,14 @@ public class UserService {
             user.setPassword(hashedNewPassword);
         }
 
+        // 3. 아바타 정보 수정
+        if (request.getAvatarVariant() != null && !request.getAvatarVariant().isBlank()) {
+            user.setAvatarVariant(request.getAvatarVariant());
+        }
+        if (request.getAvatarSeed() != null && !request.getAvatarSeed().isBlank()) {
+            user.setAvatarSeed(request.getAvatarSeed());
+        }
+
         User updatedUser = userRepository.save(user);
         return UserProfileResponseDto.of(updatedUser);
     }
