@@ -5,6 +5,7 @@ import Avatar from 'boring-avatars';
 import api from '../api';
 import './V2Main.css';
 import { useNotification } from '../contexts/NotificationContext';
+import V2ShareModal from '../components/V2ShareModal';
 
 const KONG_COLORS = ["#FFFDF0", "#FFD369", "#3D3D3D", "#A9B388", "#FF9F29"];
 const KAKAO_MAP_SCRIPT_ID = 'kakao-map-sdk';
@@ -77,6 +78,9 @@ const V2RestaurantDetailPage = () => {
   const [userRating, setUserRating] = useState(5);
   const [userMemo, setUserMemo] = useState('');
   const [saving, setSaving] = useState(false);
+
+  // Share Modal States
+  const [showShareModal, setShowShareModal] = useState(false);
 
   const fetchComments = async () => {
     try {
@@ -344,6 +348,13 @@ const V2RestaurantDetailPage = () => {
             </span>
             {isSaved ? '저장됨' : '저장하기'}
           </button>
+          <button 
+            onClick={() => setShowShareModal(true)}
+            className="flex-1 bg-surface-container-low text-primary py-4 rounded-full font-bold flex items-center justify-center gap-2 hover:opacity-80 transition-opacity active:scale-95 duration-200 shadow-[0_10px_20px_rgba(105,94,52,0.05)] border border-primary/10"
+          >
+            <span className="material-symbols-outlined">share</span>
+            공유하기
+          </button>
         </section>
 
         {/* Location & Hours */}
@@ -522,6 +533,13 @@ const V2RestaurantDetailPage = () => {
           </div>
         </div>
       )}
+
+      {/* Share Modal */}
+      <V2ShareModal 
+        isOpen={showShareModal} 
+        onClose={() => setShowShareModal(false)} 
+        restaurant={restaurant} 
+      />
 
       {/* BottomNavBar */}
       <nav className="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-3 bg-[#FDF9ED]/80 backdrop-blur-xl z-50 rounded-t-xl shadow-[0_-20px_40px_rgba(105,94,52,0.08)]">
