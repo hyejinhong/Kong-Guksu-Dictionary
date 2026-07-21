@@ -458,7 +458,7 @@ const Header = () => {
         onClick={() => navigate('/v2')}
         className="flex items-center gap-2 cursor-pointer"
       >
-        <img src="/images/noodles.png" alt="Logo" className="w-8 h-8 object-contain" />
+        <img src="/apple-touch-icon.png" alt="Logo" className="w-8 h-8 object-contain" />
         <div className="text-xl font-bold text-primary tracking-tight font-headline">
           콩국수사전
         </div>
@@ -812,13 +812,20 @@ const ListRestaurantCard = ({ restaurant, onClick }) => {
   const serving = isCurrentlyServing(restaurant);
   const beanTypes = restaurant.beanTypes?.length ? restaurant.beanTypes : [restaurant.beanType].filter(Boolean);
 
+  let noodleImg = "/apple-touch-icon.png";
+  if (beanTypes.includes('BLACK_BEAN')) {
+    noodleImg = "/images/black bean noodle.png";
+  } else if (beanTypes.includes('SOY_BEAN')) {
+    noodleImg = "/images/soy bean noodle.png";
+  }
+
   return (
     <div
       onClick={onClick}
       className="bg-surface-container-lowest p-5 rounded-xl soy-shadow flex gap-4 items-start active:scale-[0.98] transition-transform cursor-pointer"
     >
       <div className={`w-16 h-16 rounded-lg flex items-center justify-center flex-shrink-0 ${serving ? 'bg-primary-container' : 'bg-surface-container-highest'}`}>
-        <img src="/images/noodles.png" alt="Noodles" className={`w-10 h-10 object-contain ${!serving && 'grayscale opacity-50'}`} />
+        <img src={noodleImg} alt="Noodles" className={`w-10 h-10 object-contain ${!serving && 'grayscale opacity-50'}`} />
       </div>
       <div className="flex-1 space-y-2 min-w-0">
         <div className="flex justify-between items-start gap-3">
@@ -868,6 +875,15 @@ const ListRestaurantCard = ({ restaurant, onClick }) => {
 
 const MapRestaurantCard = ({ restaurant, onClick }) => {
   const serving = isCurrentlyServing(restaurant);
+  const beanTypes = restaurant.beanTypes?.length ? restaurant.beanTypes : [restaurant.beanType].filter(Boolean);
+
+  let noodleImg = "/apple-touch-icon.png";
+  if (beanTypes.includes('BLACK_BEAN')) {
+    noodleImg = "/images/black bean noodle.png";
+  } else if (beanTypes.includes('SOY_BEAN')) {
+    noodleImg = "/images/soy bean noodle.png";
+  }
+
   return (
     <div
       onClick={onClick}
@@ -878,7 +894,7 @@ const MapRestaurantCard = ({ restaurant, onClick }) => {
           <img
             alt={`${restaurant.name} 콩국수`}
             className="w-16 h-16 object-contain"
-            src="/images/noodles.png"
+            src={noodleImg}
           />
         </div>
         <div className="flex-grow py-1 min-w-0">

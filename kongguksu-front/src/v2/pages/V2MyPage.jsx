@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import Avatar from 'boring-avatars';
 import api from '../api';
 import './V2Main.css';
 import { useNotification } from '../contexts/NotificationContext';
+
+const KONG_COLORS = ["#FFFDF0", "#FFD369", "#3D3D3D", "#A9B388", "#FF9F29"];
 
 const isLoggedIn = () => {
   const token = localStorage.getItem('token');
@@ -42,6 +45,8 @@ const V2MyPage = () => {
     currentPassword: '',
     newPassword: '',
     email: '',
+    avatarVariant: 'beam',
+    avatarSeed: 'default',
   });
 
   const [emailInput, setEmailInput] = useState('');
@@ -70,6 +75,8 @@ const V2MyPage = () => {
           username: userData.username,
           nickname: userData.nickname || '',
           email: userData.email || '',
+          avatarVariant: userData.avatarVariant || 'beam',
+          avatarSeed: userData.avatarSeed || 'default',
         }));
         setEmailInput(userData.email || '');
         if (!userData.email) {
@@ -212,6 +219,8 @@ const V2MyPage = () => {
         nickname: formData.nickname,
         currentPassword: formData.currentPassword || null,
         newPassword: formData.newPassword || null,
+        avatarVariant: 'beam',
+        avatarSeed: formData.avatarSeed,
       };
 
       const response = await api.patch('/users/me', payload);
@@ -274,7 +283,7 @@ const V2MyPage = () => {
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
         <div className="flex items-center gap-2">
-          <img src="/images/noodles.png" alt="Icon" className="w-6 h-6 object-contain" />
+          <img src="/apple-touch-icon.png" alt="Icon" className="w-6 h-6 object-contain" />
           <h1 className="text-[#695E34] font-['Plus_Jakarta_Sans'] font-semibold text-lg tracking-tight">내 정보</h1>
         </div>
         <div className="flex items-center justify-end w-10">
@@ -331,10 +340,29 @@ const V2MyPage = () => {
         {activeTab === 'profile' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 text-center">
             {/* ... (profile content) ... */}
-            <div className="py-4">
-              <div className="w-24 h-24 bg-primary-container rounded-full mx-auto flex items-center justify-center mb-4 soy-shadow">
-                <img src="/images/noodles.png" alt="Profile" className="w-14 h-14 object-contain" />
+            <div className="py-4 flex flex-col items-center">
+              <div className="relative group mb-4">
+                <div className="w-24 h-24 bg-white rounded-full mx-auto flex items-center justify-center soy-shadow overflow-hidden border border-surface-container">
+                  <Avatar
+                    size={96}
+                    name={formData.avatarSeed}
+                    variant="beam"
+                    colors={KONG_COLORS}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const randomSeed = Math.random().toString(36).substring(2, 9);
+                    setFormData(prev => ({ ...prev, avatarSeed: randomSeed }));
+                  }}
+                  className="absolute -bottom-1 -right-1 bg-secondary text-white w-8 h-8 rounded-full flex items-center justify-center active:scale-95 transition-all soy-shadow"
+                  title="아바타 새로고침"
+                >
+                  <span className="material-symbols-outlined text-sm">shuffle</span>
+                </button>
               </div>
+
               <h2 className="text-2xl font-black text-primary">{formData.nickname}님</h2>
               <p className="text-sm text-outline font-bold">오늘도 맛있는 콩국수 어떠신가요?</p>
             </div>

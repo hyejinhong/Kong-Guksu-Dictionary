@@ -1,10 +1,13 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import Avatar from 'boring-avatars';
 import api from '../api';
 import './V2Main.css';
 import { useNotification } from '../contexts/NotificationContext';
+import V2ShareModal from '../components/V2ShareModal';
 
+const KONG_COLORS = ["#FFFDF0", "#FFD369", "#3D3D3D", "#A9B388", "#FF9F29"];
 const KAKAO_MAP_SCRIPT_ID = 'kakao-map-sdk';
 
 const loadKakaoMapScript = () => {
@@ -54,6 +57,27 @@ const formatPrice = (price) => {
   return Number.isFinite(numericPrice) ? `${numericPrice.toLocaleString()}원` : '가격 정보 없음';
 };
 
+const renderStarRating = (rating) => {
+  const numRating = Math.round(Number(rating) || 0);
+  const fullStars = Math.max(0, Math.min(5, numRating));
+  const emptyStars = 5 - fullStars;
+
+  return (
+    <div className="flex items-center gap-0.5" title={`별점 ${numRating}점`}>
+      {Array.from({ length: fullStars }).map((_, i) => (
+        <span key={`full-${i}`} className="material-symbols-outlined text-base text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>
+          star
+        </span>
+      ))}
+      {Array.from({ length: emptyStars }).map((_, i) => (
+        <span key={`empty-${i}`} className="material-symbols-outlined text-base text-outline-variant/30" style={{ fontVariationSettings: "'FILL' 0" }}>
+          star
+        </span>
+      ))}
+    </div>
+  );
+};
+
 const V2RestaurantDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -76,6 +100,13 @@ const V2RestaurantDetailPage = () => {
   const [userMemo, setUserMemo] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const [visitNotes, setVisitNotes] = useState([]);
+  const [loadingVisits, setLoadingVisits] = useState(false);
+  const [showAllNotes, setShowAllNotes] = useState(false);
+
+  // Share Modal States
+  const [showShareModal, setShowShareModal] = useState(false);
+
   const fetchComments = async () => {
     try {
       const response = await api.get(`/restaurants/${id}/comments`);
@@ -83,6 +114,18 @@ const V2RestaurantDetailPage = () => {
       setTotalComments(response.data.data.totalElements || 0);
     } catch (err) {
       console.error('Failed to fetch comments:', err);
+    }
+  };
+
+  const fetchVisitNotes = async () => {
+    try {
+      setLoadingVisits(true);
+      const response = await api.get(`/restaurants/${id}/visits`);
+      setVisitNotes(response.data.data || []);
+    } catch (err) {
+      console.error('Failed to fetch visit notes:', err);
+    } finally {
+      setLoadingVisits(false);
     }
   };
 
@@ -95,7 +138,7 @@ const V2RestaurantDetailPage = () => {
         setRestaurant(data);
         setIsSaved(data.isSaved);
         setVisitId(data.visitId);
-        await fetchComments();
+        await Promise.all([fetchComments(), fetchVisitNotes()]);
       } catch (err) {
         console.error('Failed to fetch restaurant detail:', err);
         setError('식당 정보를 불러오는 데 실패했습니다.');
@@ -121,6 +164,7 @@ const V2RestaurantDetailPage = () => {
           await api.delete(`/visited-restaurants/${visitId}`);
           setIsSaved(false);
           setVisitId(null);
+          await fetchVisitNotes();
           toast.success('삭제되었습니다.');
         } catch (err) {
           console.error('Failed to delete visit:', err);
@@ -140,20 +184,18 @@ const V2RestaurantDetailPage = () => {
     try {
       setSaving(true);
       const today = new Date().toISOString().split('T')[0];
-      const response = await api.post('/visited-restaurants', {
+      await api.post('/visited-restaurants', {
         restaurantId: parseInt(id),
         visitDate: today,
         rating: userRating,
         memo: userMemo
       });
       
-      // backend should return some info or we can re-fetch
-      // Actually the backend BaseResponse<Void> doesn't return the ID.
-      // We need to re-fetch the detail to get the visitId for future deletion.
       const resResponse = await api.get(`/restaurants/${id}`);
       const data = resResponse.data.data;
       setVisitId(data.visitId);
       setIsSaved(true);
+      await fetchVisitNotes();
       
       setShowSaveModal(false);
       toast.success('나의 사전에 저장되었습니다!');
@@ -271,7 +313,7 @@ const V2RestaurantDetailPage = () => {
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
         <div className="flex items-center gap-2">
-          <img src="/images/noodles.png" alt="Icon" className="w-6 h-6 object-contain" />
+          <img src="/apple-touch-icon.png" alt="Icon" className="w-6 h-6 object-contain" />
           <h1 className="text-[#695E34] font-['Plus_Jakarta_Sans'] font-semibold text-lg tracking-tight">콩국수 전문점</h1>
         </div>
         <div className="flex items-center justify-end w-10">
@@ -342,6 +384,13 @@ const V2RestaurantDetailPage = () => {
             </span>
             {isSaved ? '저장됨' : '저장하기'}
           </button>
+          <button 
+            onClick={() => setShowShareModal(true)}
+            className="flex-1 bg-surface-container-low text-primary py-4 rounded-full font-bold flex items-center justify-center gap-2 hover:opacity-80 transition-opacity active:scale-95 duration-200 shadow-[0_10px_20px_rgba(105,94,52,0.05)] border border-primary/10"
+          >
+            <span className="material-symbols-outlined">share</span>
+            공유하기
+          </button>
         </section>
 
         {/* Location & Hours */}
@@ -399,6 +448,81 @@ const V2RestaurantDetailPage = () => {
           </section>
         )}
 
+        {/* Saved User Memos & Reviews Section */}
+        <section className="px-2 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-primary font-bold text-xl flex items-center gap-2">
+              <span className="material-symbols-outlined text-secondary">rate_review</span>
+              리뷰
+            </h3>
+            <span className="text-tertiary text-xs font-semibold">
+              총 {visitNotes.length}개
+            </span>
+          </div>
+
+          {visitNotes.length === 0 ? (
+            <div className="bg-surface-container-low rounded-2xl p-6 text-center text-tertiary space-y-2 border border-outline-variant/10">
+              <span className="material-symbols-outlined text-3xl text-outline-variant">rate_review</span>
+              <p className="text-sm font-medium">아직 등록된 리뷰가 없어요.</p>
+              <p className="text-xs text-outline-variant">이 식당을 저장하고 첫 번째 리뷰를 남겨보세요! 🌟</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {(showAllNotes ? visitNotes : visitNotes.slice(0, 3)).map((note) => (
+                <div 
+                  key={note.id} 
+                  className="bg-surface-container-low rounded-2xl p-5 space-y-3 soy-shadow transition-all hover:bg-surface-container"
+                >
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                      <Avatar 
+                        size={36} 
+                        name={note.avatarSeed || note.nickname} 
+                        variant={note.avatarVariant || "beam"} 
+                        colors={KONG_COLORS} 
+                      />
+                      <div>
+                        <span className="font-bold text-on-surface text-sm">{note.nickname}</span>
+                        {note.visitDate && (
+                          <span className="text-[11px] text-tertiary ml-2">
+                            {note.visitDate}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {note.rating && renderStarRating(note.rating)}
+                  </div>
+
+                  {note.memo ? (
+                    <div className="bg-background/80 rounded-xl p-3.5 text-sm font-medium text-on-surface border border-outline-variant/10 leading-relaxed flex items-start gap-2">
+                      <span className="material-symbols-outlined text-tertiary text-lg shrink-0 mt-0.5">format_quote</span>
+                      <p className="whitespace-pre-wrap">{note.memo}</p>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-tertiary italic pl-1">이 식당을 나의 사전에 저장했습니다.</p>
+                  )}
+                </div>
+              ))}
+
+              {visitNotes.length > 3 && (
+                <button
+                  onClick={() => setShowAllNotes(!showAllNotes)}
+                  className="w-full py-3 rounded-2xl bg-surface-container-low text-primary font-bold text-sm hover:bg-surface-container transition-all flex items-center justify-center gap-1 border border-outline-variant/10 shadow-sm active:scale-[0.99]"
+                >
+                  <span>
+                    {showAllNotes 
+                      ? '리뷰 접기' 
+                      : `더 많은 리뷰 보기 (+${visitNotes.length - 3}개)`}
+                  </span>
+                  <span className="material-symbols-outlined text-lg">
+                    {showAllNotes ? 'keyboard_arrow_up' : 'keyboard_arrow_down'}
+                  </span>
+                </button>
+              )}
+            </div>
+          )}
+        </section>
+
         {/* Comments Section */}
         <section className="bg-surface-container-highest rounded-xl p-6 space-y-6">
           <div className="flex items-center justify-between">
@@ -431,8 +555,13 @@ const V2RestaurantDetailPage = () => {
               <div key={comment.id} className="bg-surface-container-lowest p-4 shadow-sm rounded-lg">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container text-xs font-bold">
-                      {comment.nickname?.charAt(0) || '익'}
+                    <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center overflow-hidden border border-surface-container shadow-sm">
+                      <Avatar
+                        size={32}
+                        name={comment.avatarSeed || comment.nickname || 'anonymous'}
+                        variant={comment.avatarVariant || 'beam'}
+                        colors={KONG_COLORS}
+                      />
                     </div>
                     <span className="font-semibold text-sm">{comment.nickname || '익명'}</span>
                   </div>
@@ -515,6 +644,13 @@ const V2RestaurantDetailPage = () => {
           </div>
         </div>
       )}
+
+      {/* Share Modal */}
+      <V2ShareModal 
+        isOpen={showShareModal} 
+        onClose={() => setShowShareModal(false)} 
+        restaurant={restaurant} 
+      />
 
       {/* BottomNavBar */}
       <nav className="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-3 bg-[#FDF9ED]/80 backdrop-blur-xl z-50 rounded-t-xl shadow-[0_-20px_40px_rgba(105,94,52,0.08)]">

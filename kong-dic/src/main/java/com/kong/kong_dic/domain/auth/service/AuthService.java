@@ -50,6 +50,8 @@ public class AuthService {
                 .nickname(request.getNickname())
                 .email(request.getEmail())
                 .role(Role.USER)
+                .avatarVariant("beam")
+                .avatarSeed(request.getNickname() != null ? request.getNickname() : request.getUsername())
                 .build();
 
         userRepository.save(newUser);

@@ -77,7 +77,7 @@ const V2SignupPage = () => {
     <div className="v2-root bg-background flex flex-col items-center justify-center px-6 py-12 overflow-y-auto">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
-          <img src="/images/noodles.png" alt="Logo" className="w-16 h-16 mx-auto mb-4 object-contain animate-bounce-slow" />
+          <img src="/apple-touch-icon.png" alt="Logo" className="w-16 h-16 mx-auto mb-4 object-contain animate-bounce-slow" />
           <h1 className="text-4xl font-black text-primary tracking-tighter font-headline mb-2">
             반가워요!
           </h1>

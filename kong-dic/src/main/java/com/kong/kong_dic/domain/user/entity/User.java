@@ -38,6 +38,14 @@ public class User implements UserDetails {
     private Role role; // ADMIN or USER
 
     @Builder.Default
+    @Column(name = "avatar_variant", nullable = false)
+    private String avatarVariant = "beam";
+
+    @Builder.Default
+    @Column(name = "avatar_seed", nullable = false)
+    private String avatarSeed = "default";
+
+    @Builder.Default
     private Date registeredAt = new Date(System.currentTimeMillis());
 
     @Builder.Default

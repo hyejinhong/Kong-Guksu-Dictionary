@@ -1,6 +1,7 @@
 package com.kong.kong_dic.domain.user.controller;
 
 import com.kong.kong_dic.common.response.BaseResponse;
+import com.kong.kong_dic.domain.user.dto.RestaurantVisitNoteResponseDto;
 import com.kong.kong_dic.domain.user.dto.UserRestaurantVisitRequestDto;
 import com.kong.kong_dic.domain.user.dto.UserRestaurantVisitResponseDto;
 import com.kong.kong_dic.domain.user.entity.User;
@@ -25,6 +26,11 @@ public class UserRestaurantVisitController {
 
     private final UserService userService;
     private final UserRestaurantVisitService visitService;
+
+    @GetMapping("/restaurants/{restaurantId}/visits")
+    public ResponseEntity<BaseResponse<List<RestaurantVisitNoteResponseDto>>> getRestaurantVisitNotes(@PathVariable Long restaurantId) {
+        return ResponseEntity.ok(BaseResponse.success(visitService.getRestaurantVisitNotes(restaurantId)));
+    }
 
     @GetMapping("/visited-restaurants")
     public ResponseEntity<BaseResponse<List<UserRestaurantVisitResponseDto>>> getVisitedRestaurants(@AuthUser UserDetails userDetails,

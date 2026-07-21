@@ -41,6 +41,8 @@ public class RestaurantCommentService {
                 .nickname(comment.getAuthor().getNickname())
                 .content(comment.getContent())
                 .createdAt(comment.getCreatedAt())
+                .avatarVariant(comment.getAuthor().getAvatarVariant())
+                .avatarSeed(comment.getAuthor().getAvatarSeed())
                 .build());
     }
 
@@ -50,6 +52,8 @@ public class RestaurantCommentService {
                 .nickname(comment.getAuthor().getNickname())
                 .content(comment.getContent())
                 .createdAt(comment.getCreatedAt())
+                .avatarVariant(comment.getAuthor().getAvatarVariant())
+                .avatarSeed(comment.getAuthor().getAvatarSeed())
                 .build();
     }
 
@@ -73,6 +77,8 @@ public class RestaurantCommentService {
                 .nickname(saved.getAuthor().getNickname())
                 .content(saved.getContent())
                 .createdAt(saved.getCreatedAt())
+                .avatarVariant(saved.getAuthor().getAvatarVariant())
+                .avatarSeed(saved.getAuthor().getAvatarSeed())
                 .build();
     }
 

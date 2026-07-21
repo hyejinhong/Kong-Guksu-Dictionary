@@ -17,6 +17,8 @@ public class UserProfileResponseDto {
     private String role;
     private Date registeredAt;
     private String email;
+    private String avatarVariant;
+    private String avatarSeed;
 
     public static UserProfileResponseDto of(User user) {
         return UserProfileResponseDto.builder()
@@ -26,6 +28,8 @@ public class UserProfileResponseDto {
                 .role(user.getRole().name())
                 .registeredAt(user.getRegisteredAt())
                 .email(user.getEmail())
+                .avatarVariant(user.getAvatarVariant())
+                .avatarSeed(user.getAvatarSeed())
                 .build();
     }
 }
