@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import api from '../api';
 import './V2Main.css';
 import { useNotification } from '../contexts/NotificationContext';
@@ -9,6 +10,35 @@ const DEFAULT_LOCATION = { latitude: 37.5665, longitude: 126.9780 };
 const INITIAL_MIN_PRICE = 5000;
 const INITIAL_MAX_PRICE = 20000;
 const LIST_PAGE_SIZE = 8;
+
+const getUserLocation = (onSuccess, onError) => {
+  if (!navigator.geolocation) {
+    toast.error('이 브라우저는 위치 서비스를 지원하지 않습니다.');
+    if (onError) onError();
+    return;
+  }
+
+  // 1차: 고정밀 위치 파악 시도 (7초 타임아웃)
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      onSuccess(position);
+    },
+    (err) => {
+      // 2차: 실내/모바일 브라우저 타임아웃 대응 저정밀(Cell/WiFi) 위치 로딩 (5초 타임아웃)
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          onSuccess(position);
+        },
+        (fallbackErr) => {
+          console.warn('Geolocation fallback failed:', fallbackErr);
+          if (onError) onError(fallbackErr);
+        },
+        { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 }
+      );
+    },
+    { enableHighAccuracy: true, timeout: 7000, maximumAge: 60000 }
+  );
+};
 
 const loadKakaoMapScript = () => {
   if (window.kakao?.maps) {
@@ -119,42 +149,115 @@ const isLoggedIn = () => {
   return true;
 };
 
+const STORAGE_KEY = 'v2_main_state';
+
+const parseInitialState = (searchParams) => {
+  let stored = {};
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    if (raw) stored = JSON.parse(raw);
+  } catch (e) {
+    console.error(e);
+  }
+
+  const hasSearchParams = Array.from(searchParams.keys()).length > 0;
+  const view = searchParams.get('view') || stored.view || 'map';
+
+  const nearMeParam = searchParams.get('nearMe');
+  const nearMe = nearMeParam !== null ? nearMeParam === 'true' : (stored.nearMe ?? false);
+
+  const beanType = searchParams.get('beanType') || stored.beanType || 'all';
+
+  const openNowParam = searchParams.get('openNow');
+  const openNow = openNowParam !== null ? openNowParam === 'true' : (stored.openNow ?? false);
+
+  const minPriceParam = searchParams.get('minPrice');
+  const minPrice = minPriceParam !== null ? Number(minPriceParam) : (stored.minPrice ?? INITIAL_MIN_PRICE);
+
+  const maxPriceParam = searchParams.get('maxPrice');
+  const maxPrice = maxPriceParam !== null ? Number(maxPriceParam) : (stored.maxPrice ?? INITIAL_MAX_PRICE);
+
+  const search = searchParams.get('q') ?? stored.search ?? '';
+  const pageParam = searchParams.get('page');
+  const page = pageParam !== null ? Math.max(1, Number(pageParam)) : (stored.page ?? 1);
+
+  const latParam = searchParams.get('lat');
+  const lonParam = searchParams.get('lon');
+  const location = (latParam && lonParam)
+    ? { latitude: Number(latParam), longitude: Number(lonParam) }
+    : (stored.location || DEFAULT_LOCATION);
+
+  return {
+    view,
+    filter: { nearMe, beanType, openNow, minPrice, maxPrice },
+    search,
+    page,
+    location,
+    hasStoredPreference: Boolean(stored && Object.keys(stored).length > 0) || hasSearchParams,
+  };
+};
+
 const V2MainPage = () => {
   const navigate = useNavigate();
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
   const markersRef = useRef([]);
   const [searchParams, setSearchParams] = useSearchParams();
-  const viewParam = searchParams.get('view') || 'map';
-  const [activeView, setActiveView] = useState(viewParam);
 
-  useEffect(() => {
-    if (viewParam === 'list' || viewParam === 'map') {
-      setActiveView(viewParam);
-    }
-  }, [viewParam]);
+  const [initialState] = useState(() => parseInitialState(searchParams));
 
-  const handleViewChange = (view) => {
-    setActiveView(view);
-    setSearchParams({ view }, { replace: true });
-  };
-  const [location, setLocation] = useState(DEFAULT_LOCATION);
+  const [activeView, setActiveView] = useState(initialState.view);
+  const [location, setLocation] = useState(initialState.location);
   const [restaurants, setRestaurants] = useState([]);
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [submittedSearchTerm, setSubmittedSearchTerm] = useState('');
-  const [filter, setFilter] = useState({
-    beanType: 'all',
-    openNow: false,
-    minPrice: INITIAL_MIN_PRICE,
-    maxPrice: INITIAL_MAX_PRICE,
-    nearMe: false,
-  });
-  const [listPage, setListPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState(initialState.search);
+  const [submittedSearchTerm, setSubmittedSearchTerm] = useState(initialState.search);
+  const [filter, setFilter] = useState(initialState.filter);
+  const [listPage, setListPage] = useState(initialState.page);
+
   const [loading, setLoading] = useState(true);
+  const [isLocating, setIsLocating] = useState(false);
   const [error, setError] = useState('');
   const [mapError, setMapError] = useState('');
   const [isMapReady, setIsMapReady] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    params.set('view', activeView);
+    if (filter.nearMe) params.set('nearMe', 'true');
+    if (filter.beanType !== 'all') params.set('beanType', filter.beanType);
+    if (filter.openNow) params.set('openNow', 'true');
+    if (filter.minPrice !== INITIAL_MIN_PRICE) params.set('minPrice', String(filter.minPrice));
+    if (filter.maxPrice !== INITIAL_MAX_PRICE) params.set('maxPrice', String(filter.maxPrice));
+    if (submittedSearchTerm) params.set('q', submittedSearchTerm);
+    if (listPage > 1) params.set('page', String(listPage));
+    if (filter.nearMe && location) {
+      params.set('lat', String(location.latitude));
+      params.set('lon', String(location.longitude));
+    }
+
+    setSearchParams(params, { replace: true });
+
+    try {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
+        view: activeView,
+        nearMe: filter.nearMe,
+        beanType: filter.beanType,
+        openNow: filter.openNow,
+        minPrice: filter.minPrice,
+        maxPrice: filter.maxPrice,
+        search: submittedSearchTerm,
+        page: listPage,
+        location,
+      }));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [activeView, filter, submittedSearchTerm, listPage, location, setSearchParams]);
+
+  const handleViewChange = (view) => {
+    setActiveView(view);
+  };
 
   const fetchRestaurants = useCallback(async () => {
     setLoading(true);
@@ -182,7 +285,6 @@ const V2MainPage = () => {
       const response = await api.get('/restaurants/filter', { params });
       setRestaurants(response.data?.data ?? []);
       setSelectedRestaurant(null);
-      setListPage(1);
     } catch (fetchError) {
       console.error(fetchError);
       setError('식당 목록을 불러오지 못했습니다.');
@@ -201,19 +303,21 @@ const V2MainPage = () => {
   ]);
 
   useEffect(() => {
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setLocation({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-        });
-        setFilter((prev) => ({ ...prev, nearMe: true }));
-      },
-      () => {
-        setLocation(DEFAULT_LOCATION);
-      }
-    );
-  }, []);
+    if (!initialState.hasStoredPreference) {
+      getUserLocation(
+        (position) => {
+          setLocation({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          });
+          setFilter((prev) => ({ ...prev, nearMe: true }));
+        },
+        () => {
+          setLocation(DEFAULT_LOCATION);
+        }
+      );
+    }
+  }, [initialState.hasStoredPreference]);
 
   useEffect(() => {
     fetchRestaurants();
@@ -357,7 +461,33 @@ const V2MainPage = () => {
 
   const updateFilter = (key, value) => {
     setFilter((prevFilter) => ({ ...prevFilter, [key]: value }));
+    setListPage(1);
   };
+
+  const handleToggleNearMe = useCallback(() => {
+    if (isLocating) return;
+
+    if (!filter.nearMe) {
+      setIsLocating(true);
+      getUserLocation(
+        (position) => {
+          setLocation({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          });
+          updateFilter('nearMe', true);
+          setIsLocating(false);
+          toast.success('내 주변 위치를 설정했습니다.');
+        },
+        () => {
+          setIsLocating(false);
+          toast.error('위치 정보 조회를 허용해주세요.');
+        }
+      );
+    } else {
+      updateFilter('nearMe', false);
+    }
+  }, [filter.nearMe, isLocating]);
 
   const zoomIn = () => {
     const map = mapRef.current;
@@ -373,22 +503,29 @@ const V2MainPage = () => {
 
   const moveToCurrentLocation = () => {
     const map = mapRef.current;
-    if (!map || !navigator.geolocation || !window.kakao?.maps) return;
+    if (!map || !window.kakao?.maps) return;
 
-    navigator.geolocation.getCurrentPosition((position) => {
-      const nextLocation = {
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-      };
+    getUserLocation(
+      (position) => {
+        const nextLocation = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        };
 
-      setLocation(nextLocation);
-      map.panTo(new window.kakao.maps.LatLng(nextLocation.latitude, nextLocation.longitude));
-    });
+        setLocation(nextLocation);
+        map.panTo(new window.kakao.maps.LatLng(nextLocation.latitude, nextLocation.longitude));
+        toast.success('현재 위치로 이동했습니다.');
+      },
+      () => {
+        toast.error('위치 정보 조회를 허용해주세요.');
+      }
+    );
   };
 
   const handleSearchSubmit = (event) => {
     event.preventDefault();
     setSubmittedSearchTerm(searchTerm.trim());
+    setListPage(1);
   };
 
   return (
@@ -421,6 +558,8 @@ const V2MainPage = () => {
         <ListView
           filter={filter}
           handleSearchSubmit={handleSearchSubmit}
+          handleToggleNearMe={handleToggleNearMe}
+          isLocating={isLocating}
           listPage={listPage}
           loading={loading}
           pagedRestaurants={pagedRestaurants}
@@ -590,6 +729,8 @@ const MapView = ({
 const ListView = ({
   filter,
   handleSearchSubmit,
+  handleToggleNearMe,
+  isLocating,
   listPage,
   loading,
   pagedRestaurants,
@@ -624,29 +765,20 @@ const ListView = ({
       </form>
 
       <section className="space-y-6 mb-10">
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-2 px-2 no-scrollbar">
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-2 px-2 no-scrollbar touch-pan-x">
           <FilterChip
             active={filter.nearMe}
-            onClick={() => {
-              if (!filter.nearMe) {
-                navigator.geolocation.getCurrentPosition(
-                  (position) => {
-                    setLocation({
-                      latitude: position.coords.latitude,
-                      longitude: position.coords.longitude,
-                    });
-                    updateFilter('nearMe', true);
-                  },
-                  () => {
-                    alert('위치 정보 조회를 허용해주세요.');
-                  }
-                );
-              } else {
-                updateFilter('nearMe', false);
-              }
-            }}
+            disabled={isLocating}
+            onClick={handleToggleNearMe}
           >
-            📍 내 주변
+            {isLocating ? (
+              <span className="flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+                위치 찾는 중...
+              </span>
+            ) : (
+              '📍 내 주변'
+            )}
           </FilterChip>
 
           {/* 세로 구분선 */}
@@ -760,13 +892,14 @@ const ListView = ({
   );
 };
 
-const FilterChip = ({ active, children, onClick }) => (
+const FilterChip = ({ active, children, disabled = false, onClick }) => (
   <button
-    className={`flex-none px-5 py-2.5 rounded-full font-semibold text-sm transition-all ${
+    className={`flex-none shrink-0 px-5 py-2.5 rounded-full font-semibold text-sm transition-all select-none touch-manipulation min-h-[44px] flex items-center justify-center gap-1.5 ${
       active
         ? 'bg-secondary-container text-on-secondary-container soy-shadow'
         : 'bg-surface-container-highest text-on-surface-variant hover:bg-surface-container-high'
-    }`}
+    } ${disabled ? 'opacity-70 cursor-wait' : 'active:scale-95'}`}
+    disabled={disabled}
     onClick={onClick}
     type="button"
   >
