@@ -30,6 +30,18 @@ const getBeanLabel = (beanType) => {
   return beanType || '기타';
 };
 
+const getSeasoningBadge = (preference) => {
+  if (!preference) return null;
+  const pref = String(preference).toUpperCase();
+  switch (pref) {
+    case 'SALT': return { label: '소금 🧂', color: 'bg-blue-100 text-blue-800 border-blue-200' };
+    case 'SUGAR': return { label: '설탕 🍬', color: 'bg-pink-100 text-pink-800 border-pink-200' };
+    case 'BOTH': return { label: '단짠 🧂🍬', color: 'bg-purple-100 text-purple-800 border-purple-200' };
+    case 'NONE': return { label: '순정 🫘', color: 'bg-amber-100 text-amber-800 border-amber-200' };
+    default: return null;
+  }
+};
+
 const V2MyPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -47,6 +59,7 @@ const V2MyPage = () => {
     email: '',
     avatarVariant: 'beam',
     avatarSeed: 'default',
+    seasoningPreference: 'NONE',
   });
 
   const [emailInput, setEmailInput] = useState('');
@@ -77,6 +90,7 @@ const V2MyPage = () => {
           email: userData.email || '',
           avatarVariant: userData.avatarVariant || 'beam',
           avatarSeed: userData.avatarSeed || 'default',
+          seasoningPreference: userData.seasoningPreference || 'NONE',
         }));
         setEmailInput(userData.email || '');
         if (!userData.email) {
@@ -221,6 +235,7 @@ const V2MyPage = () => {
         newPassword: formData.newPassword || null,
         avatarVariant: 'beam',
         avatarSeed: formData.avatarSeed,
+        seasoningPreference: formData.seasoningPreference,
       };
 
       const response = await api.patch('/users/me', payload);
@@ -363,7 +378,17 @@ const V2MyPage = () => {
                 </button>
               </div>
 
-              <h2 className="text-2xl font-black text-primary">{formData.nickname}님</h2>
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <h2 className="text-2xl font-black text-primary">{formData.nickname}님</h2>
+                {(() => {
+                  const badge = getSeasoningBadge(formData.seasoningPreference);
+                  return badge ? (
+                    <span className={`px-3 py-1 rounded-full text-xs font-black border ${badge.color}`}>
+                      {badge.label}
+                    </span>
+                  ) : null;
+                })()}
+              </div>
               <p className="text-sm text-outline font-bold">오늘도 맛있는 콩국수 어떠신가요?</p>
             </div>
 
@@ -468,6 +493,31 @@ const V2MyPage = () => {
                   >
                     랜덤
                   </button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-outline uppercase ml-4">콩국수 간/양념 취향 🫘</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { value: 'SALT', label: '소금 🧂' },
+                    { value: 'SUGAR', label: '설탕 🍬' },
+                    { value: 'BOTH', label: '단짠 🧂🍬' },
+                    { value: 'NONE', label: '순정 🫘' },
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setFormData((prev) => ({ ...prev, seasoningPreference: option.value }))}
+                      className={`py-3 px-4 rounded-2xl font-bold text-sm transition-all border ${
+                        (formData.seasoningPreference || 'NONE') === option.value
+                          ? 'bg-primary text-background border-primary shadow-md scale-[1.02]'
+                          : 'bg-surface-container text-on-surface border-transparent hover:bg-surface-container-high'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
                 </div>
               </div>
 

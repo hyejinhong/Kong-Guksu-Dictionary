@@ -109,6 +109,11 @@ public class UserService {
             user.setAvatarSeed(request.getAvatarSeed());
         }
 
+        // 4. 간/양념 취향 수정
+        if (request.getSeasoningPreference() != null) {
+            user.setSeasoningPreference(request.getSeasoningPreference());
+        }
+
         User updatedUser = userRepository.save(user);
         return UserProfileResponseDto.of(updatedUser);
     }

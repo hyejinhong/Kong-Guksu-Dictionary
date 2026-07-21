@@ -43,6 +43,7 @@ public class RestaurantCommentService {
                 .createdAt(comment.getCreatedAt())
                 .avatarVariant(comment.getAuthor().getAvatarVariant())
                 .avatarSeed(comment.getAuthor().getAvatarSeed())
+                .seasoningPreference(comment.getAuthor().getSeasoningPreference() != null ? comment.getAuthor().getSeasoningPreference() : com.kong.kong_dic.domain.user.entity.SeasoningPreference.NONE)
                 .build());
     }
 
@@ -54,6 +55,7 @@ public class RestaurantCommentService {
                 .createdAt(comment.getCreatedAt())
                 .avatarVariant(comment.getAuthor().getAvatarVariant())
                 .avatarSeed(comment.getAuthor().getAvatarSeed())
+                .seasoningPreference(comment.getAuthor().getSeasoningPreference() != null ? comment.getAuthor().getSeasoningPreference() : com.kong.kong_dic.domain.user.entity.SeasoningPreference.NONE)
                 .build();
     }
 
@@ -79,6 +81,7 @@ public class RestaurantCommentService {
                 .createdAt(saved.getCreatedAt())
                 .avatarVariant(saved.getAuthor().getAvatarVariant())
                 .avatarSeed(saved.getAuthor().getAvatarSeed())
+                .seasoningPreference(saved.getAuthor().getSeasoningPreference() != null ? saved.getAuthor().getSeasoningPreference() : com.kong.kong_dic.domain.user.entity.SeasoningPreference.NONE)
                 .build();
     }
 

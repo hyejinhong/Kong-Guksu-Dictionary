@@ -40,6 +40,7 @@ public class UserRestaurantVisitService {
                     .nickname(u != null && u.getNickname() != null ? u.getNickname() : (u != null ? u.getUsername() : "익명"))
                     .avatarVariant(u != null ? u.getAvatarVariant() : "beam")
                     .avatarSeed(u != null ? u.getAvatarSeed() : "default")
+                    .seasoningPreference(u != null && u.getSeasoningPreference() != null ? u.getSeasoningPreference() : com.kong.kong_dic.domain.user.entity.SeasoningPreference.NONE)
                     .rating(visit.getRating())
                     .memo(visit.getMemo())
                     .visitDate(visit.getVisitDate())

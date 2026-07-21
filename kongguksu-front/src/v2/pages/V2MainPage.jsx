@@ -154,6 +154,7 @@ const V2MainPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [mapError, setMapError] = useState('');
+  const [isMapReady, setIsMapReady] = useState(false);
 
   const fetchRestaurants = useCallback(async () => {
     setLoading(true);
@@ -218,6 +219,7 @@ const V2MainPage = () => {
     fetchRestaurants();
   }, [fetchRestaurants]);
 
+  // 지도 인스턴스 초기화 (activeView 변경 시에만 단 1회 생성/재생성)
   useEffect(() => {
     if (activeView !== 'map') return undefined;
 
@@ -227,6 +229,12 @@ const V2MainPage = () => {
       try {
         const kakao = await loadKakaoMapScript();
         if (ignore || !mapContainerRef.current) return;
+
+        // 이미 지도가 존재한다면 재생성하지 않고 리레이아웃만 수행
+        if (mapRef.current) {
+          mapRef.current.relayout();
+          return;
+        }
 
         const center = new kakao.maps.LatLng(location.latitude, location.longitude);
         mapRef.current = new kakao.maps.Map(mapContainerRef.current, {
@@ -239,6 +247,7 @@ const V2MainPage = () => {
         mapRef.current.setZoomable(true);
         window.setTimeout(() => mapRef.current?.relayout(), 0);
         setMapError('');
+        setIsMapReady(true);
       } catch (initError) {
         console.error(initError);
         setMapError('카카오맵을 불러오지 못했습니다.');
@@ -252,8 +261,20 @@ const V2MainPage = () => {
       markersRef.current.forEach((marker) => marker.setMap(null));
       markersRef.current = [];
       mapRef.current = null;
+      setIsMapReady(false);
     };
-  }, [activeView, location.latitude, location.longitude]);
+  }, [activeView]); // location 변경 시 지도를 파괴하고 새로 만들지 않음!
+
+  // 위치(location) 변경 시 기존 지도 중심만 부드럽게 이동
+  useEffect(() => {
+    const map = mapRef.current;
+    const kakao = window.kakao;
+    if (activeView === 'map' && isMapReady && map && kakao?.maps) {
+      const newCenter = new kakao.maps.LatLng(location.latitude, location.longitude);
+      map.setCenter(newCenter);
+      map.setLevel(5); // 동네 축척 고정
+    }
+  }, [activeView, isMapReady, location.latitude, location.longitude]);
 
   useEffect(() => {
     if (activeView !== 'map') return undefined;
@@ -274,11 +295,12 @@ const V2MainPage = () => {
     };
   }, [activeView]);
 
+  // 마커 렌더링 및 검색어 유무에 따른 Bounds / Center 처리
   useEffect(() => {
     const map = mapRef.current;
     const kakao = window.kakao;
 
-    if (activeView !== 'map' || !map || !kakao?.maps) return;
+    if (activeView !== 'map' || !isMapReady || !map || !kakao?.maps) return;
 
     markersRef.current.forEach((marker) => marker.setMap(null));
     markersRef.current = [];
@@ -314,12 +336,18 @@ const V2MainPage = () => {
       hasPosition = true;
     });
 
-    if (hasPosition) {
+    if (hasPosition && submittedSearchTerm) {
+      // 명시적으로 검색어를 입력했을 때만 해당 검색 결과 식당들에 범위를 맞추되 지나친 줌아웃 방지
       map.setBounds(bounds);
+      if (map.getLevel() > 7) {
+        map.setLevel(7);
+      }
     } else {
+      // 일반 지도 탐색 시에는 지도를 전국으로 줌아웃하지 않고 현재 설정된 위치와 줌 레벨 5를 고정 유지
       map.setCenter(new kakao.maps.LatLng(location.latitude, location.longitude));
+      map.setLevel(5);
     }
-  }, [activeView, restaurants, location.latitude, location.longitude]);
+  }, [activeView, isMapReady, restaurants, location.latitude, location.longitude, submittedSearchTerm]);
 
   const totalListPages = Math.max(1, Math.ceil(restaurants.length / LIST_PAGE_SIZE));
   const pagedRestaurants = useMemo(() => {

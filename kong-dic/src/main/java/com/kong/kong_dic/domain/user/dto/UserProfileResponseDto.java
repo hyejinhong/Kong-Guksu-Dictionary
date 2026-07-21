@@ -1,5 +1,6 @@
 package com.kong.kong_dic.domain.user.dto;
 
+import com.kong.kong_dic.domain.user.entity.SeasoningPreference;
 import com.kong.kong_dic.domain.user.entity.User;
 import lombok.Builder;
 import lombok.Getter;
@@ -19,6 +20,7 @@ public class UserProfileResponseDto {
     private String email;
     private String avatarVariant;
     private String avatarSeed;
+    private SeasoningPreference seasoningPreference;
 
     public static UserProfileResponseDto of(User user) {
         return UserProfileResponseDto.builder()
@@ -30,6 +32,7 @@ public class UserProfileResponseDto {
                 .email(user.getEmail())
                 .avatarVariant(user.getAvatarVariant())
                 .avatarSeed(user.getAvatarSeed())
+                .seasoningPreference(user.getSeasoningPreference() != null ? user.getSeasoningPreference() : SeasoningPreference.NONE)
                 .build();
     }
 }

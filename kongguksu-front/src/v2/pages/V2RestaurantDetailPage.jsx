@@ -57,6 +57,18 @@ const formatPrice = (price) => {
   return Number.isFinite(numericPrice) ? `${numericPrice.toLocaleString()}원` : '가격 정보 없음';
 };
 
+const getSeasoningBadge = (preference) => {
+  if (!preference) return null;
+  const pref = String(preference).toUpperCase();
+  switch (pref) {
+    case 'SALT': return { label: '소금 🧂', color: 'bg-blue-100 text-blue-800 border-blue-200' };
+    case 'SUGAR': return { label: '설탕 🍬', color: 'bg-pink-100 text-pink-800 border-pink-200' };
+    case 'BOTH': return { label: '단짠 🧂🍬', color: 'bg-purple-100 text-purple-800 border-purple-200' };
+    case 'NONE': return { label: '순정 🫘', color: 'bg-amber-100 text-amber-800 border-amber-200' };
+    default: return null;
+  }
+};
+
 const renderStarRating = (rating) => {
   const numRating = Math.round(Number(rating) || 0);
   const fullStars = Math.max(0, Math.min(5, numRating));
@@ -482,9 +494,19 @@ const V2RestaurantDetailPage = () => {
                         colors={KONG_COLORS} 
                       />
                       <div>
-                        <span className="font-bold text-on-surface text-sm">{note.nickname}</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-on-surface text-sm">{note.nickname}</span>
+                          {(() => {
+                            const badge = getSeasoningBadge(note.seasoningPreference || note.seasoning_preference);
+                            return badge ? (
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${badge.color}`}>
+                                {badge.label}
+                              </span>
+                            ) : null;
+                          })()}
+                        </div>
                         {note.visitDate && (
-                          <span className="text-[11px] text-tertiary ml-2">
+                          <span className="text-[11px] text-tertiary">
                             {note.visitDate}
                           </span>
                         )}
@@ -564,6 +586,14 @@ const V2RestaurantDetailPage = () => {
                       />
                     </div>
                     <span className="font-semibold text-sm">{comment.nickname || '익명'}</span>
+                    {(() => {
+                      const badge = getSeasoningBadge(comment.seasoningPreference || comment.seasoning_preference);
+                      return badge ? (
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${badge.color}`}>
+                          {badge.label}
+                        </span>
+                      ) : null;
+                    })()}
                   </div>
                   <span className="text-tertiary text-[11px]">{new Date(comment.createdAt).toLocaleDateString()}</span>
                 </div>
