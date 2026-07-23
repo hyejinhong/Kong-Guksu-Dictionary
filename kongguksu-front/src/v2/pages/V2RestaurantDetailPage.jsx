@@ -200,7 +200,7 @@ const V2RestaurantDetailPage = () => {
         restaurantId: parseInt(id),
         visitDate: today,
         rating: userRating,
-        memo: userMemo
+        memo: userMemo.trim() || null
       });
       
       const resResponse = await api.get(`/restaurants/${id}`);
@@ -515,13 +515,11 @@ const V2RestaurantDetailPage = () => {
                     {note.rating && renderStarRating(note.rating)}
                   </div>
 
-                  {note.memo ? (
+                  {note.memo && note.memo.trim() && (
                     <div className="bg-background/80 rounded-xl p-3.5 text-sm font-medium text-on-surface border border-outline-variant/10 leading-relaxed flex items-start gap-2">
                       <span className="material-symbols-outlined text-tertiary text-lg shrink-0 mt-0.5">format_quote</span>
                       <p className="whitespace-pre-wrap">{note.memo}</p>
                     </div>
-                  ) : (
-                    <p className="text-xs text-tertiary italic pl-1">이 식당을 나의 사전에 저장했습니다.</p>
                   )}
                 </div>
               ))}
