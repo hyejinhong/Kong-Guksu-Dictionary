@@ -101,6 +101,19 @@ public class UserService {
             user.setPassword(hashedNewPassword);
         }
 
+        // 3. 아바타 정보 수정
+        if (request.getAvatarVariant() != null && !request.getAvatarVariant().isBlank()) {
+            user.setAvatarVariant(request.getAvatarVariant());
+        }
+        if (request.getAvatarSeed() != null && !request.getAvatarSeed().isBlank()) {
+            user.setAvatarSeed(request.getAvatarSeed());
+        }
+
+        // 4. 간/양념 취향 수정
+        if (request.getSeasoningPreference() != null) {
+            user.setSeasoningPreference(request.getSeasoningPreference());
+        }
+
         User updatedUser = userRepository.save(user);
         return UserProfileResponseDto.of(updatedUser);
     }

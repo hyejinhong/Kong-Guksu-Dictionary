@@ -1,16 +1,23 @@
 package com.kong.kong_dic.domain.user.dto;
 
 import com.kong.kong_dic.domain.user.entity.SeasoningPreference;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
+
+import java.time.LocalDate;
 
 @Getter
 @Setter
-public class UserProfileUpdateRequestDto {
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class RestaurantVisitNoteResponseDto {
+    private Long id;
+    private Long userId;
     private String nickname;
-    private String currentPassword; // 기존 비밀번호 확인용
-    private String newPassword;     // 새 비밀번호
     private String avatarVariant;
     private String avatarSeed;
     private SeasoningPreference seasoningPreference;
+    private Double rating;
+    private String memo;
+    private LocalDate visitDate;
 }

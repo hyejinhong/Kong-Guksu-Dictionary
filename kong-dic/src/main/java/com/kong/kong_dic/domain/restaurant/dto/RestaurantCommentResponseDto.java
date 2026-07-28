@@ -1,5 +1,6 @@
 package com.kong.kong_dic.domain.restaurant.dto;
 
+import com.kong.kong_dic.domain.user.entity.SeasoningPreference;
 import lombok.Builder;
 import lombok.Data;
 
@@ -12,4 +13,7 @@ public class RestaurantCommentResponseDto {
     private String nickname;
     private String content;
     private LocalDateTime createdAt;
+    private String avatarVariant;
+    private String avatarSeed;
+    private SeasoningPreference seasoningPreference;
 }

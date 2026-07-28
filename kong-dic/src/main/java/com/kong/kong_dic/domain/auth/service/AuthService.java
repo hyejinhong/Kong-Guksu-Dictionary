@@ -7,6 +7,7 @@ import com.kong.kong_dic.domain.auth.dto.PasswordResetRequestDto;
 import com.kong.kong_dic.domain.auth.dto.PasswordResetConfirmDto;
 import com.kong.kong_dic.domain.auth.exception.AuthExceptionType;
 import com.kong.kong_dic.domain.user.entity.Role;
+import com.kong.kong_dic.domain.user.entity.SeasoningPreference;
 import com.kong.kong_dic.domain.user.entity.User;
 import com.kong.kong_dic.domain.user.repository.UserRepository;
 import com.kong.kong_dic.global.jwt.JwtProvider;
@@ -50,6 +51,9 @@ public class AuthService {
                 .nickname(request.getNickname())
                 .email(request.getEmail())
                 .role(Role.USER)
+                .avatarVariant("beam")
+                .avatarSeed(request.getNickname() != null ? request.getNickname() : request.getUsername())
+                .seasoningPreference(request.getSeasoningPreference() != null ? request.getSeasoningPreference() : SeasoningPreference.NONE)
                 .build();
 
         userRepository.save(newUser);

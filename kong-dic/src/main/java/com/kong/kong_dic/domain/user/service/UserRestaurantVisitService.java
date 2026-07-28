@@ -6,6 +6,7 @@ import com.kong.kong_dic.domain.restaurant.entity.Restaurant;
 import com.kong.kong_dic.domain.restaurant.exception.RestaurantExceptionType;
 import com.kong.kong_dic.domain.restaurant.repository.RestaurantRepository;
 import com.kong.kong_dic.domain.restaurant.service.RestaurantService;
+import com.kong.kong_dic.domain.user.dto.RestaurantVisitNoteResponseDto;
 import com.kong.kong_dic.domain.user.dto.UserRestaurantVisitRequestDto;
 import com.kong.kong_dic.domain.user.dto.UserRestaurantVisitResponseDto;
 import com.kong.kong_dic.domain.user.entity.User;
@@ -27,6 +28,25 @@ public class UserRestaurantVisitService {
     private final UserRestaurantVisitRepository visitRepository;
     private final RestaurantRepository restaurantRepository;
     private final UserRepository userRepository;
+
+    @Transactional
+    public List<RestaurantVisitNoteResponseDto> getRestaurantVisitNotes(Long restaurantId) {
+        List<UserRestaurantVisit> visitList = visitRepository.findByRestaurantIdOrderByVisitDateDesc(restaurantId);
+        return visitList.stream().map(visit -> {
+            User u = visit.getUser();
+            return RestaurantVisitNoteResponseDto.builder()
+                    .id(visit.getId())
+                    .userId(u != null ? u.getId() : null)
+                    .nickname(u != null && u.getNickname() != null ? u.getNickname() : (u != null ? u.getUsername() : "익명"))
+                    .avatarVariant(u != null ? u.getAvatarVariant() : "beam")
+                    .avatarSeed(u != null ? u.getAvatarSeed() : "default")
+                    .seasoningPreference(u != null && u.getSeasoningPreference() != null ? u.getSeasoningPreference() : com.kong.kong_dic.domain.user.entity.SeasoningPreference.NONE)
+                    .rating(visit.getRating())
+                    .memo(visit.getMemo())
+                    .visitDate(visit.getVisitDate())
+                    .build();
+        }).toList();
+    }
 
     public List<UserRestaurantVisitResponseDto> getVisitedRestaurants(String username, Pageable pageable) {
         User user = userRepository.findByUsername(username).orElseThrow(() -> new BaseException(UserExceptionType.USER_NOT_FOUND));
@@ -55,12 +75,16 @@ public class UserRestaurantVisitService {
                 .ifPresent(visit -> {
                     throw new BaseException(UserExceptionType.ALREADY_VISITED_RESTAURANT);
                 });
+        String trimmedMemo = (request.getMemo() != null && !request.getMemo().trim().isEmpty())
+                ? request.getMemo().trim()
+                : null;
+
         UserRestaurantVisit entity = UserRestaurantVisit.builder()
                 .user(user)
                 .restaurant(restaurant)
                 .visitDate(request.getVisitDate())
                 .rating(request.getRating())
-                .memo(request.getMemo())
+                .memo(trimmedMemo)
                 .build();
         visitRepository.save(entity);
 
@@ -91,7 +115,9 @@ public class UserRestaurantVisitService {
 
         if (request.getRating() != null)
             visit.setRating(request.getRating());
-        if (request.getMemo() != null)
-            visit.setMemo(request.getMemo());
+        if (request.getMemo() != null) {
+            String trimmedMemo = !request.getMemo().trim().isEmpty() ? request.getMemo().trim() : null;
+            visit.setMemo(trimmedMemo);
+        }
     }
 }

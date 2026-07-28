@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import Avatar from 'boring-avatars';
 import api from '../api';
 import './V2Main.css';
 import { useNotification } from '../contexts/NotificationContext';
+
+const KONG_COLORS = ["#FFFDF0", "#FFD369", "#3D3D3D", "#A9B388", "#FF9F29"];
 
 const isLoggedIn = () => {
   const token = localStorage.getItem('token');
@@ -21,6 +24,24 @@ const isLoggedIn = () => {
   return true;
 };
 
+const getBeanLabel = (beanType) => {
+  if (beanType === 'SOY_BEAN') return '백태';
+  if (beanType === 'BLACK_BEAN') return '서리태';
+  return beanType || '기타';
+};
+
+const getSeasoningBadge = (preference) => {
+  if (!preference) return null;
+  const pref = String(preference).toUpperCase();
+  switch (pref) {
+    case 'SALT': return { label: '소금 🧂', color: 'bg-blue-100 text-blue-800 border-blue-200' };
+    case 'SUGAR': return { label: '설탕 🍬', color: 'bg-pink-100 text-pink-800 border-pink-200' };
+    case 'BOTH': return { label: '단짠 🧂🍬', color: 'bg-purple-100 text-purple-800 border-purple-200' };
+    case 'NONE': return { label: '순정 🫘', color: 'bg-amber-100 text-amber-800 border-amber-200' };
+    default: return null;
+  }
+};
+
 const V2MyPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -36,6 +57,9 @@ const V2MyPage = () => {
     currentPassword: '',
     newPassword: '',
     email: '',
+    avatarVariant: 'beam',
+    avatarSeed: 'default',
+    seasoningPreference: 'NONE',
   });
 
   const [emailInput, setEmailInput] = useState('');
@@ -64,6 +88,9 @@ const V2MyPage = () => {
           username: userData.username,
           nickname: userData.nickname || '',
           email: userData.email || '',
+          avatarVariant: userData.avatarVariant || 'beam',
+          avatarSeed: userData.avatarSeed || 'default',
+          seasoningPreference: userData.seasoningPreference || 'NONE',
         }));
         setEmailInput(userData.email || '');
         if (!userData.email) {
@@ -206,6 +233,9 @@ const V2MyPage = () => {
         nickname: formData.nickname,
         currentPassword: formData.currentPassword || null,
         newPassword: formData.newPassword || null,
+        avatarVariant: 'beam',
+        avatarSeed: formData.avatarSeed,
+        seasoningPreference: formData.seasoningPreference,
       };
 
       const response = await api.patch('/users/me', payload);
@@ -268,7 +298,7 @@ const V2MyPage = () => {
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
         <div className="flex items-center gap-2">
-          <img src="/images/noodles.png" alt="Icon" className="w-6 h-6 object-contain" />
+          <img src="/apple-touch-icon.png" alt="Icon" className="w-6 h-6 object-contain" />
           <h1 className="text-[#695E34] font-['Plus_Jakarta_Sans'] font-semibold text-lg tracking-tight">내 정보</h1>
         </div>
         <div className="flex items-center justify-end w-10">
@@ -325,11 +355,40 @@ const V2MyPage = () => {
         {activeTab === 'profile' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 text-center">
             {/* ... (profile content) ... */}
-            <div className="py-4">
-              <div className="w-24 h-24 bg-primary-container rounded-full mx-auto flex items-center justify-center mb-4 soy-shadow">
-                <img src="/images/noodles.png" alt="Profile" className="w-14 h-14 object-contain" />
+            <div className="py-4 flex flex-col items-center">
+              <div className="relative group mb-4">
+                <div className="w-24 h-24 bg-white rounded-full mx-auto flex items-center justify-center soy-shadow overflow-hidden border border-surface-container">
+                  <Avatar
+                    size={96}
+                    name={formData.avatarSeed}
+                    variant="beam"
+                    colors={KONG_COLORS}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const randomSeed = Math.random().toString(36).substring(2, 9);
+                    setFormData(prev => ({ ...prev, avatarSeed: randomSeed }));
+                  }}
+                  className="absolute -bottom-1 -right-1 bg-secondary text-white w-8 h-8 rounded-full flex items-center justify-center active:scale-95 transition-all soy-shadow"
+                  title="아바타 새로고침"
+                >
+                  <span className="material-symbols-outlined text-sm">shuffle</span>
+                </button>
               </div>
-              <h2 className="text-2xl font-black text-primary">{formData.nickname}님</h2>
+
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <h2 className="text-2xl font-black text-primary">{formData.nickname}님</h2>
+                {(() => {
+                  const badge = getSeasoningBadge(formData.seasoningPreference);
+                  return badge ? (
+                    <span className={`px-3 py-1 rounded-full text-xs font-black border ${badge.color}`}>
+                      {badge.label}
+                    </span>
+                  ) : null;
+                })()}
+              </div>
               <p className="text-sm text-outline font-bold">오늘도 맛있는 콩국수 어떠신가요?</p>
             </div>
 
@@ -434,6 +493,31 @@ const V2MyPage = () => {
                   >
                     랜덤
                   </button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-outline uppercase ml-4">콩국수 간/양념 취향 🫘</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { value: 'SALT', label: '소금 🧂' },
+                    { value: 'SUGAR', label: '설탕 🍬' },
+                    { value: 'BOTH', label: '단짠 🧂🍬' },
+                    { value: 'NONE', label: '순정 🫘' },
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setFormData((prev) => ({ ...prev, seasoningPreference: option.value }))}
+                      className={`py-3 px-4 rounded-2xl font-bold text-sm transition-all border ${
+                        (formData.seasoningPreference || 'NONE') === option.value
+                          ? 'bg-primary text-background border-primary shadow-md scale-[1.02]'
+                          : 'bg-surface-container text-on-surface border-transparent hover:bg-surface-container-high'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
                 </div>
               </div>
 
@@ -603,7 +687,7 @@ const V2MyPage = () => {
                       <div className="flex flex-wrap gap-2 mt-4">
                         {sub.prices?.map((p, idx) => (
                           <span key={idx} className="px-3 py-1 bg-surface-container rounded-full text-[10px] font-black text-secondary">
-                            {p.beanType}: {p.price.toLocaleString()}원
+                            {getBeanLabel(p.beanType)}: {p.price.toLocaleString()}원
                           </span>
                         ))}
                       </div>

@@ -1,5 +1,6 @@
 package com.kong.kong_dic.domain.auth.dto;
 
+import com.kong.kong_dic.domain.user.entity.SeasoningPreference;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -9,4 +10,5 @@ public class SignupRequestDto {
     private String password;
     private String nickname;
     private String email;
+    private SeasoningPreference seasoningPreference;
 }

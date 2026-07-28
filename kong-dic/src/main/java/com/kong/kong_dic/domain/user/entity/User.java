@@ -38,10 +38,27 @@ public class User implements UserDetails {
     private Role role; // ADMIN or USER
 
     @Builder.Default
+    @Column(name = "avatar_variant", nullable = false)
+    private String avatarVariant = "beam";
+
+    @Builder.Default
+    @Column(name = "avatar_seed", nullable = false)
+    private String avatarSeed = "default";
+
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    @Column(name = "seasoning_preference", nullable = false)
+    private SeasoningPreference seasoningPreference = SeasoningPreference.NONE;
+
+    @Builder.Default
     private Date registeredAt = new Date(System.currentTimeMillis());
 
     @Builder.Default
     private Date modifiedAt = new Date(System.currentTimeMillis());
+
+    @Column(nullable = false, columnDefinition = "tinyint(1) default 1")
+    @Builder.Default
+    private boolean enabled = true;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
@@ -69,6 +86,6 @@ public class User implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return true;
+        return enabled;
     }
 }

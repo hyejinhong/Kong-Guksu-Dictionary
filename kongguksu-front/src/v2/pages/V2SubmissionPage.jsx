@@ -201,7 +201,7 @@ const V2SubmissionPage = () => {
           <span className="material-symbols-outlined text-2xl">arrow_back</span>
         </button>
         <div className="flex items-center gap-2">
-          <img src="/images/noodles.png" alt="Icon" className="w-8 h-8 object-contain" />
+          <img src="/apple-touch-icon.png" alt="Icon" className="w-8 h-8 object-contain" />
           <h1 className="text-xl font-black text-primary tracking-tight font-headline">식당 제보하기</h1>
         </div>
       </header>

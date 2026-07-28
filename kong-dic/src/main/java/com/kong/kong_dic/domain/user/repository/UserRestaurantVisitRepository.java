@@ -20,4 +20,7 @@ public interface UserRestaurantVisitRepository extends JpaRepository<UserRestaur
     @Query("SELECT new com.kong.kong_dic.domain.restaurant.dto.RatingStatsDto(COUNT(v), AVG(v.rating)) " +
             "FROM UserRestaurantVisit v WHERE v.restaurant.id = :restaurantId")
     RatingStatsDto findStatsByRestaurantId(@Param("restaurantId") Long restaurantId);
+
+    @Query("SELECT urv FROM UserRestaurantVisit urv JOIN FETCH urv.user WHERE urv.restaurant.id = :restaurantId ORDER BY urv.visitDate DESC")
+    List<UserRestaurantVisit> findByRestaurantIdOrderByVisitDateDesc(@Param("restaurantId") Long restaurantId);
 }

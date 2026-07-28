@@ -103,7 +103,7 @@ const V2SavedRestaurantsPage = () => {
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
         <div className="flex items-center gap-2">
-          <img src="/images/noodles.png" alt="Icon" className="w-6 h-6 object-contain" />
+          <img src="/apple-touch-icon.png" alt="Icon" className="w-6 h-6 object-contain" />
           <h1 className="text-[#695E34] font-['Plus_Jakarta_Sans'] font-semibold text-lg tracking-tight">나의 저장 목록</h1>
         </div>
         <div className="flex items-center justify-end w-10">
@@ -121,15 +121,24 @@ const V2SavedRestaurantsPage = () => {
 
       <main className="flex-1 pt-20 pb-32 px-4 space-y-4 max-w-2xl mx-auto w-full">
         {savedItems.length > 0 ? (
-          savedItems.map((item) => (
-            <div 
-              key={item.id}
-              onClick={() => navigate(`/v2/restaurant/${item.restaurant.id}`)}
-              className="bg-surface-container-lowest p-5 rounded-2xl shadow-sm hover:shadow-md transition-shadow cursor-pointer relative group flex gap-4 items-start"
-            >
-              <div className="w-16 h-16 rounded-xl bg-primary-container flex items-center justify-center shrink-0">
-                <img src="/images/noodles.png" alt="Noodles" className="w-10 h-10 object-contain" />
-              </div>
+          savedItems.map((item) => {
+            const beanTypes = item.restaurant.beanTypes?.length ? item.restaurant.beanTypes : [item.restaurant.beanType].filter(Boolean);
+            let noodleImg = "/apple-touch-icon.png";
+            if (beanTypes.includes('BLACK_BEAN')) {
+              noodleImg = "/images/black bean noodle.png";
+            } else if (beanTypes.includes('SOY_BEAN')) {
+              noodleImg = "/images/soy bean noodle.png";
+            }
+
+            return (
+              <div 
+                key={item.id}
+                onClick={() => navigate(`/v2/restaurant/${item.restaurant.id}`)}
+                className="bg-surface-container-lowest p-5 rounded-2xl shadow-sm hover:shadow-md transition-shadow cursor-pointer relative group flex gap-4 items-start"
+              >
+                <div className="w-16 h-16 rounded-xl bg-primary-container flex items-center justify-center shrink-0">
+                  <img src={noodleImg} alt="Noodles" className="w-10 h-10 object-contain" />
+                </div>
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-start mb-1">
                   <h3 className="text-xl font-bold text-primary group-hover:text-primary/80 transition-colors truncate">
@@ -181,7 +190,8 @@ const V2SavedRestaurantsPage = () => {
                 </div>
               </div>
             </div>
-          ))
+          );
+        })
         ) : (
           <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
             <span className="material-symbols-outlined text-6xl text-tertiary/20">bookmark</span>

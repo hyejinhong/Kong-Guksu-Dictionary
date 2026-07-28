@@ -88,6 +88,7 @@ public class RestaurantService {
 
         // Specification 동적 생성
         Specification<Restaurant> spec = (root, query, criteriaBuilder) -> {
+            query.distinct(true); // 중복 조회 방지
             List<Predicate> predicates = new ArrayList<>();
 
             // 1. 텍스트 검색어 필터링 (이름 또는 주소)
@@ -98,12 +99,23 @@ public class RestaurantService {
                 predicates.add(criteriaBuilder.or(nameLike, addressLike));
             }
 
-            // 2. 콩 종류 필터링 (beanTypes 필드가 String이고 콤마로 구분되어 있다고 가정)
-            // 정확한 enum 값 (SOY_BEAN, BLACK_BEAN)으로 프론트에서 넘어온다고 가정
+            Join<Restaurant, BeanPrice> pricesJoin = null;
+
+            // 2. 콩 종류 필터링 (beanTypes 컬렉션 대신 prices 컬렉션 내의 beanType을 확인)
             if (StringUtils.hasText(beanType) && !"all".equalsIgnoreCase(beanType)) {
                 BeanType enumBeanType = BeanType.valueOf(beanType.toUpperCase());
-                predicates.add(criteriaBuilder.isMember(enumBeanType, root.get("beanTypes")));
-                // 만약 beanTypes가 @ElementCollection이나 다른 방식으로 List/Set으로 저장된다면 쿼리가 달라짐
+                if (enumBeanType == BeanType.OTHER_BEAN) {
+                    // '기타' 필터인 경우: 콩 종류가 OTHER_BEAN 이거나, 콩 종류 정보가 아예 없는 경우(prices가 비어있는 경우) 둘 다 포함
+                    pricesJoin = root.join("prices", JoinType.LEFT);
+                    Predicate isOtherBean = criteriaBuilder.equal(pricesJoin.get("beanType"), BeanType.OTHER_BEAN);
+                    Predicate noPriceInfo = criteriaBuilder.isEmpty(root.get("prices"));
+                    Predicate beanTypeIsNull = criteriaBuilder.isNull(pricesJoin.get("beanType"));
+                    predicates.add(criteriaBuilder.or(isOtherBean, noPriceInfo, beanTypeIsNull));
+                } else {
+                    // 백태 또는 서리태인 경우: 해당 콩 종류 정보가 확실히 있어야 함
+                    pricesJoin = root.join("prices", JoinType.INNER);
+                    predicates.add(criteriaBuilder.equal(pricesJoin.get("beanType"), enumBeanType));
+                }
             }
 
             // 3. 판매 기간 필터링
@@ -128,14 +140,12 @@ public class RestaurantService {
                 // prices 컬렉션에 대한 Join을 수행합니다.
                 // JoinType.INNER는 해당 조건에 맞는 BeanPrice가 하나라도 있는 식당만 포함합니다.
                 // 만약 prices 컬렉션 자체가 없는 식당은 배제됩니다.
-                Join<Restaurant, BeanPrice> pricesJoin = root.join("prices", JoinType.INNER);
+                if (pricesJoin == null) {
+                    pricesJoin = root.join("prices", JoinType.INNER);
+                }
 
                 // prices 컬렉션 내의 각 BeanPrice 객체의 'price' 필드에 대해 범위 조건 적용
                 predicates.add(criteriaBuilder.between(pricesJoin.get("price"), minPrice, maxPrice));
-
-                // 참고: 만약 특정 beanType (예: 백태콩)의 가격만 필터링하고 싶다면,
-                // 여기에 추가 조건을 넣을 수 있습니다:
-                // predicates.add(criteriaBuilder.equal(pricesJoin.get("beanType"), BeanType.SOY_BEAN));
             }
 
             // 모든 조건을 AND 연산으로 결합
@@ -375,13 +385,24 @@ public class RestaurantService {
     }
 
     private static RestaurantResponseDto entityToResponseDto(Restaurant restaurant, Double latitude, Double longitude) {
+        List<BeanType> beanTypes = restaurant.getBeanTypes();
+        if (beanTypes == null || beanTypes.isEmpty()) {
+            if (restaurant.getPrices() != null) {
+                beanTypes = restaurant.getPrices().stream()
+                        .map(BeanPrice::getBeanType)
+                        .filter(Objects::nonNull)
+                        .distinct()
+                        .collect(Collectors.toList());
+            }
+        }
+
         return RestaurantResponseDto.builder()
                 .id(restaurant.getId())
                 .name(restaurant.getName())
                 .address(restaurant.getAddress())
                 .latitude(restaurant.getLatitude())
                 .longitude(restaurant.getLongitude())
-                .beanTypes(restaurant.getBeanTypes())
+                .beanTypes(beanTypes)
                 .servesAllYear(restaurant.getServesAllYear())
                 .startMonth(restaurant.getStartMonth())
                 .endMonth(restaurant.getEndMonth())

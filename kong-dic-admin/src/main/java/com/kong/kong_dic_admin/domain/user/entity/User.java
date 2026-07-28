@@ -31,6 +31,9 @@ public class User implements UserDetails {
 
     private String nickname;
 
+    @Column(unique = true)
+    private String email;
+
     @Enumerated(EnumType.STRING)
     private Role role; // ADMIN or USER
 
@@ -39,6 +42,10 @@ public class User implements UserDetails {
 
     @Builder.Default
     private Date modifiedAt = new Date(System.currentTimeMillis());
+
+    @Column(nullable = false, columnDefinition = "tinyint(1) default 1")
+    @Builder.Default
+    private boolean enabled = true;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -62,6 +69,6 @@ public class User implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return true;
+        return enabled;
     }
 }

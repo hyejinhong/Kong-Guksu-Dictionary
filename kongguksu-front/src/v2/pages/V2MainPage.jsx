@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import api from '../api';
 import './V2Main.css';
 import { useNotification } from '../contexts/NotificationContext';
@@ -9,6 +10,35 @@ const DEFAULT_LOCATION = { latitude: 37.5665, longitude: 126.9780 };
 const INITIAL_MIN_PRICE = 5000;
 const INITIAL_MAX_PRICE = 20000;
 const LIST_PAGE_SIZE = 8;
+
+const getUserLocation = (onSuccess, onError) => {
+  if (!navigator.geolocation) {
+    toast.error('이 브라우저는 위치 서비스를 지원하지 않습니다.');
+    if (onError) onError();
+    return;
+  }
+
+  // 1차: 고정밀 위치 파악 시도 (7초 타임아웃)
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      onSuccess(position);
+    },
+    (err) => {
+      // 2차: 실내/모바일 브라우저 타임아웃 대응 저정밀(Cell/WiFi) 위치 로딩 (5초 타임아웃)
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          onSuccess(position);
+        },
+        (fallbackErr) => {
+          console.warn('Geolocation fallback failed:', fallbackErr);
+          if (onError) onError(fallbackErr);
+        },
+        { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 }
+      );
+    },
+    { enableHighAccuracy: true, timeout: 7000, maximumAge: 60000 }
+  );
+};
 
 const loadKakaoMapScript = () => {
   if (window.kakao?.maps) {
@@ -78,9 +108,29 @@ const formatPrice = (price) => {
   return Number.isFinite(numericPrice) ? `${numericPrice.toLocaleString()}원` : '가격 정보 없음';
 };
 
+const getRestaurantPriceLabel = (restaurant) => {
+  const prices = restaurant.prices;
+  if (!prices || prices.length === 0) return '가격 정보 없음';
+
+  const validPrices = prices
+    .map((p) => Number(p.price))
+    .filter(Number.isFinite);
+
+  if (validPrices.length === 0) return '가격 정보 없음';
+
+  const minPrice = Math.min(...validPrices);
+  const maxPrice = Math.max(...validPrices);
+
+  if (minPrice === maxPrice) {
+    return formatPrice(minPrice);
+  }
+  return `${formatPrice(minPrice)}~`;
+};
+
 const getBeanLabel = (beanType) => {
   if (beanType === 'SOY_BEAN') return '백태';
   if (beanType === 'BLACK_BEAN') return '서리태';
+  if (beanType === 'OTHER_BEAN') return '기타';
   return beanType || '기타';
 };
 
@@ -99,50 +149,124 @@ const isLoggedIn = () => {
   return true;
 };
 
+const STORAGE_KEY = 'v2_main_state';
+
+const parseInitialState = (searchParams) => {
+  let stored = {};
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    if (raw) stored = JSON.parse(raw);
+  } catch (e) {
+    console.error(e);
+  }
+
+  const hasSearchParams = Array.from(searchParams.keys()).length > 0;
+  const view = searchParams.get('view') || stored.view || 'map';
+
+  const nearMeParam = searchParams.get('nearMe');
+  const nearMe = nearMeParam !== null ? nearMeParam === 'true' : (stored.nearMe ?? false);
+
+  const beanType = searchParams.get('beanType') || stored.beanType || 'all';
+
+  const openNowParam = searchParams.get('openNow');
+  const openNow = openNowParam !== null ? openNowParam === 'true' : (stored.openNow ?? false);
+
+  const minPriceParam = searchParams.get('minPrice');
+  const minPrice = minPriceParam !== null ? Number(minPriceParam) : (stored.minPrice ?? INITIAL_MIN_PRICE);
+
+  const maxPriceParam = searchParams.get('maxPrice');
+  const maxPrice = maxPriceParam !== null ? Number(maxPriceParam) : (stored.maxPrice ?? INITIAL_MAX_PRICE);
+
+  const search = searchParams.get('q') ?? stored.search ?? '';
+  const pageParam = searchParams.get('page');
+  const page = pageParam !== null ? Math.max(1, Number(pageParam)) : (stored.page ?? 1);
+
+  const latParam = searchParams.get('lat');
+  const lonParam = searchParams.get('lon');
+  const location = (latParam && lonParam)
+    ? { latitude: Number(latParam), longitude: Number(lonParam) }
+    : (stored.location || DEFAULT_LOCATION);
+
+  return {
+    view,
+    filter: { nearMe, beanType, openNow, minPrice, maxPrice },
+    search,
+    page,
+    location,
+    hasStoredPreference: Boolean(stored && Object.keys(stored).length > 0) || hasSearchParams,
+  };
+};
+
 const V2MainPage = () => {
   const navigate = useNavigate();
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
   const markersRef = useRef([]);
   const [searchParams, setSearchParams] = useSearchParams();
-  const viewParam = searchParams.get('view') || 'map';
-  const [activeView, setActiveView] = useState(viewParam);
+
+  const [initialState] = useState(() => parseInitialState(searchParams));
+
+  const [activeView, setActiveView] = useState(initialState.view);
+  const [location, setLocation] = useState(initialState.location);
+  const [restaurants, setRestaurants] = useState([]);
+  const [selectedRestaurant, setSelectedRestaurant] = useState(null);
+  const [searchTerm, setSearchTerm] = useState(initialState.search);
+  const [submittedSearchTerm, setSubmittedSearchTerm] = useState(initialState.search);
+  const [filter, setFilter] = useState(initialState.filter);
+  const [listPage, setListPage] = useState(initialState.page);
+
+  const [loading, setLoading] = useState(true);
+  const [isLocating, setIsLocating] = useState(false);
+  const [error, setError] = useState('');
+  const [mapError, setMapError] = useState('');
+  const [isMapReady, setIsMapReady] = useState(false);
 
   useEffect(() => {
-    if (viewParam === 'list' || viewParam === 'map') {
-      setActiveView(viewParam);
+    const params = new URLSearchParams();
+    params.set('view', activeView);
+    if (filter.nearMe) params.set('nearMe', 'true');
+    if (filter.beanType !== 'all') params.set('beanType', filter.beanType);
+    if (filter.openNow) params.set('openNow', 'true');
+    if (filter.minPrice !== INITIAL_MIN_PRICE) params.set('minPrice', String(filter.minPrice));
+    if (filter.maxPrice !== INITIAL_MAX_PRICE) params.set('maxPrice', String(filter.maxPrice));
+    if (submittedSearchTerm) params.set('q', submittedSearchTerm);
+    if (listPage > 1) params.set('page', String(listPage));
+    if (filter.nearMe && location) {
+      params.set('lat', String(location.latitude));
+      params.set('lon', String(location.longitude));
     }
-  }, [viewParam]);
+
+    setSearchParams(params, { replace: true });
+
+    try {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
+        view: activeView,
+        nearMe: filter.nearMe,
+        beanType: filter.beanType,
+        openNow: filter.openNow,
+        minPrice: filter.minPrice,
+        maxPrice: filter.maxPrice,
+        search: submittedSearchTerm,
+        page: listPage,
+        location,
+      }));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [activeView, filter, submittedSearchTerm, listPage, location, setSearchParams]);
 
   const handleViewChange = (view) => {
     setActiveView(view);
-    setSearchParams({ view }, { replace: true });
   };
-  const [location, setLocation] = useState(DEFAULT_LOCATION);
-  const [restaurants, setRestaurants] = useState([]);
-  const [selectedRestaurant, setSelectedRestaurant] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [submittedSearchTerm, setSubmittedSearchTerm] = useState('');
-  const [filter, setFilter] = useState({
-    beanType: 'all',
-    openNow: false,
-    minPrice: INITIAL_MIN_PRICE,
-    maxPrice: INITIAL_MAX_PRICE,
-  });
-  const [listPage, setListPage] = useState(1);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [mapError, setMapError] = useState('');
 
   const fetchRestaurants = useCallback(async () => {
     setLoading(true);
     setError('');
 
     try {
-      const url = `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080'}/restaurants/filter`;
       const params = {
-        lan: location.latitude,
-        lon: location.longitude,
+        lan: filter.nearMe ? location.latitude : null,
+        lon: filter.nearMe ? location.longitude : null,
         page: 0,
         size: 50,
         searchTerm: submittedSearchTerm || null,
@@ -161,7 +285,6 @@ const V2MainPage = () => {
       const response = await api.get('/restaurants/filter', { params });
       setRestaurants(response.data?.data ?? []);
       setSelectedRestaurant(null);
-      setListPage(1);
     } catch (fetchError) {
       console.error(fetchError);
       setError('식당 목록을 불러오지 못했습니다.');
@@ -173,29 +296,34 @@ const V2MainPage = () => {
     filter.maxPrice,
     filter.minPrice,
     filter.openNow,
+    filter.nearMe,
     location.latitude,
     location.longitude,
     submittedSearchTerm,
   ]);
 
   useEffect(() => {
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setLocation({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-        });
-      },
-      () => {
-        setLocation(DEFAULT_LOCATION);
-      }
-    );
-  }, []);
+    if (!initialState.hasStoredPreference) {
+      getUserLocation(
+        (position) => {
+          setLocation({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          });
+          setFilter((prev) => ({ ...prev, nearMe: true }));
+        },
+        () => {
+          setLocation(DEFAULT_LOCATION);
+        }
+      );
+    }
+  }, [initialState.hasStoredPreference]);
 
   useEffect(() => {
     fetchRestaurants();
   }, [fetchRestaurants]);
 
+  // 지도 인스턴스 초기화 (activeView 변경 시에만 단 1회 생성/재생성)
   useEffect(() => {
     if (activeView !== 'map') return undefined;
 
@@ -205,6 +333,12 @@ const V2MainPage = () => {
       try {
         const kakao = await loadKakaoMapScript();
         if (ignore || !mapContainerRef.current) return;
+
+        // 이미 지도가 존재한다면 재생성하지 않고 리레이아웃만 수행
+        if (mapRef.current) {
+          mapRef.current.relayout();
+          return;
+        }
 
         const center = new kakao.maps.LatLng(location.latitude, location.longitude);
         mapRef.current = new kakao.maps.Map(mapContainerRef.current, {
@@ -217,6 +351,7 @@ const V2MainPage = () => {
         mapRef.current.setZoomable(true);
         window.setTimeout(() => mapRef.current?.relayout(), 0);
         setMapError('');
+        setIsMapReady(true);
       } catch (initError) {
         console.error(initError);
         setMapError('카카오맵을 불러오지 못했습니다.');
@@ -230,8 +365,20 @@ const V2MainPage = () => {
       markersRef.current.forEach((marker) => marker.setMap(null));
       markersRef.current = [];
       mapRef.current = null;
+      setIsMapReady(false);
     };
-  }, [activeView, location.latitude, location.longitude]);
+  }, [activeView]); // location 변경 시 지도를 파괴하고 새로 만들지 않음!
+
+  // 위치(location) 변경 시 기존 지도 중심만 부드럽게 이동
+  useEffect(() => {
+    const map = mapRef.current;
+    const kakao = window.kakao;
+    if (activeView === 'map' && isMapReady && map && kakao?.maps) {
+      const newCenter = new kakao.maps.LatLng(location.latitude, location.longitude);
+      map.setCenter(newCenter);
+      map.setLevel(5); // 동네 축척 고정
+    }
+  }, [activeView, isMapReady, location.latitude, location.longitude]);
 
   useEffect(() => {
     if (activeView !== 'map') return undefined;
@@ -252,11 +399,12 @@ const V2MainPage = () => {
     };
   }, [activeView]);
 
+  // 마커 렌더링 및 검색어 유무에 따른 Bounds / Center 처리
   useEffect(() => {
     const map = mapRef.current;
     const kakao = window.kakao;
 
-    if (activeView !== 'map' || !map || !kakao?.maps) return;
+    if (activeView !== 'map' || !isMapReady || !map || !kakao?.maps) return;
 
     markersRef.current.forEach((marker) => marker.setMap(null));
     markersRef.current = [];
@@ -292,12 +440,18 @@ const V2MainPage = () => {
       hasPosition = true;
     });
 
-    if (hasPosition) {
+    if (hasPosition && submittedSearchTerm) {
+      // 명시적으로 검색어를 입력했을 때만 해당 검색 결과 식당들에 범위를 맞추되 지나친 줌아웃 방지
       map.setBounds(bounds);
+      if (map.getLevel() > 7) {
+        map.setLevel(7);
+      }
     } else {
+      // 일반 지도 탐색 시에는 지도를 전국으로 줌아웃하지 않고 현재 설정된 위치와 줌 레벨 5를 고정 유지
       map.setCenter(new kakao.maps.LatLng(location.latitude, location.longitude));
+      map.setLevel(5);
     }
-  }, [activeView, restaurants, location.latitude, location.longitude]);
+  }, [activeView, isMapReady, restaurants, location.latitude, location.longitude, submittedSearchTerm]);
 
   const totalListPages = Math.max(1, Math.ceil(restaurants.length / LIST_PAGE_SIZE));
   const pagedRestaurants = useMemo(() => {
@@ -307,7 +461,33 @@ const V2MainPage = () => {
 
   const updateFilter = (key, value) => {
     setFilter((prevFilter) => ({ ...prevFilter, [key]: value }));
+    setListPage(1);
   };
+
+  const handleToggleNearMe = useCallback(() => {
+    if (isLocating) return;
+
+    if (!filter.nearMe) {
+      setIsLocating(true);
+      getUserLocation(
+        (position) => {
+          setLocation({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          });
+          updateFilter('nearMe', true);
+          setIsLocating(false);
+          toast.success('내 주변 위치를 설정했습니다.');
+        },
+        () => {
+          setIsLocating(false);
+          toast.error('위치 정보 조회를 허용해주세요.');
+        }
+      );
+    } else {
+      updateFilter('nearMe', false);
+    }
+  }, [filter.nearMe, isLocating]);
 
   const zoomIn = () => {
     const map = mapRef.current;
@@ -323,22 +503,29 @@ const V2MainPage = () => {
 
   const moveToCurrentLocation = () => {
     const map = mapRef.current;
-    if (!map || !navigator.geolocation || !window.kakao?.maps) return;
+    if (!map || !window.kakao?.maps) return;
 
-    navigator.geolocation.getCurrentPosition((position) => {
-      const nextLocation = {
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-      };
+    getUserLocation(
+      (position) => {
+        const nextLocation = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        };
 
-      setLocation(nextLocation);
-      map.panTo(new window.kakao.maps.LatLng(nextLocation.latitude, nextLocation.longitude));
-    });
+        setLocation(nextLocation);
+        map.panTo(new window.kakao.maps.LatLng(nextLocation.latitude, nextLocation.longitude));
+        toast.success('현재 위치로 이동했습니다.');
+      },
+      () => {
+        toast.error('위치 정보 조회를 허용해주세요.');
+      }
+    );
   };
 
   const handleSearchSubmit = (event) => {
     event.preventDefault();
     setSubmittedSearchTerm(searchTerm.trim());
+    setListPage(1);
   };
 
   return (
@@ -347,6 +534,10 @@ const V2MainPage = () => {
         activeView === 'map' ? 'v2-map-root' : 'v2-list-root'
       }`}
     >
+      <title>{submittedSearchTerm ? `"${submittedSearchTerm}" 검색 결과 | 콩국수 사전` : "콩국수 사전 - 전국의 콩국수 맛집 찾기"}</title>
+      <meta name="description" content="전국의 맛있는 콩국수 맛집 정보를 한눈에 확인하고 기록하는 콩국수 사전입니다. 내 주변의 콩국수 맛집을 지도와 목록으로 찾아보세요!" />
+      <meta property="og:title" content="콩국수 사전 - 전국의 콩국수 맛집 찾기" />
+      <meta property="og:description" content="전국의 맛있는 콩국수 맛집 정보를 한눈에 확인하고 기록하는 콩국수 사전입니다. 내 주변의 콩국수 맛집을 지도와 목록으로 찾아보세요!" />
       <Header />
 
       {activeView === 'map' ? (
@@ -366,11 +557,17 @@ const V2MainPage = () => {
       ) : (
         <ListView
           filter={filter}
+          handleSearchSubmit={handleSearchSubmit}
+          handleToggleNearMe={handleToggleNearMe}
+          isLocating={isLocating}
           listPage={listPage}
           loading={loading}
           pagedRestaurants={pagedRestaurants}
           restaurants={restaurants}
+          searchTerm={searchTerm}
           setListPage={setListPage}
+          setSearchTerm={setSearchTerm}
+          setLocation={setLocation}
           totalListPages={totalListPages}
           updateFilter={updateFilter}
         />
@@ -428,7 +625,7 @@ const Header = () => {
         onClick={() => navigate('/v2')}
         className="flex items-center gap-2 cursor-pointer"
       >
-        <img src="/images/noodles.png" alt="Logo" className="w-8 h-8 object-contain" />
+        <img src="/apple-touch-icon.png" alt="Logo" className="w-8 h-8 object-contain" />
         <div className="text-xl font-bold text-primary tracking-tight font-headline">
           콩국수사전
         </div>
@@ -531,27 +728,70 @@ const MapView = ({
 
 const ListView = ({
   filter,
+  handleSearchSubmit,
+  handleToggleNearMe,
+  isLocating,
   listPage,
   loading,
   pagedRestaurants,
   restaurants,
+  searchTerm,
   setListPage,
+  setSearchTerm,
+  setLocation,
   totalListPages,
   updateFilter,
 }) => {
   const navigate = useNavigate();
   return (
     <main className="pt-24 px-6 max-w-2xl mx-auto pb-36">
+      <form onSubmit={handleSearchSubmit} className="w-full mb-6">
+        <div className="bg-surface-container-lowest glass-panel flex items-center gap-3 px-6 py-4 rounded-[2rem] shadow-sm relative overflow-hidden border border-outline-variant/10">
+          <div className="absolute -right-1 -top-1 opacity-20 pointer-events-none">
+            <span className="material-symbols-outlined text-primary text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>ramen_dining</span>
+          </div>
+          <span className="material-symbols-outlined text-outline text-xl">search</span>
+          <input
+            className="bg-transparent border-none focus:ring-0 text-on-surface placeholder-outline-variant/70 w-full font-bold text-sm"
+            onChange={(event) => setSearchTerm(event.target.value)}
+            placeholder="식당 이름이나 주소로 검색..."
+            type="text"
+            value={searchTerm}
+          />
+          <button className="flex items-center justify-center p-1.5 bg-primary-container rounded-full squishy" type="submit" aria-label="검색">
+            <span className="material-symbols-outlined text-primary text-xl">search</span>
+          </button>
+        </div>
+      </form>
+
       <section className="space-y-6 mb-10">
-        <div className="flex gap-2 overflow-x-auto pb-2 -mx-2 px-2 no-scrollbar">
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-2 px-2 no-scrollbar touch-pan-x">
+          <FilterChip
+            active={filter.nearMe}
+            disabled={isLocating}
+            onClick={handleToggleNearMe}
+          >
+            {isLocating ? (
+              <span className="flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+                위치 찾는 중...
+              </span>
+            ) : (
+              '📍 내 주변'
+            )}
+          </FilterChip>
+
+          {/* 세로 구분선 */}
+          <div className="h-6 w-[1px] bg-outline-variant/30 mx-1 shrink-0" />
+
           <FilterChip active={filter.beanType === 'SOY_BEAN'} onClick={() => updateFilter('beanType', filter.beanType === 'SOY_BEAN' ? 'all' : 'SOY_BEAN')}>
-            백태
+            🟡 백태
           </FilterChip>
           <FilterChip active={filter.beanType === 'BLACK_BEAN'} onClick={() => updateFilter('beanType', filter.beanType === 'BLACK_BEAN' ? 'all' : 'BLACK_BEAN')}>
-            서리태
+            ⚫ 서리태
           </FilterChip>
-          <FilterChip active={filter.beanType === 'ETC'} onClick={() => updateFilter('beanType', filter.beanType === 'ETC' ? 'all' : 'ETC')}>
-            기타
+          <FilterChip active={filter.beanType === 'OTHER_BEAN'} onClick={() => updateFilter('beanType', filter.beanType === 'OTHER_BEAN' ? 'all' : 'OTHER_BEAN')}>
+            🫘 기타
           </FilterChip>
         </div>
 
@@ -652,13 +892,14 @@ const ListView = ({
   );
 };
 
-const FilterChip = ({ active, children, onClick }) => (
+const FilterChip = ({ active, children, disabled = false, onClick }) => (
   <button
-    className={`flex-none px-5 py-2.5 rounded-full font-semibold text-sm transition-all ${
+    className={`flex-none shrink-0 px-5 py-2.5 rounded-full font-semibold text-sm transition-all select-none touch-manipulation min-h-[44px] flex items-center justify-center gap-1.5 ${
       active
         ? 'bg-secondary-container text-on-secondary-container soy-shadow'
         : 'bg-surface-container-highest text-on-surface-variant hover:bg-surface-container-high'
-    }`}
+    } ${disabled ? 'opacity-70 cursor-wait' : 'active:scale-95'}`}
+    disabled={disabled}
     onClick={onClick}
     type="button"
   >
@@ -720,9 +961,24 @@ const PriceRangeSlider = ({ maxPrice, minPrice, onMaxChange, onMinChange }) => {
   );
 };
 
+const formatDistance = (distance) => {
+  if (distance == null || distance < 0) return null;
+  if (distance < 1) {
+    return `${Math.round(distance * 1000)}m`;
+  }
+  return `${distance.toFixed(1)}km`;
+};
+
 const ListRestaurantCard = ({ restaurant, onClick }) => {
   const serving = isCurrentlyServing(restaurant);
   const beanTypes = restaurant.beanTypes?.length ? restaurant.beanTypes : [restaurant.beanType].filter(Boolean);
+
+  let noodleImg = "/apple-touch-icon.png";
+  if (beanTypes.includes('BLACK_BEAN')) {
+    noodleImg = "/images/black bean noodle.png";
+  } else if (beanTypes.includes('SOY_BEAN')) {
+    noodleImg = "/images/soy bean noodle.png";
+  }
 
   return (
     <div
@@ -730,18 +986,26 @@ const ListRestaurantCard = ({ restaurant, onClick }) => {
       className="bg-surface-container-lowest p-5 rounded-xl soy-shadow flex gap-4 items-start active:scale-[0.98] transition-transform cursor-pointer"
     >
       <div className={`w-16 h-16 rounded-lg flex items-center justify-center flex-shrink-0 ${serving ? 'bg-primary-container' : 'bg-surface-container-highest'}`}>
-        <img src="/images/noodles.png" alt="Noodles" className={`w-10 h-10 object-contain ${!serving && 'grayscale opacity-50'}`} />
+        <img src={noodleImg} alt="Noodles" className={`w-10 h-10 object-contain ${!serving && 'grayscale opacity-50'}`} />
       </div>
       <div className="flex-1 space-y-2 min-w-0">
         <div className="flex justify-between items-start gap-3">
           <div className="flex-1 min-w-0">
             <h3 className="font-bold text-lg text-on-surface leading-tight truncate">{restaurant.name}</h3>
-            {restaurant.averageRating > 0 && (
-              <div className="flex items-center gap-1 mt-0.5">
-                <span className="material-symbols-outlined text-secondary text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                <span className="text-secondary font-bold text-xs">{restaurant.averageRating.toFixed(1)}</span>
-              </div>
-            )}
+            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+              {restaurant.averageRating > 0 && (
+                <div className="flex items-center gap-1">
+                  <span className="material-symbols-outlined text-secondary text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                  <span className="text-secondary font-bold text-xs">{restaurant.averageRating.toFixed(1)}</span>
+                </div>
+              )}
+              {restaurant.distance != null && restaurant.distance >= 0 && (
+                <div className="flex items-center gap-1 text-outline font-bold text-xs">
+                  <span className="material-symbols-outlined text-[16px]">distance</span>
+                  <span>{formatDistance(restaurant.distance)}</span>
+                </div>
+              )}
+            </div>
           </div>
           <img 
             src={serving ? "/images/open.png" : "/images/closed.png"} 
@@ -756,7 +1020,7 @@ const ListRestaurantCard = ({ restaurant, onClick }) => {
             </span>
           ))}
           <span className="bg-surface-container text-tertiary text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">
-            {formatPrice(restaurant.price)}
+            {getRestaurantPriceLabel(restaurant)}
           </span>
         </div>
         <div className="flex items-center gap-1">
@@ -772,6 +1036,15 @@ const ListRestaurantCard = ({ restaurant, onClick }) => {
 
 const MapRestaurantCard = ({ restaurant, onClick }) => {
   const serving = isCurrentlyServing(restaurant);
+  const beanTypes = restaurant.beanTypes?.length ? restaurant.beanTypes : [restaurant.beanType].filter(Boolean);
+
+  let noodleImg = "/apple-touch-icon.png";
+  if (beanTypes.includes('BLACK_BEAN')) {
+    noodleImg = "/images/black bean noodle.png";
+  } else if (beanTypes.includes('SOY_BEAN')) {
+    noodleImg = "/images/soy bean noodle.png";
+  }
+
   return (
     <div
       onClick={onClick}
@@ -782,7 +1055,7 @@ const MapRestaurantCard = ({ restaurant, onClick }) => {
           <img
             alt={`${restaurant.name} 콩국수`}
             className="w-16 h-16 object-contain"
-            src="/images/noodles.png"
+            src={noodleImg}
           />
         </div>
         <div className="flex-grow py-1 min-w-0">
@@ -807,9 +1080,9 @@ const MapRestaurantCard = ({ restaurant, onClick }) => {
                 {serving ? '콩국수 개시' : '시즌 종료'}
               </span>
             </>
-            {restaurant.price && (
+            {restaurant.prices && restaurant.prices.length > 0 && (
               <span className="text-[10px] font-black text-primary">
-                {formatPrice(restaurant.price)}
+                {getRestaurantPriceLabel(restaurant)}
               </span>
             )}
           </div>
