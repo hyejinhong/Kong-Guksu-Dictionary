@@ -1,21 +1,25 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../contexts/NotificationContext';
 
 const V2NotificationModal = () => {
   const { notifications, isModalOpen, closeModal } = useNotification();
+  const navigate = useNavigate();
 
   if (!isModalOpen) return null;
 
   const getNotificationIcon = (type) => {
+    if (type?.includes('보안') || type?.includes('이메일')) return 'mark_email_unread';
     if (type?.includes('승인')) return 'check_circle';
     if (type?.includes('거절') || type?.includes('반려')) return 'cancel';
     return 'info';
   };
 
   const getIconColorClass = (type) => {
-    if (type?.includes('승인')) return 'text-[#859F3D] bg-[#859F3D]/10'; // Soft green
-    if (type?.includes('거절') || type?.includes('반려')) return 'text-[#C96868] bg-[#C96868]/10'; // Soft red
-    return 'text-[#695E34] bg-[#695E34]/10'; // Soft primary brand color
+    if (type?.includes('보안') || type?.includes('이메일')) return 'text-[#D97706] bg-[#F59E0B]/10';
+    if (type?.includes('승인')) return 'text-[#859F3D] bg-[#859F3D]/10';
+    if (type?.includes('거절') || type?.includes('반려')) return 'text-[#C96868] bg-[#C96868]/10';
+    return 'text-[#695E34] bg-[#695E34]/10';
   };
 
   return (
@@ -48,7 +52,15 @@ const V2NotificationModal = () => {
             notifications.map((noti, idx) => (
               <div 
                 key={idx}
-                className="bg-white p-4 rounded-[1.5rem] border border-[#EBE4C9]/40 shadow-sm flex items-start gap-3 hover:shadow-md transition-shadow"
+                onClick={() => {
+                  if (noti.isNoEmailWarning || noti.type?.includes('보안')) {
+                    closeModal();
+                    navigate('/v2/mypage');
+                  }
+                }}
+                className={`bg-white p-4 rounded-[1.5rem] border border-[#EBE4C9]/40 shadow-sm flex items-start gap-3 hover:shadow-md transition-shadow ${
+                  noti.isNoEmailWarning || noti.type?.includes('보안') ? 'cursor-pointer hover:bg-amber-50/40' : ''
+                }`}
               >
                 <div className={`p-2 rounded-full shrink-0 flex items-center justify-center ${getIconColorClass(noti.type)}`}>
                   <span className="material-symbols-outlined text-[20px]">

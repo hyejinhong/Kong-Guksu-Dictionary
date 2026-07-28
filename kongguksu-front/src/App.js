@@ -15,6 +15,7 @@ import V2MyPage from "./v2/pages/V2MyPage";
 import V2RankingPage from "./v2/pages/V2RankingPage";
 import V2ForgotPasswordPage from "./v2/pages/V2ForgotPasswordPage";
 import V2ResetPasswordPage from "./v2/pages/V2ResetPasswordPage";
+import V2FindIdPage from "./v2/pages/V2FindIdPage";
 import { NotificationProvider } from "./v2/contexts/NotificationContext";
 import V2NotificationModal from "./v2/components/V2NotificationModal";
 
@@ -37,6 +38,7 @@ function App() {
 
           <Route path="/v2/login" element={<V2LoginPage />} />
           <Route path="/v2/signup" element={<V2SignupPage />} />
+          <Route path="/v2/find-id" element={<V2FindIdPage />} />
           <Route path="/v2/submit" element={<V2SubmissionPage />} />
           <Route path="/v2/restaurant/:id" element={<V2RestaurantDetailPage />} />
           <Route path="/v2/saved" element={<V2SavedRestaurantsPage />} />
@@ -53,8 +55,8 @@ function App() {
 
           <Route path="/v2/*" element={<V2MainPage />} />
         </Routes>
+        <V2NotificationModal />
       </Router>
-      <V2NotificationModal />
       <Toaster position="top-right" reverseOrder={false} />
     </NotificationProvider>
   );

@@ -38,7 +38,45 @@ const V2LoginPage = () => {
           console.error('Token decoding failed:', decodeError);
         }
 
-        toast.success('로그인에 성공했습니다!');
+        try {
+          const userRes = await axios.get(`${API_BASE_URL}/users/me`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (!userRes.data?.data?.email) {
+            toast.custom(
+              (t) => (
+                <div 
+                  onClick={() => {
+                    toast.dismiss(t.id);
+                    navigate('/v2/mypage');
+                  }}
+                  className={`${t.visible ? 'animate-enter' : 'animate-leave'} max-w-md w-full bg-[#FDF9ED] shadow-[0_10px_30px_rgba(105,94,52,0.2)] rounded-2xl p-4 border border-[#EBE4C9] flex items-center gap-3 cursor-pointer pointer-events-auto`}
+                >
+                  <span className="material-symbols-outlined text-[#695E34] text-2xl shrink-0">mark_email_unread</span>
+                  <div className="flex-1 text-xs text-[#695E34]">
+                    <p className="font-black text-sm">이메일을 등록해 주세요!</p>
+                    <p className="font-bold opacity-80 mt-0.5">아이디/비밀번호 분실 방지를 위해 마이페이지에서 이메일을 등록해 주세요.</p>
+                  </div>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toast.dismiss(t.id);
+                    }} 
+                    className="text-xs font-black text-[#695E34]/60 hover:text-[#695E34] p-1"
+                  >
+                    닫기
+                  </button>
+                </div>
+              ),
+              { duration: 6000 }
+            );
+          } else {
+            toast.success('로그인에 성공했습니다!');
+          }
+        } catch (err) {
+          toast.success('로그인에 성공했습니다!');
+        }
+
         navigate(redirectPath);
       } else {
         toast.error(response.data?.message || '로그인에 실패했습니다.');
@@ -105,14 +143,21 @@ const V2LoginPage = () => {
               회원가입하기
             </Link>
           </p>
-          <p className="text-sm">
+          <div className="flex justify-center items-center gap-4 pt-1">
+            <Link 
+              to="/v2/find-id" 
+              className="text-outline hover:text-secondary font-bold text-xs transition-colors"
+            >
+              아이디 찾기
+            </Link>
+            <span className="text-outline-variant text-xs">|</span>
             <Link 
               to="/v2/forgot-password" 
               className="text-outline hover:text-secondary font-bold text-xs transition-colors"
             >
-              비밀번호를 분실하셨나요?
+              비밀번호 찾기
             </Link>
-          </p>
+          </div>
         </div>
 
         <div className="pt-8 flex justify-center">
