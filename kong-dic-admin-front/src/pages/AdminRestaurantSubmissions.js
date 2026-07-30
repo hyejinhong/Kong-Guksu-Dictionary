@@ -8,7 +8,7 @@ const AdminRestaurantSubmissions = () => {
   const [editingSubmission, setEditingSubmission] = useState(null);
   const itemsPerPage = 3;
 
-  const ADMIN_API_BASE_URL = process.env.REACT_APP_ADMIN_API_BASE_URL || 'http://localhost:8080';
+  const ADMIN_API_BASE_URL = process.env.REACT_APP_ADMIN_API_BASE_URL || 'http://localhost:8081';
 
   const getAuthHeader = () => {
     const token = localStorage.getItem("admin_token"); 

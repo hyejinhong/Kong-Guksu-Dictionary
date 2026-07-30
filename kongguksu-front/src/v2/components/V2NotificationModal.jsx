@@ -12,6 +12,7 @@ const V2NotificationModal = () => {
     if (type?.includes('보안') || type?.includes('이메일')) return 'mark_email_unread';
     if (type?.includes('승인')) return 'check_circle';
     if (type?.includes('거절') || type?.includes('반려')) return 'cancel';
+    if (type === 'ReportReply' || type?.includes('제보')) return 'rate_review';
     return 'info';
   };
 
@@ -19,6 +20,7 @@ const V2NotificationModal = () => {
     if (type?.includes('보안') || type?.includes('이메일')) return 'text-[#D97706] bg-[#F59E0B]/10';
     if (type?.includes('승인')) return 'text-[#859F3D] bg-[#859F3D]/10';
     if (type?.includes('거절') || type?.includes('반려')) return 'text-[#C96868] bg-[#C96868]/10';
+    if (type === 'ReportReply' || type?.includes('제보')) return 'text-[#E07A5F] bg-[#E07A5F]/10';
     return 'text-[#695E34] bg-[#695E34]/10';
   };
 

@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { useNavigate, useParams } from "react-router-dom";
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:8080";
+const MAIN_API_BASE_URL = process.env.REACT_APP_MAIN_API_BASE_URL || "http://localhost:8080";
 const DEFAULT_CENTER = { latitude: 37.5665, longitude: 126.978 };
 
 const AdminRestaurantEdit = () => {
@@ -101,7 +101,7 @@ const AdminRestaurantEdit = () => {
         const fetchRestaurantData = async () => {
             try {
                 const response = await axios.get(
-                    `${API_BASE_URL}/restaurants/${restaurantId}`,
+                    `${MAIN_API_BASE_URL}/restaurants/${restaurantId}`,
                     { headers: getAuthHeader() }
                 );
 
@@ -279,7 +279,7 @@ const AdminRestaurantEdit = () => {
                     .map((item) => ({ beanType: item.beanType, price: parseInt(item.price, 10) })),
             };
 
-            const res = await axios.put(`${API_BASE_URL}/restaurants/${restaurantId}`, payload, {
+            const res = await axios.put(`${MAIN_API_BASE_URL}/restaurants/${restaurantId}`, payload, {
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem("admin_token")}`,
                     "Content-Type": "application/json",
