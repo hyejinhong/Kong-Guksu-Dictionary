@@ -1,6 +1,8 @@
 package com.kong.kong_dic.domain.auth.service;
 
 import com.kong.kong_dic.common.exception.BaseException;
+import com.kong.kong_dic.domain.auth.dto.FindUsernameRequestDto;
+import com.kong.kong_dic.domain.auth.dto.FindUsernameResponseDto;
 import com.kong.kong_dic.domain.auth.dto.LoginResponseDto;
 import com.kong.kong_dic.domain.auth.dto.SignupRequestDto;
 import com.kong.kong_dic.domain.auth.dto.PasswordResetRequestDto;
@@ -137,5 +139,43 @@ public class AuthService {
         userRepository.save(user);
 
         redisService.deleteData(PASSWORD_RESET_TOKEN_PREFIX + request.getToken());
+    }
+
+    @Transactional(readOnly = true)
+    public FindUsernameResponseDto findUsername(FindUsernameRequestDto request) {
+        if (request.getEmail() == null || request.getEmail().isBlank()) {
+            throw new BaseException(AuthExceptionType.USER_NOT_FOUND);
+        }
+
+        User user = userRepository.findByEmail(request.getEmail().trim())
+                .orElseThrow(() -> new BaseException(AuthExceptionType.USER_NOT_FOUND));
+
+        String masked = maskUsername(user.getUsername());
+        String registeredAtStr = user.getRegisteredAt() != null ? user.getRegisteredAt().toString() : "";
+
+        return FindUsernameResponseDto.builder()
+                .maskedUsername(masked)
+                .registeredAt(registeredAtStr)
+                .build();
+    }
+
+    private String maskUsername(String username) {
+        if (username == null || username.isEmpty()) {
+            return "";
+        }
+        int len = username.length();
+        if (len == 1) {
+            return "*";
+        }
+        if (len == 2) {
+            return username.charAt(0) + "*";
+        }
+        if (len <= 4) {
+            return username.substring(0, 1) + "*".repeat(len - 1);
+        }
+        if (len <= 7) {
+            return username.substring(0, 2) + "*".repeat(len - 2);
+        }
+        return username.substring(0, 2) + "*".repeat(len - 4) + username.substring(len - 2);
     }
 }

@@ -6,6 +6,7 @@ import api from '../api';
 import './V2Main.css';
 import { useNotification } from '../contexts/NotificationContext';
 import V2ShareModal from '../components/V2ShareModal';
+import V2ReportEditModal from '../components/V2ReportEditModal';
 
 const KONG_COLORS = ["#FFFDF0", "#FFD369", "#3D3D3D", "#A9B388", "#FF9F29"];
 const KAKAO_MAP_SCRIPT_ID = 'kakao-map-sdk';
@@ -116,8 +117,9 @@ const V2RestaurantDetailPage = () => {
   const [loadingVisits, setLoadingVisits] = useState(false);
   const [showAllNotes, setShowAllNotes] = useState(false);
 
-  // Share Modal States
+  // Share & Report Modal States
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   const fetchComments = async () => {
     try {
@@ -403,6 +405,14 @@ const V2RestaurantDetailPage = () => {
             <span className="material-symbols-outlined">share</span>
             공유하기
           </button>
+          <button 
+            onClick={() => setShowReportModal(true)}
+            className="px-4 bg-surface-container-low text-outline py-4 rounded-full font-bold flex items-center justify-center gap-1.5 hover:opacity-80 transition-opacity active:scale-95 duration-200 shadow-[0_10px_20px_rgba(105,94,52,0.05)] border border-outline/10 text-sm"
+            title="식당 정보 수정 제보"
+          >
+            <span className="material-symbols-outlined text-[20px]">flag</span>
+            <span>제보</span>
+          </button>
         </section>
 
         {/* Location & Hours */}
@@ -678,6 +688,13 @@ const V2RestaurantDetailPage = () => {
         isOpen={showShareModal} 
         onClose={() => setShowShareModal(false)} 
         restaurant={restaurant} 
+      />
+
+      <V2ReportEditModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        restaurantId={parseInt(id)}
+        restaurantName={restaurant.name}
       />
 
       {/* BottomNavBar */}

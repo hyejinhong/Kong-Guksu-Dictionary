@@ -223,6 +223,19 @@ const V2MyPage = () => {
 
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
+
+    const currentEmail = (formData.email || '').trim();
+    const inputEmail = (emailInput || '').trim();
+
+    if (inputEmail !== currentEmail) {
+      if (isVerificationSent) {
+        toast.error('이메일 인증을 완료해 주세요. 인증 번호 입력 후 [확인] 버튼을 누르셔야 이메일이 등록됩니다.');
+      } else {
+        toast.error('이메일을 등록/수정하시려면 [인증 요청] 버튼을 눌러 이메일 인증을 먼저 진행해 주세요.');
+      }
+      return;
+    }
+
     if (formData.newPassword && !formData.currentPassword) {
       toast.error('비밀번호 변경을 위해 현재 비밀번호를 입력해주세요.');
       return;
@@ -391,6 +404,16 @@ const V2MyPage = () => {
               </div>
               <p className="text-sm text-outline font-bold">오늘도 맛있는 콩국수 어떠신가요?</p>
             </div>
+
+            {!formData.email && (
+              <div className="p-4 rounded-3xl bg-amber-500/10 border border-amber-500/20 flex items-center gap-3 text-amber-900">
+                <span className="material-symbols-outlined text-amber-600 shrink-0">mark_email_unread</span>
+                <div className="text-xs text-left">
+                  <p className="font-bold">이메일이 등록되어 있지 않습니다.</p>
+                  <p className="text-amber-800/80 mt-0.5">아이디 및 비밀번호 분실 방지를 위해 이메일을 등록해 주세요.</p>
+                </div>
+              </div>
+            )}
 
             <form onSubmit={handleProfileSubmit} className="space-y-6 text-left">
               <div className="space-y-2">
