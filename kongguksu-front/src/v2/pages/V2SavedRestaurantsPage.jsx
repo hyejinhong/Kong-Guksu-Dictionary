@@ -163,6 +163,11 @@ const V2SavedRestaurantsPage = () => {
                 </div>
 
                 <div className="flex flex-wrap gap-2 mb-3">
+                  {item.restaurant.servesAllYear && (
+                    <span className="bg-amber-100 text-amber-900 border border-amber-300 px-3 py-1 rounded-full text-[11px] font-bold flex items-center gap-1">
+                      👑 개념업소
+                    </span>
+                  )}
                   {(item.restaurant.beanTypes || []).map(bean => (
                     <span key={bean} className="bg-secondary-container/50 text-on-secondary-container px-3 py-1 rounded-full text-[11px] font-bold">
                       {getBeanLabel(bean)}

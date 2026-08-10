@@ -121,6 +121,11 @@ function RestaurantMapAndList({ restaurants, handleFilterChange, filter, loading
                       {type === "SOY_BEAN" ? "백태콩" : type === "BLACK_BEAN" ? "검은콩" : type}
                     </span>
                   ))}
+                  {restaurant.servesAllYear && (
+                    <span className="bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                      👑 개념업소
+                    </span>
+                  )}
                   <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
                     {restaurant.servesAllYear ? "사계절 판매" : `${restaurant.startMonth}월 ~ ${restaurant.endMonth}월`}
                   </span>

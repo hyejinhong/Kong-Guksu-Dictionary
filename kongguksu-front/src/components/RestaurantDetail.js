@@ -205,9 +205,14 @@ function RestaurantDetail() {
         <div ref={mapRef} className="w-full h-64 rounded mb-6" />
 
         <div className="space-y-3 mb-6">
-          <div className="flex justify-between">
+          <div className="flex justify-between items-center">
             <span className="font-medium text-gray-700">제공 기간:</span>
-            <span className="text-gray-800">
+            <span className="text-gray-800 flex items-center gap-1">
+              {restaurant.servesAllYear && (
+                <span className="bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold px-2 py-0.5 rounded-full mr-1">
+                  👑 개념업소
+                </span>
+              )}
               {restaurant.servesAllYear
                 ? "연중무휴"
                 : `${restaurant.startMonth}월 ~ ${restaurant.endMonth}월`}

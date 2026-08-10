@@ -169,8 +169,8 @@ const AdminRestaurantSubmissions = () => {
                     ))}
                     {/* 판매 기간 표시 */}
                     {(submission.servesAllYear || (submission.startMonth > 0 && submission.endMonth > 0)) && (
-                      <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                        {submission.servesAllYear ? "사계절 판매" : `${submission.startMonth}월 ~ ${submission.endMonth}월`}
+                      <span className={submission.servesAllYear ? "bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1" : "bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full"}>
+                        {submission.servesAllYear ? "👑 개념업소 (사계절 판매)" : `${submission.startMonth}월 ~ ${submission.endMonth}월`}
                       </span>
                     )}
                     {/* ⭐ 가격 정보 추가 (submission.prices가 BeanPrice 객체 배열이라고 가정) ⭐ */}
