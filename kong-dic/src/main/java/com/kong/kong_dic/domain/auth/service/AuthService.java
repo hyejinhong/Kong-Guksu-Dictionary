@@ -39,7 +39,7 @@ public class AuthService {
     private static final long PASSWORD_RESET_EXPIRATION_TIME = 15; // 15 minutes
 
     public void signup(SignupRequestDto request) throws Exception {
-        if (userRepository.existsByUsername(request.getUsername())) {
+        if (userRepository.existsByUsernameIgnoreCase(request.getUsername())) {
             throw new BaseException(AuthExceptionType.DUPLICATED_USERNAME);
         }
 
@@ -107,7 +107,7 @@ public class AuthService {
 
     @Transactional
     public void requestPasswordReset(PasswordResetRequestDto request, String origin) throws Exception {
-        User user = userRepository.findByUsernameAndEmail(request.getUsername(), request.getEmail())
+        User user = userRepository.findByUsernameIgnoreCaseAndEmail(request.getUsername(), request.getEmail())
                 .orElseThrow(() -> new BaseException(AuthExceptionType.USER_EMAIL_MISMATCH));
 
         String token = java.util.UUID.randomUUID().toString();
