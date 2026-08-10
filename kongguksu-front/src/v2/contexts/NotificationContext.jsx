@@ -59,10 +59,39 @@ export const NotificationProvider = ({ children }) => {
   const fetchNotifications = useCallback(async () => {
     if (!checkLoggedIn()) return;
     try {
-      const response = await api.get('/notifications');
-      if (response.data && response.data.code === 0) {
-        setNotifications(response.data.data || []);
+      const [notiRes, userRes] = await Promise.allSettled([
+        api.get('/notifications'),
+        api.get('/users/me')
+      ]);
+
+      let list = [];
+      if (notiRes.status === 'fulfilled' && notiRes.value.data?.code === 0) {
+        list = notiRes.value.data.data || [];
       }
+
+      let hasNoEmail = false;
+      if (userRes.status === 'fulfilled' && userRes.value.data?.data) {
+        const userEmail = userRes.value.data.data.email;
+        if (!userEmail) {
+          hasNoEmail = true;
+        }
+      }
+
+      if (hasNoEmail) {
+        const noEmailNoti = {
+          id: 'no-email-warning-system',
+          type: '계정 보안',
+          title: '이메일 미등록 안내',
+          content: '아이디/비밀번호 분실 방지를 위해 마이페이지에서 이메일을 등록해 주세요!',
+          isNoEmailWarning: true
+        };
+        if (!list.some(n => n.isNoEmailWarning)) {
+          list = [noEmailNoti, ...list];
+        }
+        setUnread(true);
+      }
+
+      setNotifications(list);
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
     }

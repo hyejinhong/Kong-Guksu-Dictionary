@@ -45,6 +45,11 @@ public class User implements UserDetails {
     @Column(name = "avatar_seed", nullable = false)
     private String avatarSeed = "default";
 
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    @Column(name = "seasoning_preference", nullable = false)
+    private SeasoningPreference seasoningPreference = SeasoningPreference.NONE;
+
     @Builder.Default
     private Date registeredAt = new Date(System.currentTimeMillis());
 

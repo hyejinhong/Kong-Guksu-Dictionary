@@ -40,6 +40,7 @@ public class UserRestaurantVisitService {
                     .nickname(u != null && u.getNickname() != null ? u.getNickname() : (u != null ? u.getUsername() : "익명"))
                     .avatarVariant(u != null ? u.getAvatarVariant() : "beam")
                     .avatarSeed(u != null ? u.getAvatarSeed() : "default")
+                    .seasoningPreference(u != null && u.getSeasoningPreference() != null ? u.getSeasoningPreference() : com.kong.kong_dic.domain.user.entity.SeasoningPreference.NONE)
                     .rating(visit.getRating())
                     .memo(visit.getMemo())
                     .visitDate(visit.getVisitDate())
@@ -74,12 +75,16 @@ public class UserRestaurantVisitService {
                 .ifPresent(visit -> {
                     throw new BaseException(UserExceptionType.ALREADY_VISITED_RESTAURANT);
                 });
+        String trimmedMemo = (request.getMemo() != null && !request.getMemo().trim().isEmpty())
+                ? request.getMemo().trim()
+                : null;
+
         UserRestaurantVisit entity = UserRestaurantVisit.builder()
                 .user(user)
                 .restaurant(restaurant)
                 .visitDate(request.getVisitDate())
                 .rating(request.getRating())
-                .memo(request.getMemo())
+                .memo(trimmedMemo)
                 .build();
         visitRepository.save(entity);
 
@@ -110,7 +115,9 @@ public class UserRestaurantVisitService {
 
         if (request.getRating() != null)
             visit.setRating(request.getRating());
-        if (request.getMemo() != null)
-            visit.setMemo(request.getMemo());
+        if (request.getMemo() != null) {
+            String trimmedMemo = !request.getMemo().trim().isEmpty() ? request.getMemo().trim() : null;
+            visit.setMemo(trimmedMemo);
+        }
     }
 }

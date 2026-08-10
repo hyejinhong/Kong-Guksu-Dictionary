@@ -58,6 +58,7 @@ const V2SignupPage = () => {
         password: formData.password,
         nickname: formData.nickname,
         email: formData.email,
+        seasoningPreference: formData.seasoningPreference,
       });
 
       if (response.data && response.data.code === 0) {
@@ -145,6 +146,31 @@ const V2SignupPage = () => {
               placeholder="비밀번호를 입력하세요"
               required
             />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-outline uppercase ml-4">콩국수 간/양념 취향 🫘</label>
+            <div className="grid grid-cols-2 gap-2 p-1">
+              {[
+                { value: 'SALT', label: '소금 🧂' },
+                { value: 'SUGAR', label: '설탕 🍬' },
+                { value: 'BOTH', label: '단짠 🧂🍬' },
+                { value: 'NONE', label: '순정 🫘' },
+              ].map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setFormData((prev) => ({ ...prev, seasoningPreference: option.value }))}
+                  className={`py-3 px-4 rounded-2xl font-bold text-sm transition-all border ${
+                    (formData.seasoningPreference || 'NONE') === option.value
+                      ? 'bg-primary text-background border-primary shadow-md scale-[1.02]'
+                      : 'bg-surface-container text-on-surface border-transparent hover:bg-surface-container-high'
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           <button

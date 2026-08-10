@@ -1,6 +1,8 @@
 package com.kong.kong_dic.domain.auth.controller;
 
 import com.kong.kong_dic.common.response.BaseResponse;
+import com.kong.kong_dic.domain.auth.dto.FindUsernameRequestDto;
+import com.kong.kong_dic.domain.auth.dto.FindUsernameResponseDto;
 import com.kong.kong_dic.domain.auth.dto.LoginResponseDto;
 import com.kong.kong_dic.domain.auth.dto.RefreshRequestDto;
 import com.kong.kong_dic.domain.auth.dto.SignupRequestDto;
@@ -23,6 +25,11 @@ public class AuthController {
     public ResponseEntity<BaseResponse<Void>> signup(@RequestBody SignupRequestDto request) throws Exception {
         authService.signup(request);
         return ResponseEntity.ok(BaseResponse.success());
+    }
+
+    @PostMapping("/find-username")
+    public ResponseEntity<BaseResponse<FindUsernameResponseDto>> findUsername(@RequestBody FindUsernameRequestDto request) {
+        return ResponseEntity.ok(BaseResponse.success(authService.findUsername(request)));
     }
 
     @PostMapping("/refresh")

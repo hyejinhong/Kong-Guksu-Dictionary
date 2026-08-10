@@ -3,8 +3,7 @@ import axios from "axios";
 import { Link } from "react-router-dom";
 
 const ITEMS_PER_PAGE = 10;
-const ADMIN_API_BASE_URL = process.env.REACT_APP_ADMIN_API_BASE_URL || 'http://localhost:8081';
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080';
+const MAIN_API_BASE_URL = process.env.REACT_APP_MAIN_API_BASE_URL || 'http://localhost:8080';
 
 const AdminRestaurantList = () => {
   const [restaurants, setRestaurants] = useState([]);
@@ -36,7 +35,7 @@ const AdminRestaurantList = () => {
       };
 
       const response = await axios.get(
-        `${API_BASE_URL}/restaurants`, // ⭐ 메인 백엔드의 API를 사용한다고 가정
+        `${MAIN_API_BASE_URL}/restaurants`,
         { params, headers: getAuthHeader() }
       );
 
@@ -68,7 +67,7 @@ const AdminRestaurantList = () => {
   const executeDelete = async (id) => {
     try {
       await axios.delete(
-        `${API_BASE_URL}/restaurants/${id}`, // 어드민 백엔드 경로 호출
+        `${MAIN_API_BASE_URL}/restaurants/${id}`,
         { headers: getAuthHeader() }
       );
 

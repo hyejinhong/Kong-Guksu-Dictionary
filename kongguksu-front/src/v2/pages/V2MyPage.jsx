@@ -30,6 +30,18 @@ const getBeanLabel = (beanType) => {
   return beanType || '기타';
 };
 
+const getSeasoningBadge = (preference) => {
+  if (!preference) return null;
+  const pref = String(preference).toUpperCase();
+  switch (pref) {
+    case 'SALT': return { label: '소금 🧂', color: 'bg-blue-100 text-blue-800 border-blue-200' };
+    case 'SUGAR': return { label: '설탕 🍬', color: 'bg-pink-100 text-pink-800 border-pink-200' };
+    case 'BOTH': return { label: '단짠 🧂🍬', color: 'bg-purple-100 text-purple-800 border-purple-200' };
+    case 'NONE': return { label: '순정 🫘', color: 'bg-amber-100 text-amber-800 border-amber-200' };
+    default: return null;
+  }
+};
+
 const V2MyPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -47,6 +59,7 @@ const V2MyPage = () => {
     email: '',
     avatarVariant: 'beam',
     avatarSeed: 'default',
+    seasoningPreference: 'NONE',
   });
 
   const [emailInput, setEmailInput] = useState('');
@@ -77,6 +90,7 @@ const V2MyPage = () => {
           email: userData.email || '',
           avatarVariant: userData.avatarVariant || 'beam',
           avatarSeed: userData.avatarSeed || 'default',
+          seasoningPreference: userData.seasoningPreference || 'NONE',
         }));
         setEmailInput(userData.email || '');
         if (!userData.email) {
@@ -209,6 +223,19 @@ const V2MyPage = () => {
 
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
+
+    const currentEmail = (formData.email || '').trim();
+    const inputEmail = (emailInput || '').trim();
+
+    if (inputEmail !== currentEmail) {
+      if (isVerificationSent) {
+        toast.error('이메일 인증을 완료해 주세요. 인증 번호 입력 후 [확인] 버튼을 누르셔야 이메일이 등록됩니다.');
+      } else {
+        toast.error('이메일을 등록/수정하시려면 [인증 요청] 버튼을 눌러 이메일 인증을 먼저 진행해 주세요.');
+      }
+      return;
+    }
+
     if (formData.newPassword && !formData.currentPassword) {
       toast.error('비밀번호 변경을 위해 현재 비밀번호를 입력해주세요.');
       return;
@@ -221,6 +248,7 @@ const V2MyPage = () => {
         newPassword: formData.newPassword || null,
         avatarVariant: 'beam',
         avatarSeed: formData.avatarSeed,
+        seasoningPreference: formData.seasoningPreference,
       };
 
       const response = await api.patch('/users/me', payload);
@@ -363,9 +391,29 @@ const V2MyPage = () => {
                 </button>
               </div>
 
-              <h2 className="text-2xl font-black text-primary">{formData.nickname}님</h2>
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <h2 className="text-2xl font-black text-primary">{formData.nickname}님</h2>
+                {(() => {
+                  const badge = getSeasoningBadge(formData.seasoningPreference);
+                  return badge ? (
+                    <span className={`px-3 py-1 rounded-full text-xs font-black border ${badge.color}`}>
+                      {badge.label}
+                    </span>
+                  ) : null;
+                })()}
+              </div>
               <p className="text-sm text-outline font-bold">오늘도 맛있는 콩국수 어떠신가요?</p>
             </div>
+
+            {!formData.email && (
+              <div className="p-4 rounded-3xl bg-amber-500/10 border border-amber-500/20 flex items-center gap-3 text-amber-900">
+                <span className="material-symbols-outlined text-amber-600 shrink-0">mark_email_unread</span>
+                <div className="text-xs text-left">
+                  <p className="font-bold">이메일이 등록되어 있지 않습니다.</p>
+                  <p className="text-amber-800/80 mt-0.5">아이디 및 비밀번호 분실 방지를 위해 이메일을 등록해 주세요.</p>
+                </div>
+              </div>
+            )}
 
             <form onSubmit={handleProfileSubmit} className="space-y-6 text-left">
               <div className="space-y-2">
@@ -468,6 +516,31 @@ const V2MyPage = () => {
                   >
                     랜덤
                   </button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-outline uppercase ml-4">콩국수 간/양념 취향 🫘</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { value: 'SALT', label: '소금 🧂' },
+                    { value: 'SUGAR', label: '설탕 🍬' },
+                    { value: 'BOTH', label: '단짠 🧂🍬' },
+                    { value: 'NONE', label: '순정 🫘' },
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setFormData((prev) => ({ ...prev, seasoningPreference: option.value }))}
+                      className={`py-3 px-4 rounded-2xl font-bold text-sm transition-all border ${
+                        (formData.seasoningPreference || 'NONE') === option.value
+                          ? 'bg-primary text-background border-primary shadow-md scale-[1.02]'
+                          : 'bg-surface-container text-on-surface border-transparent hover:bg-surface-container-high'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
                 </div>
               </div>
 

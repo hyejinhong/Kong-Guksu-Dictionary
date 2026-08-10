@@ -5,6 +5,7 @@ import Login from './pages/Login';
 import AdminRestaurantList from './pages/AdminRestaurantList';
 import AdminRestaurantEdit from './pages/AdminRestaurantEdit';
 import AdminUserList from './pages/AdminUserList';
+import AdminRestaurantReports from './pages/AdminRestaurantReports';
 
 // JWT 토큰 파싱
 const parseJwt = (token) => {
@@ -87,6 +88,13 @@ const HomePage = () => (
       >
         🍜 등록 식당 전체 관리
       </Link>
+      {/* 🚩 식당 정보 수정 제보 관리 링크 */}
+      <Link
+        to="/restaurants/reports"
+        className="px-6 py-3 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-600 transition-colors duration-200 text-center"
+      >
+        🚩 식당 수정 제보 관리
+      </Link>
       {/* 👤 사용자 관리 링크 */}
       <Link
         to="/users"
@@ -97,7 +105,6 @@ const HomePage = () => (
     </nav>
   </div>
 );
-
 
 
 // 메인 App 컴포넌트
@@ -157,6 +164,7 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/restaurants/submissions" element={<AdminRestaurantSubmissions />} />
         <Route path="/restaurants/list" element={<AdminRestaurantList />} />
+        <Route path="/restaurants/reports" element={<AdminRestaurantReports />} />
         <Route path="/users" element={<AdminUserList />} />
         <Route path="/restaurants/edit/:id" element={<AdminRestaurantEdit />} />
       </Routes>

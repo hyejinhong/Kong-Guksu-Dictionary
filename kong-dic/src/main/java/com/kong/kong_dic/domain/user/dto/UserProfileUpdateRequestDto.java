@@ -1,5 +1,6 @@
 package com.kong.kong_dic.domain.user.dto;
 
+import com.kong.kong_dic.domain.user.entity.SeasoningPreference;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -11,4 +12,5 @@ public class UserProfileUpdateRequestDto {
     private String newPassword;     // 새 비밀번호
     private String avatarVariant;
     private String avatarSeed;
+    private SeasoningPreference seasoningPreference;
 }

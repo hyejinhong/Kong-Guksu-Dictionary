@@ -6,6 +6,7 @@ import api from '../api';
 import './V2Main.css';
 import { useNotification } from '../contexts/NotificationContext';
 import V2ShareModal from '../components/V2ShareModal';
+import V2ReportEditModal from '../components/V2ReportEditModal';
 
 const KONG_COLORS = ["#FFFDF0", "#FFD369", "#3D3D3D", "#A9B388", "#FF9F29"];
 const KAKAO_MAP_SCRIPT_ID = 'kakao-map-sdk';
@@ -57,6 +58,18 @@ const formatPrice = (price) => {
   return Number.isFinite(numericPrice) ? `${numericPrice.toLocaleString()}원` : '가격 정보 없음';
 };
 
+const getSeasoningBadge = (preference) => {
+  if (!preference) return null;
+  const pref = String(preference).toUpperCase();
+  switch (pref) {
+    case 'SALT': return { label: '소금 🧂', color: 'bg-blue-100 text-blue-800 border-blue-200' };
+    case 'SUGAR': return { label: '설탕 🍬', color: 'bg-pink-100 text-pink-800 border-pink-200' };
+    case 'BOTH': return { label: '단짠 🧂🍬', color: 'bg-purple-100 text-purple-800 border-purple-200' };
+    case 'NONE': return { label: '순정 🫘', color: 'bg-amber-100 text-amber-800 border-amber-200' };
+    default: return null;
+  }
+};
+
 const renderStarRating = (rating) => {
   const numRating = Math.round(Number(rating) || 0);
   const fullStars = Math.max(0, Math.min(5, numRating));
@@ -104,8 +117,9 @@ const V2RestaurantDetailPage = () => {
   const [loadingVisits, setLoadingVisits] = useState(false);
   const [showAllNotes, setShowAllNotes] = useState(false);
 
-  // Share Modal States
+  // Share & Report Modal States
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   const fetchComments = async () => {
     try {
@@ -188,7 +202,7 @@ const V2RestaurantDetailPage = () => {
         restaurantId: parseInt(id),
         visitDate: today,
         rating: userRating,
-        memo: userMemo
+        memo: userMemo.trim() || null
       });
       
       const resResponse = await api.get(`/restaurants/${id}`);
@@ -396,6 +410,14 @@ const V2RestaurantDetailPage = () => {
             <span className="material-symbols-outlined">share</span>
             공유하기
           </button>
+          <button 
+            onClick={() => setShowReportModal(true)}
+            className="px-4 bg-surface-container-low text-outline py-4 rounded-full font-bold flex items-center justify-center gap-1.5 hover:opacity-80 transition-opacity active:scale-95 duration-200 shadow-[0_10px_20px_rgba(105,94,52,0.05)] border border-outline/10 text-sm"
+            title="식당 정보 수정 제보"
+          >
+            <span className="material-symbols-outlined text-[20px]">flag</span>
+            <span>제보</span>
+          </button>
         </section>
 
         {/* Location & Hours */}
@@ -487,9 +509,19 @@ const V2RestaurantDetailPage = () => {
                         colors={KONG_COLORS} 
                       />
                       <div>
-                        <span className="font-bold text-on-surface text-sm">{note.nickname}</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-on-surface text-sm">{note.nickname}</span>
+                          {(() => {
+                            const badge = getSeasoningBadge(note.seasoningPreference || note.seasoning_preference);
+                            return badge ? (
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${badge.color}`}>
+                                {badge.label}
+                              </span>
+                            ) : null;
+                          })()}
+                        </div>
                         {note.visitDate && (
-                          <span className="text-[11px] text-tertiary ml-2">
+                          <span className="text-[11px] text-tertiary">
                             {note.visitDate}
                           </span>
                         )}
@@ -498,13 +530,11 @@ const V2RestaurantDetailPage = () => {
                     {note.rating && renderStarRating(note.rating)}
                   </div>
 
-                  {note.memo ? (
+                  {note.memo && note.memo.trim() && (
                     <div className="bg-background/80 rounded-xl p-3.5 text-sm font-medium text-on-surface border border-outline-variant/10 leading-relaxed flex items-start gap-2">
                       <span className="material-symbols-outlined text-tertiary text-lg shrink-0 mt-0.5">format_quote</span>
                       <p className="whitespace-pre-wrap">{note.memo}</p>
                     </div>
-                  ) : (
-                    <p className="text-xs text-tertiary italic pl-1">이 식당을 나의 사전에 저장했습니다.</p>
                   )}
                 </div>
               ))}
@@ -569,6 +599,14 @@ const V2RestaurantDetailPage = () => {
                       />
                     </div>
                     <span className="font-semibold text-sm">{comment.nickname || '익명'}</span>
+                    {(() => {
+                      const badge = getSeasoningBadge(comment.seasoningPreference || comment.seasoning_preference);
+                      return badge ? (
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${badge.color}`}>
+                          {badge.label}
+                        </span>
+                      ) : null;
+                    })()}
                   </div>
                   <span className="text-tertiary text-[11px]">{new Date(comment.createdAt).toLocaleDateString()}</span>
                 </div>
@@ -655,6 +693,13 @@ const V2RestaurantDetailPage = () => {
         isOpen={showShareModal} 
         onClose={() => setShowShareModal(false)} 
         restaurant={restaurant} 
+      />
+
+      <V2ReportEditModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        restaurantId={parseInt(id)}
+        restaurantName={restaurant.name}
       />
 
       {/* BottomNavBar */}
