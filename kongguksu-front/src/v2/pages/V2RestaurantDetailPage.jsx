@@ -370,6 +370,11 @@ const V2RestaurantDetailPage = () => {
 
         {/* Info Tags */}
         <section className="flex flex-wrap gap-2 px-2">
+          {restaurant.servesAllYear && (
+            <span className="bg-amber-100 text-amber-900 border border-amber-300 px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-1 shadow-xs">
+              👑 개념업소 (사계절 판매)
+            </span>
+          )}
           {beanTypes.map(bean => (
             <span key={bean} className="bg-secondary-container text-on-secondary-container px-4 py-1.5 rounded-full text-sm font-semibold flex items-center gap-1">
               <span className="material-symbols-outlined text-[18px]">eco</span>

@@ -1023,7 +1023,12 @@ const ListRestaurantCard = ({ restaurant, onClick }) => {
             {getRestaurantPriceLabel(restaurant)}
           </span>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {restaurant.servesAllYear && (
+            <span className="bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-1">
+              👑 개념업소
+            </span>
+          )}
           <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wide ${serving ? 'bg-secondary/10 text-secondary' : 'bg-outline-variant/10 text-outline-variant'}`}>
             {serving ? '콩국수 개시' : '시즌 종료'}
           </span>
@@ -1069,7 +1074,12 @@ const MapRestaurantCard = ({ restaurant, onClick }) => {
             </div>
           </div>
           <p className="text-xs text-outline font-medium mb-3 truncate">{restaurant.address}</p>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {restaurant.servesAllYear && (
+              <span className="px-2 py-0.5 bg-amber-100 text-amber-900 border border-amber-300 rounded-full text-[10px] font-black flex items-center gap-1">
+                👑 개념업소
+              </span>
+            )}
             <>
               <img 
                 src={serving ? "/images/open.png" : "/images/closed.png"} 
