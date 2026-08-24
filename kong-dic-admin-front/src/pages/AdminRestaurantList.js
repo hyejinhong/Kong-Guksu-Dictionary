@@ -3,7 +3,7 @@ import axios from "axios";
 import { Link } from "react-router-dom";
 
 const ITEMS_PER_PAGE = 10;
-const MAIN_API_BASE_URL = process.env.REACT_APP_MAIN_API_BASE_URL || 'http://localhost:8080';
+const MAIN_API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080';
 
 const AdminRestaurantList = () => {
   const [restaurants, setRestaurants] = useState([]);

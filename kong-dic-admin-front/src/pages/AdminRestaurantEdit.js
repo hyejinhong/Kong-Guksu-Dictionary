@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { useNavigate, useParams } from "react-router-dom";
 
-const MAIN_API_BASE_URL = process.env.REACT_APP_MAIN_API_BASE_URL || "http://localhost:8080";
+const MAIN_API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:8080";
 const DEFAULT_CENTER = { latitude: 37.5665, longitude: 126.978 };
 
 const AdminRestaurantEdit = () => {
