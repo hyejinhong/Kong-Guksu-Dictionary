@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import './V2Main.css';
@@ -32,20 +32,39 @@ const V2RankingPage = () => {
   const [viewPeriod, setViewPeriod] = useState('daily'); // 'daily' or 'all'
   const [rankingData, setRankingData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const initialCheckedRef = useRef(false);
 
   const fetchRanking = useCallback(async () => {
     setLoading(true);
     try {
-      let endpoint = '';
-      if (rankingType === 'views') {
-        endpoint = `/restaurants/ranking?period=${viewPeriod}`;
+      if (rankingType === 'rating') {
+        const response = await api.get('/restaurants/ranking/rating');
+        if (response.data.code === 0) {
+          setRankingData(response.data.data || []);
+        }
       } else {
-        endpoint = '/restaurants/ranking/rating';
-      }
-      
-      const response = await api.get(endpoint);
-      if (response.data.code === 0) {
-        setRankingData(response.data.data || []);
+        // 첫 진입 시 오늘의 랭킹이 비어있는지 체크하여 전체 랭킹으로 자동 전환
+        if (!initialCheckedRef.current && viewPeriod === 'daily') {
+          initialCheckedRef.current = true;
+          const dailyRes = await api.get('/restaurants/ranking?period=daily');
+          const dailyList = (dailyRes.data?.code === 0 && dailyRes.data?.data) ? dailyRes.data.data : [];
+          
+          if (dailyList.length > 0) {
+            setRankingData(dailyList);
+          } else {
+            // 오늘의 랭킹이 없으면 전체 랭킹으로 자동 전환
+            setViewPeriod('all');
+            const allRes = await api.get('/restaurants/ranking?period=all');
+            if (allRes.data?.code === 0) {
+              setRankingData(allRes.data.data || []);
+            }
+          }
+        } else {
+          const response = await api.get(`/restaurants/ranking?period=${viewPeriod}`);
+          if (response.data?.code === 0) {
+            setRankingData(response.data.data || []);
+          }
+        }
       }
     } catch (err) {
       console.error('Failed to fetch ranking:', err);
@@ -200,7 +219,7 @@ const V2RankingPage = () => {
         <FooterItem active={true} icon="leaderboard" label="랭킹" onClick={() => {}} />
         <FooterItem icon="dictionary" label="목록" onClick={() => navigate('/v2?view=list')} />
         <FooterItem icon="map" label="지도" onClick={() => navigate('/v2?view=map')} />
-        <FooterItem icon="bookmark" label="저장" onClick={() => navigate('/v2/saved')} />
+        <FooterItem icon="bookmark" label="나의 사전" onClick={() => navigate('/v2/saved')} />
         <FooterItem icon="person" label="내 정보" onClick={() => navigate('/v2/mypage')} />
       </nav>
     </div>

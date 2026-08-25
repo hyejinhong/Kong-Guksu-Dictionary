@@ -216,7 +216,7 @@ const V2SavedRestaurantsPage = () => {
         <FooterItem icon="leaderboard" label="랭킹" onClick={() => navigate('/v2/ranking')} />
         <FooterItem icon="dictionary" label="목록" onClick={() => navigate('/v2?view=list')} />
         <FooterItem icon="map" label="지도" onClick={() => navigate('/v2?view=map')} />
-        <FooterItem active={true} icon="bookmark" label="저장" onClick={() => {}} />
+        <FooterItem active={true} icon="bookmark" label="나의 사전" onClick={() => {}} />
         <FooterItem icon="person" label="내 정보" onClick={() => navigate('/v2/mypage')} />
       </nav>
     </div>

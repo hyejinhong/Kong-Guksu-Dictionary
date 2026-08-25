@@ -1126,7 +1126,7 @@ const BottomNav = ({ activeView, setActiveView }) => {
       <FooterItem icon="leaderboard" label="랭킹" onClick={() => navigate('/v2/ranking')} />
       <FooterItem active={activeView === 'list'} icon="dictionary" label="목록" onClick={() => setActiveView('list')} />
       <FooterItem active={activeView === 'map'} icon="map" label="지도" onClick={() => setActiveView('map')} />
-      <FooterItem icon="bookmark" label="저장" onClick={handleSavedClick} />
+      <FooterItem icon="bookmark" label="나의 사전" onClick={handleSavedClick} />
       <FooterItem icon="person" label="내 정보" onClick={handleMyPageClick} />
     </nav>
   );
