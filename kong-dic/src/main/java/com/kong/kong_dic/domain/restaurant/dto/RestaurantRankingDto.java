@@ -35,7 +35,8 @@ public class RestaurantRankingDto {
                 .address(restaurant.getAddress())
                 .averageRating(restaurant.getAverageRating())
                 .reviewCount(restaurant.getTotalScraps())
-                .viewCount(restaurant.getViewCount())
+                .viewCount(restaurant.getViewCount() != null ? restaurant.getViewCount() : 0L)
+                .dailyViewCount(0L)
                 .beanTypes(restaurant.getBeanTypes())
                 .servesAllYear(restaurant.getServesAllYear())
                 .startMonth(restaurant.getStartMonth())
@@ -44,15 +45,15 @@ public class RestaurantRankingDto {
                 .build();
     }
 
-    public static RestaurantRankingDto of(Restaurant restaurant, int rank, Long dailyViewCount) {
+    public static RestaurantRankingDto of(Restaurant restaurant, int rank, Long viewCount, Long dailyViewCount) {
         return RestaurantRankingDto.builder()
                 .id(restaurant.getId())
                 .name(restaurant.getName())
                 .address(restaurant.getAddress())
                 .averageRating(restaurant.getAverageRating())
                 .reviewCount(restaurant.getTotalScraps())
-                .viewCount(restaurant.getViewCount())
-                .dailyViewCount(dailyViewCount)
+                .viewCount(viewCount != null ? viewCount : (restaurant.getViewCount() != null ? restaurant.getViewCount() : 0L))
+                .dailyViewCount(dailyViewCount != null ? dailyViewCount : 0L)
                 .beanTypes(restaurant.getBeanTypes())
                 .servesAllYear(restaurant.getServesAllYear())
                 .startMonth(restaurant.getStartMonth())

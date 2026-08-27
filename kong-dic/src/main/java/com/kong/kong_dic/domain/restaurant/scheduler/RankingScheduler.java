@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 import java.util.Set;
@@ -38,6 +39,7 @@ public class RankingScheduler {
         }
     }
 
+    @Transactional
     @Scheduled(cron = "0 */5 * * * *", zone = "Asia/Seoul") // 5분마다로 주기 조정 (부하 감소)
     public void syncViewCountToDB() {
         log.info(">> 조회수 Redis → DB 동기화 시작");
@@ -65,9 +67,11 @@ public class RankingScheduler {
                 
                 if (restaurantOpt.isPresent()) {
                     Restaurant restaurant = restaurantOpt.get();
+                    long currentDbViewCount = (restaurant.getViewCount() != null) ? restaurant.getViewCount() : 0L;
+                    
                     // 데이터 정합성 보호: Redis 값이 DB 값보다 클 경우에만 업데이트
                     // (Redis 초기화 시 DB 데이터가 0으로 덮어씌워지는 것 방지)
-                    if (redisViewCount > restaurant.getViewCount()) {
+                    if (redisViewCount > currentDbViewCount) {
                         restaurant.setViewCount(redisViewCount);
                         restaurantRepository.save(restaurant);
                         syncCount++;

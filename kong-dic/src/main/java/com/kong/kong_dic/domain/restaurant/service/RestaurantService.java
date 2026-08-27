@@ -229,13 +229,11 @@ public class RestaurantService {
                 Double totalScore = stringRedisTemplate.opsForZSet().score(ZSET_VIEWS_ALL_KEY, id.toString());
                 Double dailyScore = stringRedisTemplate.opsForZSet().score(ZSET_VIEWS_DAILY_KEY, id.toString());
                 
-                Long totalView = (totalScore != null) ? totalScore.longValue() : restaurant.getViewCount();
+                Long defaultDbView = restaurant.getViewCount() != null ? restaurant.getViewCount() : 0L;
+                Long totalView = (totalScore != null) ? totalScore.longValue() : defaultDbView;
                 Long dailyView = (dailyScore != null) ? dailyScore.longValue() : 0L;
 
-                rankingList.add(RestaurantRankingDto.of(restaurant, rank++, dailyView));
-                // Note: DTO.of(restaurant, rank, dailyView) sets viewCount from restaurant.viewCount,
-                // but we might want to override it with totalView if they differ significantly.
-                // However, restaurant.viewCount should be synced anyway.
+                rankingList.add(RestaurantRankingDto.of(restaurant, rank++, totalView, dailyView));
             }
         }
 

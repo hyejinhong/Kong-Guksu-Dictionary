@@ -53,6 +53,8 @@ public class Restaurant {
     @Builder.Default
     private Double averageRating = 0.0;
 
+    @Column(nullable = false, columnDefinition = "bigint default 0")
+    @Builder.Default
     private Long viewCount = 0L;
 
     public void addViewCount(Long count) {
