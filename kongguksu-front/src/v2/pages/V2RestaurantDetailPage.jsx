@@ -164,7 +164,7 @@ const V2RestaurantDetailPage = () => {
     fetchDetail();
   }, [id]);
 
-  const handleToggleSave = async () => {
+  const handleToggleReview = async () => {
     const token = localStorage.getItem('token');
     if (!token) {
       toast.error('로그인이 필요한 서비스입니다.');
@@ -173,28 +173,28 @@ const V2RestaurantDetailPage = () => {
     }
 
     if (isSaved) {
-      if (window.confirm('나의 사전에서 이 식당을 삭제할까요?')) {
+      if (window.confirm('작성하신 리뷰를 삭제할까요?')) {
         try {
           await api.delete(`/visited-restaurants/${visitId}`);
           setIsSaved(false);
           setVisitId(null);
           await fetchVisitNotes();
-          toast.success('삭제되었습니다.');
+          toast.success('리뷰가 삭제되었습니다.');
         } catch (err) {
-          console.error('Failed to delete visit:', err);
-          toast.error('삭제에 실패했습니다.');
+          console.error('Failed to delete review:', err);
+          toast.error('리뷰 삭제에 실패했습니다.');
         }
       }
       return;
     }
 
-    // Open Save Modal
+    // Open Review Modal
     setShowSaveModal(true);
     setUserRating(5);
     setUserMemo('');
   };
 
-  const handleSaveSubmit = async () => {
+  const handleReviewSubmit = async () => {
     try {
       setSaving(true);
       const today = new Date().toISOString().split('T')[0];
@@ -212,10 +212,10 @@ const V2RestaurantDetailPage = () => {
       await fetchVisitNotes();
       
       setShowSaveModal(false);
-      toast.success('나의 사전에 저장되었습니다!');
+      toast.success('리뷰가 등록되었습니다!');
     } catch (err) {
-      console.error('Failed to save restaurant:', err);
-      toast.error('저장에 실패했습니다.');
+      console.error('Failed to save review:', err);
+      toast.error('리뷰 등록에 실패했습니다.');
     } finally {
       setSaving(false);
     }
@@ -392,16 +392,16 @@ const V2RestaurantDetailPage = () => {
         {/* Action Row */}
         <section className="flex gap-3 px-2">
           <button 
-            onClick={handleToggleSave}
+            onClick={handleToggleReview}
             className={`flex-1 ${isSaved ? 'bg-secondary-container text-on-secondary-container' : 'bg-primary-container text-on-primary-container'} py-4 rounded-full font-bold flex items-center justify-center gap-2 hover:opacity-80 transition-opacity active:scale-95 duration-200 shadow-[0_10px_20px_rgba(105,94,52,0.05)]`}
           >
             <span 
               className="material-symbols-outlined"
               style={{ fontVariationSettings: `'FILL' ${isSaved ? 1 : 0}, 'wght' 600, 'GRAD' 0, 'opsz' 24` }}
             >
-              favorite
+              rate_review
             </span>
-            {isSaved ? '저장됨' : '저장하기'}
+            {isSaved ? '리뷰 완료' : '리뷰 쓰기'}
           </button>
           <button 
             onClick={() => setShowShareModal(true)}
@@ -491,7 +491,7 @@ const V2RestaurantDetailPage = () => {
             <div className="bg-surface-container-low rounded-2xl p-6 text-center text-tertiary space-y-2 border border-outline-variant/10">
               <span className="material-symbols-outlined text-3xl text-outline-variant">rate_review</span>
               <p className="text-sm font-medium">아직 등록된 리뷰가 없어요.</p>
-              <p className="text-xs text-outline-variant">이 식당을 저장하고 첫 번째 리뷰를 남겨보세요! 🌟</p>
+              <p className="text-xs text-outline-variant">첫 번째 리뷰를 남겨보세요! 🌟</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -621,7 +621,7 @@ const V2RestaurantDetailPage = () => {
         </section>
       </main>
 
-      {/* Save Modal */}
+      {/* Review Modal */}
       {showSaveModal && (
         <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center px-4 pb-10 sm:pb-0 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
           <div 
@@ -629,7 +629,7 @@ const V2RestaurantDetailPage = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center mb-8">
-              <h3 className="text-2xl font-bold text-primary tracking-tight">나의 사전 등록</h3>
+              <h3 className="text-2xl font-bold text-primary tracking-tight">리뷰 쓰기</h3>
               <button onClick={() => setShowSaveModal(false)} className="text-tertiary p-2 hover:bg-surface-container-low rounded-full transition-colors">
                 <span className="material-symbols-outlined">close</span>
               </button>
@@ -659,12 +659,12 @@ const V2RestaurantDetailPage = () => {
 
               {/* Memo */}
               <div className="space-y-3">
-                <label className="text-sm font-bold text-tertiary uppercase tracking-wider block">메모 (선택)</label>
+                <label className="text-sm font-bold text-tertiary uppercase tracking-wider block">리뷰 내용 (선택)</label>
                 <textarea
                   value={userMemo}
                   onChange={(e) => setUserMemo(e.target.value)}
                   className="w-full px-5 py-4 rounded-2xl bg-surface-container-low border-none focus:ring-2 focus:ring-primary text-sm min-h-[120px] resize-none soy-shadow transition-all"
-                  placeholder="식당에 대한 짧은 평이나 기억하고 싶은 점을 적어주세요."
+                  placeholder="맛, 분위기, 콩물 등 솔직한 리뷰를 남겨주세요."
                 />
               </div>
 
@@ -676,11 +676,11 @@ const V2RestaurantDetailPage = () => {
                   취소
                 </button>
                 <button
-                  onClick={handleSaveSubmit}
+                  onClick={handleReviewSubmit}
                   disabled={saving}
                   className="flex-1 bg-primary text-background py-4 rounded-full font-bold hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-primary/20 disabled:opacity-50"
                 >
-                  {saving ? '저장 중...' : '저장하기'}
+                  {saving ? '등록 중...' : '리뷰 등록'}
                 </button>
               </div>
             </div>
@@ -704,9 +704,10 @@ const V2RestaurantDetailPage = () => {
 
       {/* BottomNavBar */}
       <nav className="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-3 bg-[#FDF9ED]/80 backdrop-blur-xl z-50 rounded-t-xl shadow-[0_-20px_40px_rgba(105,94,52,0.08)]">
+        <FooterItem icon="leaderboard" label="랭킹" onClick={() => navigate('/v2/ranking')} />
         <FooterItem icon="dictionary" label="목록" onClick={() => navigate('/v2?view=list')} />
         <FooterItem icon="map" label="지도" onClick={() => navigate('/v2?view=map')} />
-        <FooterItem icon="bookmark" label="저장" onClick={() => {
+        <FooterItem icon="bookmark" label="나의 사전" onClick={() => {
           if (!isLoggedIn()) {
             toast.error('로그인이 필요한 서비스입니다.');
             navigate(`/v2/login?redirect=${encodeURIComponent(location.pathname)}`);
