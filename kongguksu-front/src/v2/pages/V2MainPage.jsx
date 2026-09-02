@@ -4,6 +4,8 @@ import toast from 'react-hot-toast';
 import api from '../api';
 import './V2Main.css';
 import { useNotification } from '../contexts/NotificationContext';
+import V2RecentReviews from '../components/V2RecentReviews';
+
 
 const KAKAO_MAP_SCRIPT_ID = 'kakao-map-sdk';
 const DEFAULT_LOCATION = { latitude: 37.5665, longitude: 126.9780 };
@@ -349,6 +351,9 @@ const V2MainPage = () => {
         });
         mapRef.current.setDraggable(true);
         mapRef.current.setZoomable(true);
+        kakao.maps.event.addListener(mapRef.current, 'click', () => {
+          setSelectedRestaurant(null);
+        });
         window.setTimeout(() => mapRef.current?.relayout(), 0);
         setMapError('');
         setIsMapReady(true);
@@ -549,11 +554,13 @@ const V2MainPage = () => {
           mapError={mapError}
           moveToCurrentLocation={moveToCurrentLocation}
           searchTerm={searchTerm}
+          submittedSearchTerm={submittedSearchTerm}
           selectedRestaurant={selectedRestaurant}
           setSearchTerm={setSearchTerm}
           zoomIn={zoomIn}
           zoomOut={zoomOut}
         />
+
       ) : (
         <ListView
           filter={filter}
@@ -565,33 +572,40 @@ const V2MainPage = () => {
           pagedRestaurants={pagedRestaurants}
           restaurants={restaurants}
           searchTerm={searchTerm}
+          submittedSearchTerm={submittedSearchTerm}
           setListPage={setListPage}
           setSearchTerm={setSearchTerm}
           setLocation={setLocation}
           totalListPages={totalListPages}
           updateFilter={updateFilter}
         />
+
       )}
 
       <BottomNav activeView={activeView} setActiveView={handleViewChange} />
 
       {/* 식당 제보 Floating Action Button */}
-      <button
-        onClick={() => {
-          if (!isLoggedIn()) {
-            navigate(`/v2/login?redirect=${encodeURIComponent(window.location.pathname)}`);
-          } else {
-            navigate('/v2/submit');
-          }
-        }}
-        className="fixed bottom-28 right-6 z-40 px-5 py-3 bg-primary text-background rounded-full flex items-center gap-2 soy-shadow active:scale-95 transition-all hover:bg-primary/90 group"
-        aria-label="식당 제보하기"
-      >
-        <span className="material-symbols-outlined text-2xl">ramen_dining</span>
-        <span className="text-sm font-bold tracking-tight">제보</span>
-      </button>
+      {(!selectedRestaurant || activeView === 'list') && (
+        <button
+          onClick={() => {
+            if (!isLoggedIn()) {
+              navigate(`/v2/login?redirect=${encodeURIComponent(window.location.pathname)}`);
+            } else {
+              navigate('/v2/submit');
+            }
+          }}
+          className={`fixed right-6 z-40 px-3.5 py-2 bg-primary text-background rounded-full flex items-center gap-1.5 soy-shadow active:scale-95 transition-all hover:bg-primary/90 group ${
+            activeView === 'map' ? 'bottom-[224px]' : 'bottom-28'
+          }`}
+          aria-label="식당 제보하기"
+        >
+          <span className="material-symbols-outlined text-[18px]">ramen_dining</span>
+          <span className="text-xs font-bold tracking-tight">제보</span>
+        </button>
+      )}
     </div>
   );
+
 };
 
 const Header = () => {
@@ -661,6 +675,7 @@ const MapView = ({
   mapError,
   moveToCurrentLocation,
   searchTerm,
+  submittedSearchTerm,
   selectedRestaurant,
   setSearchTerm,
   zoomIn,
@@ -703,25 +718,39 @@ const MapView = ({
         </div>
       )}
 
-      <div className="absolute right-6 top-1/2 -translate-y-1/2 flex flex-col gap-4 z-20">
-        <button onClick={zoomIn} className="w-14 h-14 bg-surface-container-lowest rounded-2xl shadow-md flex items-center justify-center text-primary squishy" aria-label="지도 확대">
+      <div className="absolute right-6 top-[44%] -translate-y-1/2 flex flex-col gap-2 z-20">
+        <button onClick={zoomIn} className="w-11 h-11 bg-surface-container-lowest rounded-2xl shadow-md flex items-center justify-center text-primary squishy active:scale-90 transition-transform" aria-label="지도 확대">
           <span className="material-symbols-outlined text-2xl font-black">add</span>
         </button>
-        <button onClick={zoomOut} className="w-14 h-14 bg-surface-container-lowest rounded-2xl shadow-md flex items-center justify-center text-primary squishy" aria-label="지도 축소">
+        <button onClick={zoomOut} className="w-11 h-11 bg-surface-container-lowest rounded-2xl shadow-md flex items-center justify-center text-primary squishy active:scale-90 transition-transform" aria-label="지도 축소">
           <span className="material-symbols-outlined text-2xl font-black">remove</span>
-        </button>
-        <div className="h-2"></div>
-        <button onClick={moveToCurrentLocation} className="w-14 h-14 bg-primary-container rounded-2xl shadow-md flex items-center justify-center text-primary squishy" aria-label="현재 위치">
-          <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>my_location</span>
         </button>
       </div>
 
-      {selectedRestaurant && (
+      {!selectedRestaurant && (
+        <button
+          onClick={moveToCurrentLocation}
+          className="absolute left-6 bottom-[224px] z-30 w-12 h-12 bg-surface-container-lowest rounded-2xl soy-shadow flex items-center justify-center text-primary squishy active:scale-95 transition-all border border-white"
+          aria-label="현재 위치"
+        >
+          <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>my_location</span>
+        </button>
+      )}
+
+      {selectedRestaurant ? (
         <MapRestaurantCard
           restaurant={selectedRestaurant}
           onClick={() => navigate(`/v2/restaurant/${selectedRestaurant.id}`)}
         />
+      ) : (
+        !submittedSearchTerm && (
+          <div className="absolute bottom-24 left-0 right-0 z-20 pointer-events-auto">
+            <V2RecentReviews isMap={true} />
+          </div>
+        )
       )}
+
+
     </main>
   );
 };
@@ -736,6 +765,7 @@ const ListView = ({
   pagedRestaurants,
   restaurants,
   searchTerm,
+  submittedSearchTerm,
   setListPage,
   setSearchTerm,
   setLocation,
@@ -765,6 +795,7 @@ const ListView = ({
       </form>
 
       <section className="space-y-6 mb-10">
+
         <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-2 px-2 no-scrollbar touch-pan-x">
           <FilterChip
             active={filter.nearMe}

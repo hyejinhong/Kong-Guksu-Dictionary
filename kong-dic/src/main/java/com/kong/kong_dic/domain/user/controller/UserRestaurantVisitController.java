@@ -1,6 +1,7 @@
 package com.kong.kong_dic.domain.user.controller;
 
 import com.kong.kong_dic.common.response.BaseResponse;
+import com.kong.kong_dic.domain.user.dto.RecentReviewResponseDto;
 import com.kong.kong_dic.domain.user.dto.RestaurantVisitNoteResponseDto;
 import com.kong.kong_dic.domain.user.dto.UserRestaurantVisitRequestDto;
 import com.kong.kong_dic.domain.user.dto.UserRestaurantVisitResponseDto;
@@ -10,6 +11,7 @@ import com.kong.kong_dic.domain.user.service.UserService;
 import com.kong.kong_dic.global.annotation.AuthUser;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -26,6 +28,12 @@ public class UserRestaurantVisitController {
 
     private final UserService userService;
     private final UserRestaurantVisitService visitService;
+
+    @GetMapping("/visited-restaurants/recent")
+    public ResponseEntity<BaseResponse<Page<RecentReviewResponseDto>>> getRecentReviews(
+            @PageableDefault(size = 10, page = 0) Pageable pageable) {
+        return ResponseEntity.ok(BaseResponse.success(visitService.getRecentReviews(pageable)));
+    }
 
     @GetMapping("/restaurants/{restaurantId}/visits")
     public ResponseEntity<BaseResponse<List<RestaurantVisitNoteResponseDto>>> getRestaurantVisitNotes(@PathVariable Long restaurantId) {
