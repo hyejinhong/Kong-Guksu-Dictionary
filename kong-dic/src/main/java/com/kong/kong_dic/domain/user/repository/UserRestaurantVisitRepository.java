@@ -2,6 +2,7 @@ package com.kong.kong_dic.domain.user.repository;
 
 import com.kong.kong_dic.domain.restaurant.dto.RatingStatsDto;
 import com.kong.kong_dic.domain.user.entity.UserRestaurantVisit;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -23,4 +24,12 @@ public interface UserRestaurantVisitRepository extends JpaRepository<UserRestaur
 
     @Query("SELECT urv FROM UserRestaurantVisit urv JOIN FETCH urv.user WHERE urv.restaurant.id = :restaurantId ORDER BY urv.visitDate DESC")
     List<UserRestaurantVisit> findByRestaurantIdOrderByVisitDateDesc(@Param("restaurantId") Long restaurantId);
+
+    @Query(value = "SELECT urv FROM UserRestaurantVisit urv JOIN FETCH urv.user JOIN FETCH urv.restaurant " +
+            "WHERE urv.memo IS NOT NULL AND LENGTH(TRIM(urv.memo)) > 0 " +
+            "ORDER BY urv.visitDate DESC, urv.id DESC",
+            countQuery = "SELECT COUNT(urv) FROM UserRestaurantVisit urv " +
+            "WHERE urv.memo IS NOT NULL AND LENGTH(TRIM(urv.memo)) > 0")
+    Page<UserRestaurantVisit> findRecentReviewsWithMemo(Pageable pageable);
 }
+

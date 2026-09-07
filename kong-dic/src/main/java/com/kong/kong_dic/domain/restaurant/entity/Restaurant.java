@@ -57,13 +57,25 @@ public class Restaurant {
     @Builder.Default
     private Long viewCount = 0L;
 
+    @PrePersist
+    @PreUpdate
+    @PostLoad
+    public void ensureDefaults() {
+        if (this.viewCount == null) this.viewCount = 0L;
+        if (this.totalScraps == null) this.totalScraps = 0L;
+        if (this.averageRating == null) this.averageRating = 0.0;
+    }
+
     public void addViewCount(Long count) {
-        this.viewCount += count;
+        if (this.viewCount == null) this.viewCount = 0L;
+        this.viewCount += (count != null ? count : 0L);
     }
 
     // 통계 업데이트
     public void updateStats(Long count, Double rating) {
-        this.totalScraps = count;
-        this.averageRating = rating;
+        if (this.viewCount == null) this.viewCount = 0L;
+        this.totalScraps = (count != null ? count : 0L);
+        this.averageRating = (rating != null ? rating : 0.0);
     }
 }
+
