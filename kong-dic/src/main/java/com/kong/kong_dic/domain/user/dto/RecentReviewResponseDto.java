@@ -26,6 +26,7 @@ public class RecentReviewResponseDto {
     private Integer endMonth;
     private Double rating;
     private String memo;
+    private String imageUrl;
     private LocalDate visitDate;
     private Long userId;
     private String nickname;
@@ -48,6 +49,7 @@ public class RecentReviewResponseDto {
                 .endMonth(restaurant != null ? restaurant.getEndMonth() : null)
                 .rating(visit.getRating())
                 .memo(visit.getMemo())
+                .imageUrl(visit.getImageUrl())
                 .visitDate(visit.getVisitDate())
                 .userId(user != null ? user.getId() : null)
                 .nickname(user != null && user.getNickname() != null ? user.getNickname() : (user != null ? user.getUsername() : "익명"))

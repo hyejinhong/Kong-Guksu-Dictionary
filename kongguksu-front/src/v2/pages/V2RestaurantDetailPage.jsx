@@ -112,6 +112,40 @@ const V2RestaurantDetailPage = () => {
   const [userRating, setUserRating] = useState(5);
   const [userMemo, setUserMemo] = useState('');
   const [saving, setSaving] = useState(false);
+  const fileInputRef = useRef(null);
+  const [selectedImageFile, setSelectedImageFile] = useState(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState(null);
+  const [enlargedImage, setEnlargedImage] = useState(null);
+
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('이미지 파일만 업로드할 수 있습니다.');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('이미지 크기는 최대 10MB까지 가능합니다.');
+      return;
+    }
+
+    setSelectedImageFile(file);
+    const preview = URL.createObjectURL(file);
+    setImagePreviewUrl(preview);
+  };
+
+  const handleRemoveImage = () => {
+    setSelectedImageFile(null);
+    if (imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl);
+      setImagePreviewUrl(null);
+    }
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   const [visitNotes, setVisitNotes] = useState([]);
   const [loadingVisits, setLoadingVisits] = useState(false);
@@ -192,17 +226,41 @@ const V2RestaurantDetailPage = () => {
     setShowSaveModal(true);
     setUserRating(5);
     setUserMemo('');
+    handleRemoveImage();
   };
 
   const handleReviewSubmit = async () => {
     try {
       setSaving(true);
       const today = new Date().toISOString().split('T')[0];
+      let uploadedImageUrl = null;
+
+      if (selectedImageFile) {
+        const formData = new FormData();
+        formData.append('file', selectedImageFile);
+        formData.append('folder', 'reviews');
+
+        const uploadRes = await api.post('/images/upload', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+
+        if (uploadRes.data?.code === 0 && uploadRes.data?.data?.imageUrl) {
+          uploadedImageUrl = uploadRes.data.data.imageUrl;
+        } else {
+          toast.error('이미지 업로드에 실패했습니다.');
+          setSaving(false);
+          return;
+        }
+      }
+
       await api.post('/visited-restaurants', {
         restaurantId: parseInt(id),
         visitDate: today,
         rating: userRating,
-        memo: userMemo.trim() || null
+        memo: userMemo.trim() || null,
+        imageUrl: uploadedImageUrl,
       });
       
       const resResponse = await api.get(`/restaurants/${id}`);
@@ -212,10 +270,11 @@ const V2RestaurantDetailPage = () => {
       await fetchVisitNotes();
       
       setShowSaveModal(false);
+      handleRemoveImage();
       toast.success('리뷰가 등록되었습니다!');
     } catch (err) {
       console.error('Failed to save review:', err);
-      toast.error('리뷰 등록에 실패했습니다.');
+      toast.error(err.response?.data?.message || '리뷰 등록에 실패했습니다.');
     } finally {
       setSaving(false);
     }
@@ -536,6 +595,18 @@ const V2RestaurantDetailPage = () => {
                       <p className="whitespace-pre-wrap">{note.memo}</p>
                     </div>
                   )}
+
+                  {note.imageUrl && (
+                    <div className="pt-1">
+                      <img
+                        src={note.imageUrl}
+                        alt="콩국수 인증샷"
+                        onClick={() => setEnlargedImage(note.imageUrl)}
+                        className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl object-cover cursor-pointer hover:opacity-90 hover:scale-[1.02] active:scale-95 transition-all shadow-xs border border-outline-variant/15"
+                        title="클릭하여 원본 사진 보기"
+                      />
+                    </div>
+                  )}
                 </div>
               ))}
 
@@ -663,14 +734,58 @@ const V2RestaurantDetailPage = () => {
                 <textarea
                   value={userMemo}
                   onChange={(e) => setUserMemo(e.target.value)}
-                  className="w-full px-5 py-4 rounded-2xl bg-surface-container-low border-none focus:ring-2 focus:ring-primary text-sm min-h-[120px] resize-none soy-shadow transition-all"
+                  className="w-full px-5 py-4 rounded-2xl bg-surface-container-low border-none focus:ring-2 focus:ring-primary text-sm min-h-[100px] resize-none soy-shadow transition-all"
                   placeholder="맛, 분위기, 콩물 등 솔직한 리뷰를 남겨주세요."
                 />
               </div>
 
-              <div className="flex gap-3">
+              {/* Photo Upload */}
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-tertiary uppercase tracking-wider block">
+                  콩국수 인증샷 (선택)
+                </label>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleImageChange}
+                  accept="image/*"
+                  className="hidden"
+                />
+
+                {imagePreviewUrl ? (
+                  <div className="relative w-full h-40 rounded-2xl overflow-hidden group border border-outline-variant/20 shadow-xs bg-surface-container-low">
+                    <img
+                      src={imagePreviewUrl}
+                      alt="리뷰 사진 미리보기"
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleRemoveImage}
+                      className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors backdrop-blur-xs shadow-md"
+                      title="사진 삭제"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">close</span>
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full py-3.5 px-4 rounded-2xl border-2 border-dashed border-outline-variant/30 hover:border-primary bg-surface-container-lowest hover:bg-surface-container-low/60 transition-all flex items-center justify-center gap-2 text-tertiary hover:text-primary font-bold text-sm group"
+                  >
+                    <span className="material-symbols-outlined text-2xl text-tertiary group-hover:text-primary transition-colors">add_photo_alternate</span>
+                    <span>콩국수 인증샷 추가하기</span>
+                  </button>
+                )}
+              </div>
+
+              <div className="flex gap-3 pt-2">
                 <button
-                  onClick={() => setShowSaveModal(false)}
+                  onClick={() => {
+                    setShowSaveModal(false);
+                    handleRemoveImage();
+                  }}
                   className="flex-1 py-4 rounded-full font-bold text-tertiary hover:bg-surface-container-low transition-colors"
                 >
                   취소
@@ -678,12 +793,42 @@ const V2RestaurantDetailPage = () => {
                 <button
                   onClick={handleReviewSubmit}
                   disabled={saving}
-                  className="flex-1 bg-primary text-background py-4 rounded-full font-bold hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-primary/20 disabled:opacity-50"
+                  className="flex-1 bg-primary text-background py-4 rounded-full font-bold hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-primary/20 disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  {saving ? '등록 중...' : '리뷰 등록'}
+                  {saving ? (
+                    <>
+                      <span className="inline-block w-4 h-4 border-2 border-background border-t-transparent rounded-full animate-spin" />
+                      <span>{selectedImageFile ? '사진 업로드 및 등록 중...' : '등록 중...'}</span>
+                    </>
+                  ) : (
+                    '리뷰 등록'
+                  )}
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Enlarged Image Modal */}
+      {enlargedImage && (
+        <div 
+          className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={() => setEnlargedImage(null)}
+        >
+          <div className="relative max-w-2xl max-h-[85vh] w-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={enlargedImage}
+              alt="리뷰 인증샷 확대"
+              className="max-w-full max-h-[80vh] rounded-2xl object-contain shadow-2xl"
+            />
+            <button
+              onClick={() => setEnlargedImage(null)}
+              className="absolute top-2 right-2 sm:-top-4 sm:-right-4 w-9 h-9 rounded-full bg-black/70 text-white flex items-center justify-center hover:bg-black/90 transition-colors shadow-lg"
+              title="닫기"
+            >
+              <span className="material-symbols-outlined text-xl">close</span>
+            </button>
           </div>
         </div>
       )}

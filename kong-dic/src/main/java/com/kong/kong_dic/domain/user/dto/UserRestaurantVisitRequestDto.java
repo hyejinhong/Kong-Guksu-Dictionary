@@ -11,4 +11,5 @@ public class UserRestaurantVisitRequestDto {
     private LocalDate visitDate;
     private Double rating;
     private String memo;
+    private String imageUrl;
 }

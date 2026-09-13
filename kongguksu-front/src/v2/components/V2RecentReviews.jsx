@@ -187,7 +187,7 @@ const V2RecentReviews = ({ isMap = false, className = '' }) => {
             <div
               key={review.id}
               onClick={(e) => handleCardClick(review.restaurantId, e)}
-              className="w-[260px] sm:w-[280px] shrink-0 bg-surface-container-lowest/95 backdrop-blur-md p-3 rounded-2xl border border-white/80 shadow-lg hover:shadow-xl transition-all active:scale-[0.98] cursor-pointer flex items-center gap-3 group"
+              className="w-[280px] sm:w-[310px] shrink-0 bg-surface-container-lowest/95 backdrop-blur-md p-3 rounded-2xl border border-white/80 shadow-lg hover:shadow-xl transition-all active:scale-[0.98] cursor-pointer flex items-center gap-3 group"
             >
               {/* Left: Avatar & Rating */}
               <div className="flex flex-col items-center justify-center shrink-0">
@@ -205,12 +205,12 @@ const V2RecentReviews = ({ isMap = false, className = '' }) => {
                 )}
               </div>
 
-              {/* Right: Info & Memo */}
+              {/* Middle: Info & Memo */}
               <div className="flex-1 min-w-0">
                 {/* Line 1: Restaurant Name + Badges + User */}
                 <div className="flex items-center justify-between gap-1 mb-0.5">
                   <div className="flex items-center gap-1 min-w-0">
-                    <h3 className="font-black text-xs text-primary tracking-tight truncate max-w-[110px] group-hover:text-primary/80 transition-colors">
+                    <h3 className="font-black text-xs text-primary tracking-tight truncate max-w-[100px] group-hover:text-primary/80 transition-colors">
                       {review.restaurantName}
                     </h3>
                     {review.servesAllYear && (
@@ -225,7 +225,7 @@ const V2RecentReviews = ({ isMap = false, className = '' }) => {
                     )}
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    <span className="text-[10px] font-bold text-outline truncate max-w-[60px]">
+                    <span className="text-[10px] font-bold text-outline truncate max-w-[55px]">
                       {review.nickname}
                     </span>
                     {seasoningBadge && (
@@ -243,10 +243,19 @@ const V2RecentReviews = ({ isMap = false, className = '' }) => {
 
                 {/* Line 3: Address & Date */}
                 <div className="flex items-center justify-between text-[9px] text-tertiary">
-                  <span className="truncate max-w-[130px] font-medium">{review.restaurantAddress}</span>
+                  <span className="truncate max-w-[120px] font-medium">{review.restaurantAddress}</span>
                   <span className="shrink-0">{formatRelativeDate(review.visitDate)}</span>
                 </div>
               </div>
+
+              {/* Right: Optional Review Photo Thumbnail */}
+              {review.imageUrl && (
+                <img 
+                  src={review.imageUrl} 
+                  alt="콩국수 인증샷" 
+                  className="w-12 h-12 rounded-xl object-cover shrink-0 border border-white/80 shadow-xs group-hover:scale-105 transition-transform" 
+                />
+              )}
             </div>
           );
         })}

@@ -52,6 +52,7 @@ public class UserRestaurantVisitService {
                     .seasoningPreference(u != null && u.getSeasoningPreference() != null ? u.getSeasoningPreference() : com.kong.kong_dic.domain.user.entity.SeasoningPreference.NONE)
                     .rating(visit.getRating())
                     .memo(visit.getMemo())
+                    .imageUrl(visit.getImageUrl())
                     .visitDate(visit.getVisitDate())
                     .build();
         }).toList();
@@ -71,6 +72,7 @@ public class UserRestaurantVisitService {
                 .visitedDate(entity.getVisitDate())
                 .rating(entity.getRating())
                 .memo(entity.getMemo())
+                .imageUrl(entity.getImageUrl())
                 .build();
     }
 
@@ -95,6 +97,7 @@ public class UserRestaurantVisitService {
                 .visitDate(request.getVisitDate())
                 .rating(request.getRating())
                 .memo(trimmedMemo)
+                .imageUrl(request.getImageUrl())
                 .build();
         visitRepository.save(entity);
 
@@ -130,6 +133,10 @@ public class UserRestaurantVisitService {
         if (request.getMemo() != null) {
             String trimmedMemo = !request.getMemo().trim().isEmpty() ? request.getMemo().trim() : null;
             visit.setMemo(trimmedMemo);
+        }
+        if (request.getImageUrl() != null) {
+            String trimmedUrl = !request.getImageUrl().trim().isEmpty() ? request.getImageUrl().trim() : null;
+            visit.setImageUrl(trimmedUrl);
         }
     }
 }

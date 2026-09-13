@@ -136,9 +136,17 @@ const V2SavedRestaurantsPage = () => {
                 onClick={() => navigate(`/v2/restaurant/${item.restaurant.id}`)}
                 className="bg-surface-container-lowest p-5 rounded-2xl shadow-sm hover:shadow-md transition-shadow cursor-pointer relative group flex gap-4 items-start"
               >
-                <div className="w-16 h-16 rounded-xl bg-primary-container flex items-center justify-center shrink-0">
-                  <img src={noodleImg} alt="Noodles" className="w-10 h-10 object-contain" />
-                </div>
+                {item.imageUrl ? (
+                  <img
+                    src={item.imageUrl}
+                    alt="콩국수 인증샷"
+                    className="w-16 h-16 rounded-xl object-cover shrink-0 shadow-xs border border-outline-variant/15"
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-xl bg-primary-container flex items-center justify-center shrink-0">
+                    <img src={noodleImg} alt="Noodles" className="w-10 h-10 object-contain" />
+                  </div>
+                )}
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-start mb-1">
                   <h3 className="text-xl font-bold text-primary group-hover:text-primary/80 transition-colors truncate">
