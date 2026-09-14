@@ -7,6 +7,7 @@ import './V2Main.css';
 import { useNotification } from '../contexts/NotificationContext';
 import V2ShareModal from '../components/V2ShareModal';
 import V2ReportEditModal from '../components/V2ReportEditModal';
+import { compressImage } from '../utils/imageCompressor';
 
 const KONG_COLORS = ["#FFFDF0", "#FFD369", "#3D3D3D", "#A9B388", "#FF9F29"];
 const KAKAO_MAP_SCRIPT_ID = 'kakao-map-sdk';
@@ -115,9 +116,10 @@ const V2RestaurantDetailPage = () => {
   const fileInputRef = useRef(null);
   const [selectedImageFile, setSelectedImageFile] = useState(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState(null);
+  const [isCompressing, setIsCompressing] = useState(false);
   const [enlargedImage, setEnlargedImage] = useState(null);
 
-  const handleImageChange = (e) => {
+  const handleImageChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -126,18 +128,33 @@ const V2RestaurantDetailPage = () => {
       return;
     }
 
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error('이미지 크기는 최대 10MB까지 가능합니다.');
+    // 스마트폰 고화질 원본(최대 30MB)까지 허용
+    if (file.size > 30 * 1024 * 1024) {
+      toast.error('이미지 크기는 최대 30MB까지 가능합니다.');
       return;
     }
 
-    setSelectedImageFile(file);
-    const preview = URL.createObjectURL(file);
-    setImagePreviewUrl(preview);
+    try {
+      setIsCompressing(true);
+      const compressed = await compressImage(file);
+      setSelectedImageFile(compressed);
+      const preview = URL.createObjectURL(compressed);
+      setImagePreviewUrl(preview);
+    } catch (err) {
+      console.error('이미지 처리 실패:', err);
+      toast.error('사진을 불러오는 중 오류가 발생했습니다.');
+      // 실패 시 원본 사용 fallback
+      setSelectedImageFile(file);
+      const preview = URL.createObjectURL(file);
+      setImagePreviewUrl(preview);
+    } finally {
+      setIsCompressing(false);
+    }
   };
 
   const handleRemoveImage = () => {
     setSelectedImageFile(null);
+    setIsCompressing(false);
     if (imagePreviewUrl) {
       URL.revokeObjectURL(imagePreviewUrl);
       setImagePreviewUrl(null);
@@ -750,6 +767,7 @@ const V2RestaurantDetailPage = () => {
                   onChange={handleImageChange}
                   accept="image/*"
                   className="hidden"
+                  disabled={isCompressing || saving}
                 />
 
                 {imagePreviewUrl ? (
@@ -762,7 +780,8 @@ const V2RestaurantDetailPage = () => {
                     <button
                       type="button"
                       onClick={handleRemoveImage}
-                      className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors backdrop-blur-xs shadow-md"
+                      disabled={saving || isCompressing}
+                      className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors backdrop-blur-xs shadow-md disabled:opacity-50"
                       title="사진 삭제"
                     >
                       <span className="material-symbols-outlined text-[18px]">close</span>
@@ -771,11 +790,21 @@ const V2RestaurantDetailPage = () => {
                 ) : (
                   <button
                     type="button"
+                    disabled={isCompressing || saving}
                     onClick={() => fileInputRef.current?.click()}
-                    className="w-full py-3.5 px-4 rounded-2xl border-2 border-dashed border-outline-variant/30 hover:border-primary bg-surface-container-lowest hover:bg-surface-container-low/60 transition-all flex items-center justify-center gap-2 text-tertiary hover:text-primary font-bold text-sm group"
+                    className="w-full py-3.5 px-4 rounded-2xl border-2 border-dashed border-outline-variant/30 hover:border-primary bg-surface-container-lowest hover:bg-surface-container-low/60 transition-all flex items-center justify-center gap-2 text-tertiary hover:text-primary font-bold text-sm group disabled:opacity-50"
                   >
-                    <span className="material-symbols-outlined text-2xl text-tertiary group-hover:text-primary transition-colors">add_photo_alternate</span>
-                    <span>콩국수 인증샷 추가하기</span>
+                    {isCompressing ? (
+                      <>
+                        <span className="inline-block w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                        <span className="text-primary">사진 불러오는 중...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined text-2xl text-tertiary group-hover:text-primary transition-colors">add_photo_alternate</span>
+                        <span>콩국수 인증샷 추가하기</span>
+                      </>
+                    )}
                   </button>
                 )}
               </div>
@@ -786,13 +815,14 @@ const V2RestaurantDetailPage = () => {
                     setShowSaveModal(false);
                     handleRemoveImage();
                   }}
-                  className="flex-1 py-4 rounded-full font-bold text-tertiary hover:bg-surface-container-low transition-colors"
+                  disabled={saving || isCompressing}
+                  className="flex-1 py-4 rounded-full font-bold text-tertiary hover:bg-surface-container-low transition-colors disabled:opacity-50"
                 >
                   취소
                 </button>
                 <button
                   onClick={handleReviewSubmit}
-                  disabled={saving}
+                  disabled={saving || isCompressing}
                   className="flex-1 bg-primary text-background py-4 rounded-full font-bold hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-primary/20 disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {saving ? (
