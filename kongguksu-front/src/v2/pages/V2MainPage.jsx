@@ -1001,6 +1001,7 @@ const formatDistance = (distance) => {
 };
 
 const ListRestaurantCard = ({ restaurant, onClick }) => {
+  const [imageError, setImageError] = useState(false);
   const serving = isCurrentlyServing(restaurant);
   const beanTypes = restaurant.beanTypes?.length ? restaurant.beanTypes : [restaurant.beanType].filter(Boolean);
 
@@ -1011,13 +1012,24 @@ const ListRestaurantCard = ({ restaurant, onClick }) => {
     noodleImg = "/images/soy bean noodle.png";
   }
 
+  const hasImage = Boolean(restaurant.imageUrl && !imageError);
+
   return (
     <div
       onClick={onClick}
       className="bg-surface-container-lowest p-5 rounded-xl soy-shadow flex gap-4 items-start active:scale-[0.98] transition-transform cursor-pointer"
     >
-      <div className={`w-16 h-16 rounded-lg flex items-center justify-center flex-shrink-0 ${serving ? 'bg-primary-container' : 'bg-surface-container-highest'}`}>
-        <img src={noodleImg} alt="Noodles" className={`w-10 h-10 object-contain ${!serving && 'grayscale opacity-50'}`} />
+      <div className={`w-16 h-16 rounded-xl overflow-hidden flex items-center justify-center flex-shrink-0 ${hasImage ? 'bg-surface-container border border-outline-variant/15' : serving ? 'bg-primary-container' : 'bg-surface-container-highest'}`}>
+        {hasImage ? (
+          <img
+            src={restaurant.imageUrl}
+            alt={`${restaurant.name} 리뷰 사진`}
+            className={`w-full h-full object-cover ${!serving ? 'grayscale opacity-60' : ''}`}
+            onError={() => setImageError(true)}
+          />
+        ) : (
+          <img src={noodleImg} alt="Noodles" className={`w-10 h-10 object-contain ${!serving && 'grayscale opacity-50'}`} />
+        )}
       </div>
       <div className="flex-1 space-y-2 min-w-0">
         <div className="flex justify-between items-start gap-3">
@@ -1071,6 +1083,7 @@ const ListRestaurantCard = ({ restaurant, onClick }) => {
 };
 
 const MapRestaurantCard = ({ restaurant, onClick }) => {
+  const [imageError, setImageError] = useState(false);
   const serving = isCurrentlyServing(restaurant);
   const beanTypes = restaurant.beanTypes?.length ? restaurant.beanTypes : [restaurant.beanType].filter(Boolean);
 
@@ -1081,18 +1094,29 @@ const MapRestaurantCard = ({ restaurant, onClick }) => {
     noodleImg = "/images/soy bean noodle.png";
   }
 
+  const hasImage = Boolean(restaurant.imageUrl && !imageError);
+
   return (
     <div
       onClick={onClick}
       className="absolute bottom-36 left-6 right-6 z-20 md:max-w-sm cursor-pointer active:scale-95 transition-transform"
     >
       <div className="bg-surface-container-lowest p-5 rounded-[2.5rem] shadow-2xl flex gap-4 border border-white">
-        <div className="w-24 h-24 rounded-[1.8rem] overflow-hidden flex-shrink-0 bg-primary-container flex items-center justify-center">
-          <img
-            alt={`${restaurant.name} 콩국수`}
-            className="w-16 h-16 object-contain"
-            src={noodleImg}
-          />
+        <div className={`w-24 h-24 rounded-[1.8rem] overflow-hidden flex-shrink-0 flex items-center justify-center ${hasImage ? 'bg-surface-container border border-outline-variant/15' : 'bg-primary-container'}`}>
+          {hasImage ? (
+            <img
+              src={restaurant.imageUrl}
+              alt={`${restaurant.name} 리뷰 사진`}
+              className={`w-full h-full object-cover ${!serving ? 'grayscale opacity-60' : ''}`}
+              onError={() => setImageError(true)}
+            />
+          ) : (
+            <img
+              alt={`${restaurant.name} 콩국수`}
+              className="w-16 h-16 object-contain"
+              src={noodleImg}
+            />
+          )}
         </div>
         <div className="flex-grow py-1 min-w-0">
           <div className="flex justify-between items-start mb-1 gap-2">
