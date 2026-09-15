@@ -17,4 +17,6 @@ public class UserRestaurantVisitResponseDto {
     private Double rating;
     private String memo;
     private String imageUrl;
+    private Boolean isImageBlinded;
+    private String imageBlindReason;
 }

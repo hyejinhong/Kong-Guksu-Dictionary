@@ -6,6 +6,7 @@ import AdminRestaurantList from './pages/AdminRestaurantList';
 import AdminRestaurantEdit from './pages/AdminRestaurantEdit';
 import AdminUserList from './pages/AdminUserList';
 import AdminRestaurantReports from './pages/AdminRestaurantReports';
+import AdminReviewImages from './pages/AdminReviewImages';
 
 // JWT 토큰 파싱
 const parseJwt = (token) => {
@@ -95,6 +96,13 @@ const HomePage = () => (
       >
         🚩 식당 수정 제보 관리
       </Link>
+      {/* 🖼️ 리뷰 사진 검열 관리 링크 */}
+      <Link
+        to="/reviews/images"
+        className="px-6 py-3 bg-purple-600 text-white font-semibold rounded-lg shadow-md hover:bg-purple-700 transition-colors duration-200 text-center"
+      >
+        🖼️ 리뷰 사진 검열
+      </Link>
       {/* 👤 사용자 관리 링크 */}
       <Link
         to="/users"
@@ -165,6 +173,7 @@ function App() {
         <Route path="/restaurants/submissions" element={<AdminRestaurantSubmissions />} />
         <Route path="/restaurants/list" element={<AdminRestaurantList />} />
         <Route path="/restaurants/reports" element={<AdminRestaurantReports />} />
+        <Route path="/reviews/images" element={<AdminReviewImages />} />
         <Route path="/users" element={<AdminUserList />} />
         <Route path="/restaurants/edit/:id" element={<AdminRestaurantEdit />} />
       </Routes>

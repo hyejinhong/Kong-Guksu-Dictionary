@@ -43,6 +43,7 @@ public class UserRestaurantVisitService {
         List<UserRestaurantVisit> visitList = visitRepository.findByRestaurantIdOrderByVisitDateDesc(restaurantId);
         return visitList.stream().map(visit -> {
             User u = visit.getUser();
+            boolean isBlinded = Boolean.TRUE.equals(visit.getIsImageBlinded());
             return RestaurantVisitNoteResponseDto.builder()
                     .id(visit.getId())
                     .userId(u != null ? u.getId() : null)
@@ -52,7 +53,9 @@ public class UserRestaurantVisitService {
                     .seasoningPreference(u != null && u.getSeasoningPreference() != null ? u.getSeasoningPreference() : com.kong.kong_dic.domain.user.entity.SeasoningPreference.NONE)
                     .rating(visit.getRating())
                     .memo(visit.getMemo())
-                    .imageUrl(visit.getImageUrl())
+                    .imageUrl(isBlinded ? null : visit.getImageUrl())
+                    .isImageBlinded(isBlinded)
+                    .imageBlindReason(isBlinded && visit.getImageBlindReason() != null ? visit.getImageBlindReason().getDescription() : null)
                     .visitDate(visit.getVisitDate())
                     .build();
         }).toList();
@@ -66,13 +69,16 @@ public class UserRestaurantVisitService {
     }
 
     private UserRestaurantVisitResponseDto entityToResponseDto(UserRestaurantVisit entity) {
+        boolean isBlinded = Boolean.TRUE.equals(entity.getIsImageBlinded());
         return UserRestaurantVisitResponseDto.builder()
                 .id(entity.getId())
                 .restaurant(RestaurantService.entityToResponseDto(entity.getRestaurant()))
                 .visitedDate(entity.getVisitDate())
                 .rating(entity.getRating())
                 .memo(entity.getMemo())
-                .imageUrl(entity.getImageUrl())
+                .imageUrl(isBlinded ? null : entity.getImageUrl())
+                .isImageBlinded(isBlinded)
+                .imageBlindReason(isBlinded && entity.getImageBlindReason() != null ? entity.getImageBlindReason().getDescription() : null)
                 .build();
     }
 
@@ -136,7 +142,13 @@ public class UserRestaurantVisitService {
         }
         if (request.getImageUrl() != null) {
             String trimmedUrl = !request.getImageUrl().trim().isEmpty() ? request.getImageUrl().trim() : null;
-            visit.setImageUrl(trimmedUrl);
+            if (trimmedUrl != null && !trimmedUrl.equals(visit.getImageUrl())) {
+                visit.setImageUrl(trimmedUrl);
+                visit.unblindImage();
+            } else if (trimmedUrl == null && visit.getImageUrl() != null) {
+                visit.setImageUrl(null);
+                visit.unblindImage();
+            }
         }
     }
 }

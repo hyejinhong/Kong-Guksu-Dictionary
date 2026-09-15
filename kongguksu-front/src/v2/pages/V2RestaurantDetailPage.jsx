@@ -613,7 +613,7 @@ const V2RestaurantDetailPage = () => {
                     </div>
                   )}
 
-                  {note.imageUrl && (
+                  {note.imageUrl ? (
                     <div className="pt-1">
                       <img
                         src={note.imageUrl}
@@ -623,7 +623,14 @@ const V2RestaurantDetailPage = () => {
                         title="클릭하여 원본 사진 보기"
                       />
                     </div>
-                  )}
+                  ) : note.isImageBlinded ? (
+                    <div className="pt-1">
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-container-high/60 border border-outline-variant/20 text-on-surface-variant text-xs font-medium">
+                        <span className="material-symbols-outlined text-sm text-outline">visibility_off</span>
+                        <span>관리자에 의해 블라인드 처리된 이미지입니다</span>
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               ))}
 

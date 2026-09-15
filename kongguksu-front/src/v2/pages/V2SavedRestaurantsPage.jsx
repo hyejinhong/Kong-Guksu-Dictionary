@@ -142,6 +142,14 @@ const V2SavedRestaurantsPage = () => {
                     alt="콩국수 인증샷"
                     className="w-16 h-16 rounded-xl object-cover shrink-0 shadow-xs border border-outline-variant/15"
                   />
+                ) : item.isImageBlinded ? (
+                  <div 
+                    className="w-16 h-16 rounded-xl bg-error-container/40 border border-error/20 flex flex-col items-center justify-center shrink-0 p-1 text-center"
+                    title={`블라인드 사유: ${item.imageBlindReason || '관련 없는 사진'}`}
+                  >
+                    <span className="material-symbols-outlined text-error text-xl">visibility_off</span>
+                    <span className="text-[9px] text-error font-semibold mt-0.5 leading-none">사진 블라인드</span>
+                  </div>
                 ) : (
                   <div className="w-16 h-16 rounded-xl bg-primary-container flex items-center justify-center shrink-0">
                     <img src={noodleImg} alt="Noodles" className="w-10 h-10 object-contain" />
@@ -199,6 +207,12 @@ const V2SavedRestaurantsPage = () => {
                     <p className="text-xs text-on-surface/70 italic line-clamp-1 mt-1">
                       "{item.memo}"
                     </p>
+                  )}
+                  {item.isImageBlinded && (
+                    <div className="mt-1.5 text-xs text-error bg-error-container/40 px-2.5 py-1.5 rounded-lg border border-error/20 flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-[16px] shrink-0">info</span>
+                      <span>등록하신 인증 사진이 블라인드 처리되었습니다 ({item.imageBlindReason || '관련 없는 사진'}).</span>
+                    </div>
                   )}
                 </div>
               </div>

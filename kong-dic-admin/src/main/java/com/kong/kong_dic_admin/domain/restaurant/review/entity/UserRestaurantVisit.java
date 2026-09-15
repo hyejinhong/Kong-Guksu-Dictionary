@@ -1,7 +1,8 @@
-package com.kong.kong_dic.domain.user.entity;
+package com.kong.kong_dic_admin.domain.restaurant.review.entity;
 
-import com.kong.kong_dic.domain.restaurant.entity.Restaurant;
 import com.kong.kong_dic.common.model.BlindReason;
+import com.kong.kong_dic_admin.domain.restaurant.entity.Restaurant;
+import com.kong.kong_dic_admin.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -9,28 +10,30 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Getter @Setter @Builder
+@Table(name = "user_restaurant_visit")
+@Getter
+@Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "user_restaurant_visit", uniqueConstraints = {@UniqueConstraint(columnNames = {"user_id", "restaurant_id"})}) // 동시성 방지
 public class UserRestaurantVisit {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY) // User 엔티티와 다대일 관계
-    @JoinColumn(name = "user_id", nullable = false) // user_id 컬럼으로 매핑, null 불허
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @ManyToOne(fetch = FetchType.LAZY) // Restaurant 엔티티와 다대일 관계
-    @JoinColumn(name = "restaurant_id", nullable = false) // restaurant_id 컬럼으로 매핑, null 불허
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "restaurant_id", nullable = false)
     private Restaurant restaurant;
 
-    private LocalDate visitDate; // 방문 일자
-    private Double rating;      // 사용자가 매긴 별점
-    private String memo;         // 사용자의 짧은 메모
-    private String imageUrl;     // 리뷰 인증샷 이미지 URL
+    private LocalDate visitDate;
+    private Double rating;
+    private String memo;
+    private String imageUrl;
 
     @Builder.Default
     @Column(name = "is_image_blinded", nullable = false)
@@ -42,10 +45,6 @@ public class UserRestaurantVisit {
 
     @Column(name = "image_blinded_at")
     private LocalDateTime imageBlindedAt;
-
-    public void updateRating(Double rating) {
-        this.rating = rating;
-    }
 
     public void blindImage(BlindReason reason) {
         this.isImageBlinded = true;
