@@ -10,9 +10,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -75,6 +77,58 @@ public class ImageUploadService {
             log.error("Unexpected error during image upload", e);
             throw new BaseException(ImageExceptionType.UPLOAD_FAILED);
         }
+    }
+
+    public void deleteImage(String fileUrlOrKey) {
+        if (fileUrlOrKey == null || fileUrlOrKey.isBlank()) {
+            return;
+        }
+
+        String key = extractKey(fileUrlOrKey);
+        if (key == null || key.isBlank()) {
+            return;
+        }
+
+        try {
+            DeleteObjectRequest deleteObjectRequest = DeleteObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(key)
+                    .build();
+
+            s3Client.deleteObject(deleteObjectRequest);
+            log.info("Successfully deleted image from Cloudflare R2. key: {}", key);
+        } catch (Exception e) {
+            log.warn("Failed to delete image from Cloudflare R2. key: {}, error: {}", key, e.getMessage());
+        }
+    }
+
+    public String extractKey(String fileUrlOrKey) {
+        if (fileUrlOrKey == null || fileUrlOrKey.isBlank()) {
+            return null;
+        }
+
+        String normalizedPublicUrl = (publicUrl != null && !publicUrl.isBlank())
+                ? (publicUrl.endsWith("/") ? publicUrl.substring(0, publicUrl.length() - 1) : publicUrl)
+                : "";
+
+        if (!normalizedPublicUrl.isBlank() && fileUrlOrKey.startsWith(normalizedPublicUrl)) {
+            String key = fileUrlOrKey.substring(normalizedPublicUrl.length());
+            return key.replaceAll("^/+", "");
+        }
+
+        if (fileUrlOrKey.startsWith("http://") || fileUrlOrKey.startsWith("https://")) {
+            try {
+                URI uri = URI.create(fileUrlOrKey);
+                String path = uri.getPath();
+                if (path != null) {
+                    return path.replaceAll("^/+", "");
+                }
+            } catch (Exception e) {
+                log.debug("Failed to parse URI: {}", fileUrlOrKey, e);
+            }
+        }
+
+        return fileUrlOrKey.replaceAll("^/+", "");
     }
 
     private String extractExtension(String filename) {

@@ -8,20 +8,24 @@ import com.kong.kong_dic.domain.restaurant.dto.RestaurantCommentResponseDto;
 import com.kong.kong_dic.domain.restaurant.exception.RestaurantExceptionType;
 import com.kong.kong_dic.domain.restaurant.service.RestaurantCommentService;
 import com.kong.kong_dic.domain.user.service.CustomUserDetailsService;
+import com.kong.kong_dic.domain.auth.service.RefreshTokenService;
 import com.kong.kong_dic.global.config.SecurityConfig;
 import com.kong.kong_dic.global.jwt.JwtProvider;
 import com.kong.kong_dic.global.resolver.AuthUserArgumentResolver;
+import org.springframework.web.cors.CorsConfigurationSource;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 
@@ -56,12 +60,18 @@ public class RestaurantCommentControllerTest {
     @MockitoBean private CustomUserDetailsService customUserDetailsService;
     @MockitoBean private AuthenticationConfiguration authenticationConfiguration;
     @MockitoBean private JpaMetamodelMappingContext jpaMetamodelMappingContext;
+    @MockitoBean private RefreshTokenService refreshTokenService;
 
     @TestConfiguration
     static class TestConfig implements WebMvcConfigurer {
         @Override
         public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
             resolvers.add(new AuthUserArgumentResolver());
+        }
+
+        @Bean
+        public CorsConfigurationSource corsConfigurationSource() {
+            return new UrlBasedCorsConfigurationSource();
         }
     }
 
