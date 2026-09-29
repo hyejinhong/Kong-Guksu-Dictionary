@@ -27,4 +27,5 @@ public class RestaurantResponseDto {
     private Double averageRating;
     private Long totalScraps;
     private Long viewCount;
+    private String imageUrl;
 }

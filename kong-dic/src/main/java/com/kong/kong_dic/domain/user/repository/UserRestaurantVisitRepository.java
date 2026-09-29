@@ -31,5 +31,12 @@ public interface UserRestaurantVisitRepository extends JpaRepository<UserRestaur
             countQuery = "SELECT COUNT(urv) FROM UserRestaurantVisit urv " +
             "WHERE urv.memo IS NOT NULL AND LENGTH(TRIM(urv.memo)) > 0")
     Page<UserRestaurantVisit> findRecentReviewsWithMemo(Pageable pageable);
+
+    @Query("SELECT urv.restaurant.id, urv.imageUrl FROM UserRestaurantVisit urv " +
+            "WHERE urv.restaurant.id IN :restaurantIds " +
+            "AND urv.imageUrl IS NOT NULL AND LENGTH(TRIM(urv.imageUrl)) > 0 " +
+            "AND (urv.isImageBlinded IS NULL OR urv.isImageBlinded = false) " +
+            "ORDER BY urv.visitDate DESC, urv.id DESC")
+    List<Object[]> findLatestImageUrlsByRestaurantIds(@Param("restaurantIds") List<Long> restaurantIds);
 }
 

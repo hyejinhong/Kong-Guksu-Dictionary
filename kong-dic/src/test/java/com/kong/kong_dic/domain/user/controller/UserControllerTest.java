@@ -1,16 +1,20 @@
 package com.kong.kong_dic.domain.user.controller;
 
 
+import com.kong.kong_dic.domain.auth.service.RefreshTokenService;
 import com.kong.kong_dic.domain.restaurant.dto.RestaurantCommentResponseDto;
 import com.kong.kong_dic.domain.restaurant.service.RestaurantCommentService;
+import com.kong.kong_dic.domain.restaurant.service.RestaurantSubmitService;
 import com.kong.kong_dic.domain.user.service.CustomUserDetailsService;
 import com.kong.kong_dic.domain.user.service.UserService;
 import com.kong.kong_dic.global.config.SecurityConfig;
 import com.kong.kong_dic.global.jwt.JwtProvider;
+import org.springframework.web.cors.CorsConfigurationSource;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -52,10 +56,24 @@ public class UserControllerTest {
     private JpaMetamodelMappingContext jpaMetamodelMappingContext;
 
     @MockitoBean
+    private RefreshTokenService refreshTokenService;
+
+    @TestConfiguration
+    static class TestConfig {
+        @org.springframework.context.annotation.Bean
+        public CorsConfigurationSource corsConfigurationSource() {
+            return new org.springframework.web.cors.UrlBasedCorsConfigurationSource();
+        }
+    }
+
+    @MockitoBean
     private UserService userService;
 
     @MockitoBean
     private RestaurantCommentService restaurantCommentService; // 댓글 조회 로직 검증용 Mock
+
+    @MockitoBean
+    private RestaurantSubmitService restaurantSubmitService;
 
     @Test
     @DisplayName("내가 쓴 댓글 모아보기 성공 테스트")
@@ -98,12 +116,12 @@ public class UserControllerTest {
                         .param("size", "10"))
                 .andExpect(status().isOk())
                 .andDo(print())
-                // JSON 검증 (필드명 정확히 매칭)
-                .andExpect(jsonPath("$.content[0].id").value(1L))
-                .andExpect(jsonPath("$.content[0].nickname").value("testUser"))
-                .andExpect(jsonPath("$.content[0].content").value("굿"))
-                .andExpect(jsonPath("$.content[1].id").value(2L))
-                .andExpect(jsonPath("$.content[1].content").value("그냥 그래"));
+                // JSON 검증 (BaseResponse.data 구조 반영)
+                .andExpect(jsonPath("$.data.content[0].id").value(1L))
+                .andExpect(jsonPath("$.data.content[0].nickname").value("testUser"))
+                .andExpect(jsonPath("$.data.content[0].content").value("굿"))
+                .andExpect(jsonPath("$.data.content[1].id").value(2L))
+                .andExpect(jsonPath("$.data.content[1].content").value("그냥 그래"));
 
     }
 }

@@ -19,5 +19,8 @@ public class RestaurantVisitNoteResponseDto {
     private SeasoningPreference seasoningPreference;
     private Double rating;
     private String memo;
+    private String imageUrl;
+    private Boolean isImageBlinded;
+    private String imageBlindReason;
     private LocalDate visitDate;
 }

@@ -26,6 +26,8 @@ public class RecentReviewResponseDto {
     private Integer endMonth;
     private Double rating;
     private String memo;
+    private String imageUrl;
+    private Boolean isImageBlinded;
     private LocalDate visitDate;
     private Long userId;
     private String nickname;
@@ -36,6 +38,7 @@ public class RecentReviewResponseDto {
     public static RecentReviewResponseDto from(UserRestaurantVisit visit) {
         Restaurant restaurant = visit.getRestaurant();
         User user = visit.getUser();
+        boolean isBlinded = Boolean.TRUE.equals(visit.getIsImageBlinded());
 
         return RecentReviewResponseDto.builder()
                 .id(visit.getId())
@@ -48,6 +51,8 @@ public class RecentReviewResponseDto {
                 .endMonth(restaurant != null ? restaurant.getEndMonth() : null)
                 .rating(visit.getRating())
                 .memo(visit.getMemo())
+                .imageUrl(isBlinded ? null : visit.getImageUrl())
+                .isImageBlinded(isBlinded)
                 .visitDate(visit.getVisitDate())
                 .userId(user != null ? user.getId() : null)
                 .nickname(user != null && user.getNickname() != null ? user.getNickname() : (user != null ? user.getUsername() : "익명"))

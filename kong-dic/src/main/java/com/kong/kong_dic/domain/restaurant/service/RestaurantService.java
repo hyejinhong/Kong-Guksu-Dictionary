@@ -79,7 +79,8 @@ public class RestaurantService {
 
     public Page<RestaurantResponseDto> getAllRestaurants(Pageable pageable) {
         Page<Restaurant> page = restaurantRepository.findAll(pageable);
-        return page.map(restaurant -> entityToResponseDto(restaurant, null, null));
+        Map<Long, String> imageMap = getLatestImagesForRestaurants(page.getContent());
+        return page.map(restaurant -> entityToResponseDto(restaurant, null, null, imageMap.get(restaurant.getId())));
     }
 
     public List<RestaurantResponseDto> searchAndFilterRestaurants(
@@ -154,21 +155,19 @@ public class RestaurantService {
 
         // Specification과 Pageable을 사용하여 DB에서 직접 필터링된 결과 조회
         List<Restaurant> filteredRestaurants = restaurantRepository.findAll(spec, pageable).getContent();
+        Map<Long, String> imageMap = getLatestImagesForRestaurants(filteredRestaurants);
 
         // 거리 계산 (이전과 동일하게 서비스 단에서 수행)
         // 사용자의 lan, lon이 있을 경우에만 거리 계산
         if (lan != null && lon != null) {
             return filteredRestaurants.stream()
-                    .map(restaurant -> {
-                        RestaurantResponseDto dto = entityToResponseDto(restaurant, lan, lon);
-                        return dto;
-                    })
+                    .map(restaurant -> entityToResponseDto(restaurant, lan, lon, imageMap.get(restaurant.getId())))
                     .sorted((d1, d2) -> Double.compare(d1.getDistance(), d2.getDistance())) // 거리순 정렬
                     .collect(Collectors.toList());
         } else {
             // 위치 정보가 없으면 거리 없이 DTO로 변환
             return filteredRestaurants.stream()
-                    .map(RestaurantService::entityToResponseDto)
+                    .map(restaurant -> entityToResponseDto(restaurant, null, null, imageMap.get(restaurant.getId())))
                     .collect(Collectors.toList());
         }
     }
@@ -315,7 +314,8 @@ public class RestaurantService {
             }
         }
 
-        RestaurantResponseDto responseDto = entityToResponseDto(restaurant);
+        Map<Long, String> imageMap = getLatestImagesForRestaurants(Collections.singletonList(restaurant));
+        RestaurantResponseDto responseDto = entityToResponseDto(restaurant, null, null, imageMap.get(restaurant.getId()));
         responseDto.setViewCount(totalView);
         responseDto.setIsSaved(isSaved);
         responseDto.setVisitId(visitId);
@@ -373,16 +373,40 @@ public class RestaurantService {
 
     public List<RestaurantResponseDto> getNearbyRestaurants(Double latitude, Double longitude, Double distance, Pageable pageable) {
         Page<Restaurant> page = restaurantRepository.findNearbyRestaurants(latitude, longitude, distance, pageable);
-        return page.map(restaurant -> entityToResponseDto(restaurant, latitude, longitude)).toList();
+        Map<Long, String> imageMap = getLatestImagesForRestaurants(page.getContent());
+        return page.map(restaurant -> entityToResponseDto(restaurant, latitude, longitude, imageMap.get(restaurant.getId()))).toList();
     }
 
     public List<RestaurantResponseDto> getRestaurantsByBeanType(BeanType beanType, Double latitude, Double longitude, Pageable pageable) {
         Page<Restaurant> page = restaurantRepository.findByBeanTypesContains(beanType, pageable);
-
-        return page.map(restaurant -> entityToResponseDto(restaurant, latitude, longitude)).toList();
+        Map<Long, String> imageMap = getLatestImagesForRestaurants(page.getContent());
+        return page.map(restaurant -> entityToResponseDto(restaurant, latitude, longitude, imageMap.get(restaurant.getId()))).toList();
     }
 
-    private static RestaurantResponseDto entityToResponseDto(Restaurant restaurant, Double latitude, Double longitude) {
+    private Map<Long, String> getLatestImagesForRestaurants(List<Restaurant> restaurants) {
+        if (restaurants == null || restaurants.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        List<Long> restaurantIds = restaurants.stream()
+                .map(Restaurant::getId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+        if (restaurantIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        List<Object[]> rows = visitRepository.findLatestImageUrlsByRestaurantIds(restaurantIds);
+        Map<Long, String> imageMap = new HashMap<>();
+        for (Object[] row : rows) {
+            Long restaurantId = (Long) row[0];
+            String imageUrl = (String) row[1];
+            imageMap.putIfAbsent(restaurantId, imageUrl);
+        }
+        return imageMap;
+    }
+
+    public static RestaurantResponseDto entityToResponseDto(Restaurant restaurant, Double latitude, Double longitude, String imageUrl) {
         List<BeanType> beanTypes = restaurant.getBeanTypes();
         if (beanTypes == null || beanTypes.isEmpty()) {
             if (restaurant.getPrices() != null) {
@@ -409,7 +433,12 @@ public class RestaurantService {
                 .totalScraps(restaurant.getTotalScraps())
                 .averageRating(restaurant.getAverageRating())
                 .viewCount(restaurant.getViewCount())
+                .imageUrl(imageUrl)
                 .build();
+    }
+
+    public static RestaurantResponseDto entityToResponseDto(Restaurant restaurant, Double latitude, Double longitude) {
+        return entityToResponseDto(restaurant, latitude, longitude, null);
     }
 
     /**
@@ -419,7 +448,7 @@ public class RestaurantService {
      * @return
      */
     public static RestaurantResponseDto entityToResponseDto(Restaurant restaurant) {
-        return entityToResponseDto(restaurant, null, null);
+        return entityToResponseDto(restaurant, null, null, null);
     }
 
     private static double calculateDistance(Restaurant restaurant, Double curLatitude, Double curLongitude) {

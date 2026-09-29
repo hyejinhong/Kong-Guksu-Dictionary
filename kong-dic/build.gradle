@@ -50,6 +50,10 @@ dependencies {
 	testImplementation 'org.springframework.security:spring-security-test'
 
 	implementation project(':kong-dic-common')
+
+	// AWS S3 SDK for Cloudflare R2
+	implementation platform('software.amazon.awssdk:bom:2.25.60')
+	implementation 'software.amazon.awssdk:s3'
 }
 
 tasks.named('test') {
