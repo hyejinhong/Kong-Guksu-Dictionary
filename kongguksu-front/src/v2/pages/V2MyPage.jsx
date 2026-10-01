@@ -1,12 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import Avatar from 'boring-avatars';
+import V2UserAvatar from '../components/V2UserAvatar';
+import { compressImage } from '../utils/imageCompressor';
 import api from '../api';
 import './V2Main.css';
 import { useNotification } from '../contexts/NotificationContext';
-
-const KONG_COLORS = ["#FFFDF0", "#FFD369", "#3D3D3D", "#A9B388", "#FF9F29"];
 
 const isLoggedIn = () => {
   const token = localStorage.getItem('token');
@@ -46,6 +45,7 @@ const V2MyPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { unread, openModal } = useNotification();
+  const fileInputRef = useRef(null);
 
   const [activeTab, setActiveTab] = useState('profile'); // 'profile' or 'comments'
   const [loading, setLoading] = useState(true);
@@ -59,8 +59,22 @@ const V2MyPage = () => {
     email: '',
     avatarVariant: 'beam',
     avatarSeed: 'default',
+    profileImageUrl: '',
     seasoningPreference: 'NONE',
   });
+
+  const [resetProfileImage, setResetProfileImage] = useState(false);
+  const [selectedImageFile, setSelectedImageFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
 
   const [emailInput, setEmailInput] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
@@ -78,6 +92,8 @@ const V2MyPage = () => {
   // Submissions state
   const [mySubmissions, setMySubmissions] = useState([]);
 
+  const currentAvatarSrc = previewUrl || (resetProfileImage ? '' : formData.profileImageUrl);
+
   const fetchUserProfile = useCallback(async () => {
     try {
       const response = await api.get('/users/me');
@@ -90,8 +106,15 @@ const V2MyPage = () => {
           email: userData.email || '',
           avatarVariant: userData.avatarVariant || 'beam',
           avatarSeed: userData.avatarSeed || 'default',
+          profileImageUrl: userData.profileImageUrl || '',
           seasoningPreference: userData.seasoningPreference || 'NONE',
         }));
+        setResetProfileImage(false);
+        setSelectedImageFile(null);
+        setPreviewUrl(prev => {
+          if (prev) URL.revokeObjectURL(prev);
+          return null;
+        });
         setEmailInput(userData.email || '');
         if (!userData.email) {
           setIsEditingEmail(true);
@@ -221,6 +244,41 @@ const V2MyPage = () => {
     }
   };
 
+  const handleImageChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('이미지 파일만 업로드할 수 있습니다.');
+      return;
+    }
+
+    try {
+      const compressedFile = await compressImage(file, { maxWidthOrHeight: 512, maxSizeMB: 0.5 });
+      setPreviewUrl(prev => {
+        if (prev) URL.revokeObjectURL(prev);
+        return URL.createObjectURL(compressedFile);
+      });
+      setSelectedImageFile(compressedFile);
+      setResetProfileImage(false);
+    } catch (err) {
+      console.error('Image processing failed:', err);
+      toast.error('이미지 처리 중 오류가 발생했습니다.');
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleResetToGraphicAvatar = () => {
+    setPreviewUrl(prev => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+    setSelectedImageFile(null);
+    setFormData(prev => ({ ...prev, profileImageUrl: '' }));
+    setResetProfileImage(true);
+  };
+
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
 
@@ -241,25 +299,62 @@ const V2MyPage = () => {
       return;
     }
 
+    setUploadingImage(true);
+    let finalImageUrl = resetProfileImage ? '' : formData.profileImageUrl;
+
     try {
+      // 새로 선택한 이미지가 있는 경우에만 R2에 업로드
+      if (selectedImageFile) {
+        const uploadFormData = new FormData();
+        uploadFormData.append('file', selectedImageFile);
+
+        const res = await api.post('/images/upload?folder=profiles', uploadFormData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+
+        if (res.data?.code === 0 && res.data?.data?.imageUrl) {
+          finalImageUrl = res.data.data.imageUrl;
+        } else {
+          toast.error('이미지 업로드에 실패했습니다.');
+          setUploadingImage(false);
+          return;
+        }
+      }
+
       const payload = {
         nickname: formData.nickname,
         currentPassword: formData.currentPassword || null,
         newPassword: formData.newPassword || null,
         avatarVariant: 'beam',
         avatarSeed: formData.avatarSeed,
+        profileImageUrl: finalImageUrl,
+        resetProfileImage: resetProfileImage,
         seasoningPreference: formData.seasoningPreference,
       };
 
       const response = await api.patch('/users/me', payload);
       if (response.data?.code === 0) {
         toast.success('정보가 수정되었습니다.');
-        setFormData(prev => ({ ...prev, currentPassword: '', newPassword: '' }));
+        setSelectedImageFile(null);
+        setPreviewUrl(prev => {
+          if (prev) URL.revokeObjectURL(prev);
+          return null;
+        });
+        setResetProfileImage(false);
+        setFormData(prev => ({
+          ...prev,
+          profileImageUrl: finalImageUrl,
+          currentPassword: '',
+          newPassword: ''
+        }));
       } else {
         toast.error(response.data?.message || '수정에 실패했습니다.');
       }
     } catch (err) {
+      console.error('Profile update failed:', err);
       toast.error('정보 수정 중 오류가 발생했습니다.');
+    } finally {
+      setUploadingImage(false);
     }
   };
 
@@ -369,29 +464,72 @@ const V2MyPage = () => {
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 text-center">
             {/* ... (profile content) ... */}
             <div className="py-4 flex flex-col items-center">
-              <div className="relative group mb-4">
-                <div className="w-24 h-24 bg-white rounded-full mx-auto flex items-center justify-center soy-shadow overflow-hidden border border-surface-container">
-                  <Avatar
+              <div className="relative group mb-3">
+                <div className="w-24 h-24 bg-white rounded-full mx-auto flex items-center justify-center soy-shadow overflow-hidden border-2 border-surface-container">
+                  <V2UserAvatar
                     size={96}
-                    name={formData.avatarSeed}
+                    src={currentAvatarSrc}
+                    seed={formData.avatarSeed}
+                    name={formData.nickname}
                     variant="beam"
-                    colors={KONG_COLORS}
                   />
                 </div>
+
+                {uploadingImage && (
+                  <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center">
+                    <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  </div>
+                )}
+
+                {/* 숨겨진 파일 인풋 */}
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleImageChange}
+                  accept="image/*"
+                  className="hidden"
+                />
+
+                {/* 카메라 / 사진 업로드 버튼 */}
                 <button
                   type="button"
-                  onClick={() => {
-                    const randomSeed = Math.random().toString(36).substring(2, 9);
-                    setFormData(prev => ({ ...prev, avatarSeed: randomSeed }));
-                  }}
-                  className="absolute -bottom-1 -right-1 bg-secondary text-white w-8 h-8 rounded-full flex items-center justify-center active:scale-95 transition-all soy-shadow"
-                  title="아바타 새로고침"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingImage}
+                  className="absolute bottom-0 -right-1 bg-primary text-background w-8 h-8 rounded-full flex items-center justify-center active:scale-95 transition-all soy-shadow border-2 border-[#FDF9ED]"
+                  title="프로필 사진 업로드"
                 >
-                  <span className="material-symbols-outlined text-sm">shuffle</span>
+                  <span className="material-symbols-outlined text-sm">photo_camera</span>
                 </button>
+
+                {/* 기본 캐릭터일 때만 셔플 버튼 노출 */}
+                {!currentAvatarSrc && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const randomSeed = Math.random().toString(36).substring(2, 9);
+                      setFormData(prev => ({ ...prev, avatarSeed: randomSeed }));
+                    }}
+                    className="absolute bottom-0 -left-1 bg-secondary text-white w-8 h-8 rounded-full flex items-center justify-center active:scale-95 transition-all soy-shadow border-2 border-[#FDF9ED]"
+                    title="캐릭터 랜덤 변경"
+                  >
+                    <span className="material-symbols-outlined text-sm">shuffle</span>
+                  </button>
+                )}
               </div>
 
-              <div className="flex items-center justify-center gap-2 mb-1">
+              {/* 사진이 등록되어 있거나 새로 선택되었을 때: 기본 캐릭터로 변경 링크 버튼 */}
+              {currentAvatarSrc && (
+                <button
+                  type="button"
+                  onClick={handleResetToGraphicAvatar}
+                  className="text-xs text-outline hover:text-primary underline mb-3 transition-colors flex items-center gap-1 font-bold"
+                >
+                  <span className="material-symbols-outlined text-sm">restart_alt</span>
+                  기본 캐릭터로 변경
+                </button>
+              )}
+
+              <div className="flex items-center justify-center gap-2">
                 <h2 className="text-2xl font-black text-primary">{formData.nickname}님</h2>
                 {(() => {
                   const badge = getSeasoningBadge(formData.seasoningPreference);
@@ -402,7 +540,6 @@ const V2MyPage = () => {
                   ) : null;
                 })()}
               </div>
-              <p className="text-sm text-outline font-bold">오늘도 맛있는 콩국수 어떠신가요?</p>
             </div>
 
             {!formData.email && (
@@ -417,7 +554,7 @@ const V2MyPage = () => {
 
             <form onSubmit={handleProfileSubmit} className="space-y-6 text-left">
               <div className="space-y-2">
-                <label className="text-xs font-bold text-outline uppercase ml-4">아이디 (변경 불가)</label>
+                <label className="text-xs font-bold text-outline uppercase ml-4">아이디</label>
                 <input
                   type="text"
                   value={formData.username}
@@ -574,9 +711,10 @@ const V2MyPage = () => {
 
               <button
                 type="submit"
-                className="w-full py-4 mt-4 rounded-3xl bg-primary text-background font-black text-lg soy-shadow active:scale-95 transition-all"
+                disabled={uploadingImage}
+                className="w-full py-4 mt-4 rounded-3xl bg-primary text-background font-black text-lg soy-shadow active:scale-95 transition-all disabled:opacity-50"
               >
-                정보 저장하기
+                {uploadingImage ? '저장 중...' : '정보 저장하기'}
               </button>
             </form>
 

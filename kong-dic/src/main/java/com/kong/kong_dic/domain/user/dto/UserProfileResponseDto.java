@@ -20,6 +20,7 @@ public class UserProfileResponseDto {
     private String email;
     private String avatarVariant;
     private String avatarSeed;
+    private String profileImageUrl;
     private SeasoningPreference seasoningPreference;
 
     public static UserProfileResponseDto of(User user) {
@@ -32,6 +33,7 @@ public class UserProfileResponseDto {
                 .email(user.getEmail())
                 .avatarVariant(user.getAvatarVariant())
                 .avatarSeed(user.getAvatarSeed())
+                .profileImageUrl(user.getProfileImageUrl())
                 .seasoningPreference(user.getSeasoningPreference() != null ? user.getSeasoningPreference() : SeasoningPreference.NONE)
                 .build();
     }

@@ -7,6 +7,7 @@ import com.kong.kong_dic.domain.user.entity.User;
 import com.kong.kong_dic.domain.user.exception.UserExceptionType;
 import com.kong.kong_dic.domain.user.repository.UserRepository;
 import com.kong.kong_dic.domain.user.util.NicknameGenerator;
+import com.kong.kong_dic.domain.image.service.ImageUploadService;
 import com.kong.kong_dic.global.service.RedisService;
 import com.kong.kong_dic.global.service.EmailService;
 import jakarta.transaction.Transactional;
@@ -26,6 +27,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final RedisService redisService;
     private final EmailService emailService;
+    private final ImageUploadService imageUploadService;
 
     private static final String EMAIL_VERIFICATION_PREFIX = "EV:";
     private static final long EMAIL_VERIFICATION_EXPIRATION = 5; // 5 minutes
@@ -109,7 +111,22 @@ public class UserService {
             user.setAvatarSeed(request.getAvatarSeed());
         }
 
-        // 4. 간/양념 취향 수정
+        // 4. 프로필 이미지 수정
+        if (Boolean.TRUE.equals(request.getResetProfileImage()) || (request.getProfileImageUrl() != null && request.getProfileImageUrl().isBlank())) {
+            // 프로필 이미지 초기화 (기본 그래픽 아바타 사용)
+            if (user.getProfileImageUrl() != null && !user.getProfileImageUrl().isBlank()) {
+                imageUploadService.deleteImage(user.getProfileImageUrl());
+            }
+            user.setProfileImageUrl(null);
+        } else if (request.getProfileImageUrl() != null && !request.getProfileImageUrl().isBlank()) {
+            // 새 프로필 이미지 설정
+            if (user.getProfileImageUrl() != null && !user.getProfileImageUrl().equals(request.getProfileImageUrl())) {
+                imageUploadService.deleteImage(user.getProfileImageUrl());
+            }
+            user.setProfileImageUrl(request.getProfileImageUrl());
+        }
+
+        // 5. 간/양념 취향 수정
         if (request.getSeasoningPreference() != null) {
             user.setSeasoningPreference(request.getSeasoningPreference());
         }

@@ -33,6 +33,7 @@ public class RecentReviewResponseDto {
     private String nickname;
     private String avatarVariant;
     private String avatarSeed;
+    private String profileImageUrl;
     private SeasoningPreference seasoningPreference;
 
     public static RecentReviewResponseDto from(UserRestaurantVisit visit) {
@@ -58,6 +59,7 @@ public class RecentReviewResponseDto {
                 .nickname(user != null && user.getNickname() != null ? user.getNickname() : (user != null ? user.getUsername() : "익명"))
                 .avatarVariant(user != null && user.getAvatarVariant() != null ? user.getAvatarVariant() : "beam")
                 .avatarSeed(user != null && user.getAvatarSeed() != null ? user.getAvatarSeed() : "default")
+                .profileImageUrl(user != null ? user.getProfileImageUrl() : null)
                 .seasoningPreference(user != null && user.getSeasoningPreference() != null ? user.getSeasoningPreference() : SeasoningPreference.NONE)
                 .build();
     }

@@ -1,9 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Avatar from 'boring-avatars';
+import V2UserAvatar from './V2UserAvatar';
 import api from '../api';
-
-const KONG_COLORS = ["#FFFDF0", "#FFD369", "#3D3D3D", "#A9B388", "#FF9F29"];
 
 const getBeanLabel = (beanType) => {
   if (beanType === 'SOY_BEAN') return '백태';
@@ -191,11 +189,12 @@ const V2RecentReviews = ({ isMap = false, className = '' }) => {
             >
               {/* Left: Avatar & Rating */}
               <div className="flex flex-col items-center justify-center shrink-0">
-                <Avatar
+                <V2UserAvatar
                   size={28}
-                  name={review.avatarSeed || review.nickname}
+                  src={review.profileImageUrl}
+                  seed={review.avatarSeed}
+                  name={review.nickname}
                   variant={review.avatarVariant || "beam"}
-                  colors={KONG_COLORS}
                 />
                 {review.rating != null && (
                   <div className="flex items-center gap-0.5 text-amber-500 font-black text-[10px] mt-1 bg-amber-50/90 px-1.5 py-0.2 rounded-full border border-amber-200/50">

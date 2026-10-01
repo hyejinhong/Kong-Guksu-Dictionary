@@ -36,15 +36,7 @@ public class RestaurantCommentService {
         Pageable pageable = PageRequest.of(page, size);
         Page<RestaurantComment> commentPage = commentRepository.findByRestaurantIdOrderByCreatedAtDesc(restaurantId, pageable);
 
-        return commentPage.map(comment -> RestaurantCommentResponseDto.builder()
-                .id(comment.getId())
-                .nickname(comment.getAuthor().getNickname())
-                .content(comment.getContent())
-                .createdAt(comment.getCreatedAt())
-                .avatarVariant(comment.getAuthor().getAvatarVariant())
-                .avatarSeed(comment.getAuthor().getAvatarSeed())
-                .seasoningPreference(comment.getAuthor().getSeasoningPreference() != null ? comment.getAuthor().getSeasoningPreference() : com.kong.kong_dic.domain.user.entity.SeasoningPreference.NONE)
-                .build());
+        return commentPage.map(this::toDto);
     }
 
     private RestaurantCommentResponseDto toDto(RestaurantComment comment) {
@@ -55,6 +47,7 @@ public class RestaurantCommentService {
                 .createdAt(comment.getCreatedAt())
                 .avatarVariant(comment.getAuthor().getAvatarVariant())
                 .avatarSeed(comment.getAuthor().getAvatarSeed())
+                .profileImageUrl(comment.getAuthor().getProfileImageUrl())
                 .seasoningPreference(comment.getAuthor().getSeasoningPreference() != null ? comment.getAuthor().getSeasoningPreference() : com.kong.kong_dic.domain.user.entity.SeasoningPreference.NONE)
                 .build();
     }
@@ -74,15 +67,7 @@ public class RestaurantCommentService {
                 .build();
 
         RestaurantComment saved = commentRepository.save(comment);
-        return RestaurantCommentResponseDto.builder()
-                .id(saved.getId())
-                .nickname(saved.getAuthor().getNickname())
-                .content(saved.getContent())
-                .createdAt(saved.getCreatedAt())
-                .avatarVariant(saved.getAuthor().getAvatarVariant())
-                .avatarSeed(saved.getAuthor().getAvatarSeed())
-                .seasoningPreference(saved.getAuthor().getSeasoningPreference() != null ? saved.getAuthor().getSeasoningPreference() : com.kong.kong_dic.domain.user.entity.SeasoningPreference.NONE)
-                .build();
+        return toDto(saved);
     }
 
     @Transactional(readOnly = true)
