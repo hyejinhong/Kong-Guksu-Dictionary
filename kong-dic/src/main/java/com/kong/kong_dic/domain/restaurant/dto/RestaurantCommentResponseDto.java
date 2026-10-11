@@ -15,5 +15,6 @@ public class RestaurantCommentResponseDto {
     private LocalDateTime createdAt;
     private String avatarVariant;
     private String avatarSeed;
+    private String profileImageUrl;
     private SeasoningPreference seasoningPreference;
 }

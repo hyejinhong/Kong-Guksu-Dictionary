@@ -16,6 +16,7 @@ public class RestaurantVisitNoteResponseDto {
     private String nickname;
     private String avatarVariant;
     private String avatarSeed;
+    private String profileImageUrl;
     private SeasoningPreference seasoningPreference;
     private Double rating;
     private String memo;

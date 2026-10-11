@@ -12,5 +12,7 @@ public class UserProfileUpdateRequestDto {
     private String newPassword;     // 새 비밀번호
     private String avatarVariant;
     private String avatarSeed;
+    private String profileImageUrl;
+    private Boolean resetProfileImage;
     private SeasoningPreference seasoningPreference;
 }

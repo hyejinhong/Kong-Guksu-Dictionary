@@ -45,6 +45,9 @@ public class User implements UserDetails {
     @Column(name = "avatar_seed", nullable = false)
     private String avatarSeed = "default";
 
+    @Column(name = "profile_image_url")
+    private String profileImageUrl;
+
     @Enumerated(EnumType.STRING)
     @Builder.Default
     @Column(name = "seasoning_preference", nullable = false)

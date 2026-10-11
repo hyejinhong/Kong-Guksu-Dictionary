@@ -34,6 +34,9 @@ public class UserServiceTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+    private com.kong.kong_dic.domain.image.service.ImageUploadService imageUploadService;
+
     @InjectMocks
     private UserService userService;
 
@@ -197,6 +200,47 @@ public class UserServiceTest {
         verify(userRepository, never()).existsByNickname(anyString());
         // DB save 1번만 호출
         verify(userRepository, times(1)).save(any(User.class));
+    }
 
+    @Test
+    @DisplayName("성공: 프로필 이미지 수정 시 기존 이미지 삭제 및 새 이미지 URL 반영")
+    void updateMyProfile_shouldUpdateProfileImage_andDeleteOldImage() {
+        // Given
+        testUser.setProfileImageUrl("https://pub-r2.com/profiles/old-image.jpg");
+        UserProfileUpdateRequestDto request = new UserProfileUpdateRequestDto();
+        request.setProfileImageUrl("https://pub-r2.com/profiles/new-image.jpg");
+
+        when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(testUser));
+        when(userRepository.save(any(User.class))).thenReturn(testUser);
+
+        // When
+        UserProfileResponseDto result = userService.updateMyProfile(USERNAME, request);
+
+        // Then
+        assertThat(testUser.getProfileImageUrl()).isEqualTo("https://pub-r2.com/profiles/new-image.jpg");
+        verify(imageUploadService, times(1)).deleteImage("https://pub-r2.com/profiles/old-image.jpg");
+        verify(userRepository, times(1)).save(any(User.class));
+        assertThat(result.getProfileImageUrl()).isEqualTo("https://pub-r2.com/profiles/new-image.jpg");
+    }
+
+    @Test
+    @DisplayName("성공: resetProfileImage=true 시 기존 이미지 삭제 및 profileImageUrl null 처리")
+    void updateMyProfile_shouldResetProfileImage_andDeleteOldImage() {
+        // Given
+        testUser.setProfileImageUrl("https://pub-r2.com/profiles/old-image.jpg");
+        UserProfileUpdateRequestDto request = new UserProfileUpdateRequestDto();
+        request.setResetProfileImage(true);
+
+        when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(testUser));
+        when(userRepository.save(any(User.class))).thenReturn(testUser);
+
+        // When
+        UserProfileResponseDto result = userService.updateMyProfile(USERNAME, request);
+
+        // Then
+        assertThat(testUser.getProfileImageUrl()).isNull();
+        verify(imageUploadService, times(1)).deleteImage("https://pub-r2.com/profiles/old-image.jpg");
+        verify(userRepository, times(1)).save(any(User.class));
+        assertThat(result.getProfileImageUrl()).isNull();
     }
 }
