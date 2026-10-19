@@ -132,6 +132,17 @@ const V2RecentReviews = ({ isMap = false, className = '' }) => {
     navigate(`/v2/restaurant/${restaurantId}`);
   };
 
+  const handleUserClick = (userId, e) => {
+    e.stopPropagation();
+    if (isDraggedRef.current) {
+      isDraggedRef.current = false;
+      return;
+    }
+    if (userId) {
+      navigate(`/v2/users/${userId}/dictionary`);
+    }
+  };
+
   if (loading || !reviews || reviews.length === 0) {
     return null;
   }
@@ -188,7 +199,11 @@ const V2RecentReviews = ({ isMap = false, className = '' }) => {
               className="w-[280px] sm:w-[310px] shrink-0 bg-surface-container-lowest/95 backdrop-blur-md p-3 rounded-2xl border border-white/80 shadow-lg hover:shadow-xl transition-all active:scale-[0.98] cursor-pointer flex items-center gap-3 group"
             >
               {/* Left: Avatar & Rating */}
-              <div className="flex flex-col items-center justify-center shrink-0">
+              <div
+                onClick={(e) => handleUserClick(review.userId, e)}
+                className="flex flex-col items-center justify-center shrink-0 hover:opacity-80 transition-opacity"
+                title={review.userId ? `${review.nickname}님의 콩국수 사전 보기` : undefined}
+              >
                 <V2UserAvatar
                   size={28}
                   src={review.profileImageUrl}
@@ -223,8 +238,12 @@ const V2RecentReviews = ({ isMap = false, className = '' }) => {
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <span className="text-[10px] font-bold text-outline truncate max-w-[55px]">
+                  <div
+                    onClick={(e) => handleUserClick(review.userId, e)}
+                    className="flex items-center gap-1 shrink-0 hover:underline"
+                    title={review.userId ? `${review.nickname}님의 콩국수 사전 보기` : undefined}
+                  >
+                    <span className="text-[10px] font-bold text-outline hover:text-primary truncate max-w-[55px]">
                       {review.nickname}
                     </span>
                     {seasoningBadge && (

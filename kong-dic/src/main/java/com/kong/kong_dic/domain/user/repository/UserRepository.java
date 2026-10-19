@@ -3,9 +3,12 @@ package com.kong.kong_dic.domain.user.repository;
 import com.kong.kong_dic.domain.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long> {
+    Optional<User> findByPublicId(String publicId);
+    List<User> findAllByPublicIdIsNull();
     Optional<User> findByUsername(String username);
     Optional<User> findByUsernameIgnoreCase(String username);
     boolean existsByUsername(String username);

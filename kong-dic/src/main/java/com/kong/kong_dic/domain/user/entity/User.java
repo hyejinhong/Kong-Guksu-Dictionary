@@ -9,6 +9,7 @@ import java.sql.Date;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
 
 @Entity
 @Table(name = "user")
@@ -22,6 +23,10 @@ public class User implements UserDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Builder.Default
+    @Column(name = "public_id", unique = true, length = 36)
+    private String publicId = UUID.randomUUID().toString();
 
     @Column(nullable = false, unique = true)
     private String username;
@@ -66,6 +71,13 @@ public class User implements UserDetails {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<UserRestaurantVisit> visitedRestaurants = new ArrayList<>();
+
+    @PrePersist
+    public void prePersist() {
+        if (this.publicId == null || this.publicId.isBlank()) {
+            this.publicId = UUID.randomUUID().toString();
+        }
+    }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

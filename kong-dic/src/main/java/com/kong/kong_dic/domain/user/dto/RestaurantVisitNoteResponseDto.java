@@ -12,7 +12,7 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class RestaurantVisitNoteResponseDto {
     private Long id;
-    private Long userId;
+    private String userId;
     private String nickname;
     private String avatarVariant;
     private String avatarSeed;

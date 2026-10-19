@@ -13,6 +13,7 @@ const V2NotificationModal = () => {
     if (type?.includes('승인')) return 'check_circle';
     if (type?.includes('거절') || type?.includes('반려')) return 'cancel';
     if (type === 'ReportReply' || type?.includes('제보')) return 'rate_review';
+    if (type?.includes('팔로우') || type === 'FOLLOW') return 'person_add';
     return 'info';
   };
 
@@ -21,6 +22,7 @@ const V2NotificationModal = () => {
     if (type?.includes('승인')) return 'text-[#859F3D] bg-[#859F3D]/10';
     if (type?.includes('거절') || type?.includes('반려')) return 'text-[#C96868] bg-[#C96868]/10';
     if (type === 'ReportReply' || type?.includes('제보')) return 'text-[#E07A5F] bg-[#E07A5F]/10';
+    if (type?.includes('팔로우') || type === 'FOLLOW') return 'text-[#3B82F6] bg-[#3B82F6]/10';
     return 'text-[#695E34] bg-[#695E34]/10';
   };
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import V2UserAvatar from '../components/V2UserAvatar';
+import V2FollowListModal from '../components/V2FollowListModal';
 import { compressImage } from '../utils/imageCompressor';
 import api from '../api';
 import './V2Main.css';
@@ -49,9 +50,11 @@ const V2MyPage = () => {
 
   const [activeTab, setActiveTab] = useState('profile'); // 'profile' or 'comments'
   const [loading, setLoading] = useState(true);
+  const [followModalState, setFollowModalState] = useState({ open: false, tab: 'followings' });
   
   // Profile state
   const [formData, setFormData] = useState({
+    id: null,
     username: '',
     nickname: '',
     currentPassword: '',
@@ -61,6 +64,9 @@ const V2MyPage = () => {
     avatarSeed: 'default',
     profileImageUrl: '',
     seasoningPreference: 'NONE',
+    followerCount: 0,
+    followingCount: 0,
+    visitedCount: 0,
   });
 
   const [resetProfileImage, setResetProfileImage] = useState(false);
@@ -101,6 +107,7 @@ const V2MyPage = () => {
       if (userData) {
         setFormData(prev => ({
           ...prev,
+          id: userData.id,
           username: userData.username,
           nickname: userData.nickname || '',
           email: userData.email || '',
@@ -108,6 +115,9 @@ const V2MyPage = () => {
           avatarSeed: userData.avatarSeed || 'default',
           profileImageUrl: userData.profileImageUrl || '',
           seasoningPreference: userData.seasoningPreference || 'NONE',
+          followerCount: userData.followerCount ?? 0,
+          followingCount: userData.followingCount ?? 0,
+          visitedCount: userData.visitedCount ?? 0,
         }));
         setResetProfileImage(false);
         setSelectedImageFile(null);
@@ -540,6 +550,34 @@ const V2MyPage = () => {
                   ) : null;
                 })()}
               </div>
+
+              {/* 사전 기록 / 팔로워 / 팔로잉 요약 바 */}
+              <div className="grid grid-cols-3 gap-2 w-full max-w-xs mt-4 bg-surface-container-low/80 rounded-2xl p-3 border border-outline-variant/15">
+                <button
+                  type="button"
+                  onClick={() => navigate('/v2/saved')}
+                  className="flex flex-col items-center justify-center hover:opacity-75 transition-opacity"
+                >
+                  <span className="text-base font-black text-primary">{formData.visitedCount ?? 0}</span>
+                  <span className="text-[11px] font-bold text-tertiary">나의 사전</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFollowModalState({ open: true, tab: 'followers' })}
+                  className="flex flex-col items-center justify-center border-x border-outline-variant/20 hover:opacity-75 transition-opacity"
+                >
+                  <span className="text-base font-black text-primary">{formData.followerCount ?? 0}</span>
+                  <span className="text-[11px] font-bold text-tertiary">팔로워</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFollowModalState({ open: true, tab: 'followings' })}
+                  className="flex flex-col items-center justify-center hover:opacity-75 transition-opacity"
+                >
+                  <span className="text-base font-black text-primary">{formData.followingCount ?? 0}</span>
+                  <span className="text-[11px] font-bold text-tertiary">팔로잉</span>
+                </button>
+              </div>
             </div>
 
             {!formData.email && (
@@ -881,6 +919,15 @@ const V2MyPage = () => {
           </div>
         )}
       </main>
+
+      <V2FollowListModal
+        isOpen={followModalState.open}
+        onClose={() => setFollowModalState(prev => ({ ...prev, open: false }))}
+        userId={formData.id}
+        initialTab={followModalState.tab}
+        nickname={formData.nickname}
+        onFollowChange={fetchUserProfile}
+      />
 
       {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-3 bg-[#FDF9ED]/80 backdrop-blur-xl z-50 rounded-t-xl shadow-[0_-20px_40px_rgba(105,94,52,0.08)]">

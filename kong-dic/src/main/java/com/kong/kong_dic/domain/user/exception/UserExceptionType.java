@@ -14,7 +14,8 @@ public enum UserExceptionType implements BaseExceptionType {
     USER_NOT_FOUND(4, 400, "User not found."),
     INVALID_INPUT(5, 400, "Invalid Input"),
     UNAUTHORIZED(6, 401, "Unauthorized"),
-    DUPLICATED_NICKNAME(7, 400, "Duplicated Nickname.");
+    DUPLICATED_NICKNAME(7, 400, "Duplicated Nickname."),
+    CANNOT_FOLLOW_SELF(8, 400, "자기 자신은 팔로우할 수 없습니다.");
 
     private final int code;
     private final int httpStatusCode;

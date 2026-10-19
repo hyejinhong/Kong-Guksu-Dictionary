@@ -2,10 +2,12 @@ package com.kong.kong_dic.domain.user.service;
 
 import com.kong.kong_dic.common.exception.BaseException;
 import com.kong.kong_dic.domain.auth.exception.AuthExceptionType;
+import com.kong.kong_dic.domain.follow.repository.FollowRepository;
 import com.kong.kong_dic.domain.user.dto.*;
 import com.kong.kong_dic.domain.user.entity.User;
 import com.kong.kong_dic.domain.user.exception.UserExceptionType;
 import com.kong.kong_dic.domain.user.repository.UserRepository;
+import com.kong.kong_dic.domain.user.repository.UserRestaurantVisitRepository;
 import com.kong.kong_dic.domain.user.util.NicknameGenerator;
 import com.kong.kong_dic.domain.image.service.ImageUploadService;
 import com.kong.kong_dic.global.service.RedisService;
@@ -13,11 +15,16 @@ import com.kong.kong_dic.global.service.EmailService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.sql.Date;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -28,9 +35,23 @@ public class UserService {
     private final RedisService redisService;
     private final EmailService emailService;
     private final ImageUploadService imageUploadService;
+    private final FollowRepository followRepository;
+    private final UserRestaurantVisitRepository visitRepository;
 
     private static final String EMAIL_VERIFICATION_PREFIX = "EV:";
     private static final long EMAIL_VERIFICATION_EXPIRATION = 5; // 5 minutes
+
+    @EventListener(ApplicationReadyEvent.class)
+    @Transactional
+    public void backfillMissingPublicIds() {
+        List<User> usersWithoutPublicId = userRepository.findAllByPublicIdIsNull();
+        if (usersWithoutPublicId != null && !usersWithoutPublicId.isEmpty()) {
+            for (User u : usersWithoutPublicId) {
+                u.setPublicId(UUID.randomUUID().toString());
+            }
+            userRepository.saveAll(usersWithoutPublicId);
+        }
+    }
 
     public UserResponseDto getMyInfo(User user) {
         return UserResponseDto.builder()
@@ -62,9 +83,49 @@ public class UserService {
      */
     public UserProfileResponseDto getMyProfile(String username) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new BaseException(UserExceptionType.USER_NOT_FOUND)); // 예외 처리 로직에 맞게 수정
+                .orElseThrow(() -> new BaseException(UserExceptionType.USER_NOT_FOUND));
 
-        return UserProfileResponseDto.of(user);
+        long followerCount = followRepository != null ? followRepository.countByFollowingId(user.getId()) : 0L;
+        long followingCount = followRepository != null ? followRepository.countByFollowerId(user.getId()) : 0L;
+        long visitedCount = visitRepository != null ? visitRepository.countByUserId(user.getId()) : 0L;
+
+        return UserProfileResponseDto.of(user, followerCount, followingCount, visitedCount);
+    }
+
+    /**
+     * 특정 사용자의 공개 프로필 및 사전 요약 정보를 조회 (publicId 기반)
+     */
+    public PublicUserProfileResponseDto getUserProfile(String targetPublicId, String currentUsername) {
+        User targetUser = userRepository.findByPublicId(targetPublicId)
+                .orElseThrow(() -> new BaseException(UserExceptionType.USER_NOT_FOUND));
+
+        Long targetUserId = targetUser.getId();
+        long visitedCount = visitRepository != null ? visitRepository.countByUserId(targetUserId) : 0L;
+        long followerCount = followRepository != null ? followRepository.countByFollowingId(targetUserId) : 0L;
+        long followingCount = followRepository != null ? followRepository.countByFollowerId(targetUserId) : 0L;
+
+        boolean isFollowing = false;
+        boolean isMe = false;
+
+        if (currentUsername != null && !currentUsername.isBlank()) {
+            Optional<User> currentUserOpt = userRepository.findByUsername(currentUsername);
+            if (currentUserOpt.isPresent()) {
+                User currentUser = currentUserOpt.get();
+                isMe = currentUser.getId().equals(targetUserId);
+                if (!isMe && followRepository != null) {
+                    isFollowing = followRepository.existsByFollowerIdAndFollowingId(currentUser.getId(), targetUserId);
+                }
+            }
+        }
+
+        return PublicUserProfileResponseDto.of(
+                targetUser,
+                visitedCount,
+                followerCount,
+                followingCount,
+                isFollowing,
+                isMe
+        );
     }
 
     /**
