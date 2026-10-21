@@ -46,12 +46,13 @@ const V2FollowListModal = ({
   }, [isOpen, initialTab]);
 
   const fetchFollowList = useCallback(async () => {
-    if (!isOpen || !userId) return;
+    if (!isOpen) return;
+    const targetId = userId || 'me';
     setLoading(true);
     try {
       const endpoint = activeTab === 'followers'
-        ? `/users/${userId}/followers?page=0&size=50`
-        : `/users/${userId}/followings?page=0&size=50`;
+        ? `/users/${targetId}/followers?page=0&size=50`
+        : `/users/${targetId}/followings?page=0&size=50`;
       const res = await api.get(endpoint);
       if (res.data?.code === 0) {
         const list = res.data.data?.content || res.data.data || [];

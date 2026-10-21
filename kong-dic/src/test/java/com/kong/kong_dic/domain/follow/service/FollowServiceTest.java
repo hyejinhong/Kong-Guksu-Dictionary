@@ -194,4 +194,34 @@ class FollowServiceTest {
         assertThat(item.getVisitedCount()).isEqualTo(12L);
         assertThat(item.getIsFollowing()).isTrue();
     }
+
+    @Test
+    @DisplayName("성공: 'me' 키워드로 내 팔로잉 목록 페이징 조회")
+    void getFollowings_withMeKeyword_shouldReturnMyFollowings() {
+        // Given
+        Pageable pageable = PageRequest.of(0, 20);
+        Follow follow = Follow.builder()
+                .id(101L)
+                .follower(followerUser)
+                .following(targetUser)
+                .createdAt(LocalDateTime.now())
+                .build();
+        Page<Follow> followPage = new PageImpl<>(List.of(follow), pageable, 1);
+
+        when(userRepository.findByUsername("followerUser")).thenReturn(Optional.of(followerUser));
+        when(followRepository.findFollowingsByUserId(1L, pageable)).thenReturn(followPage);
+        when(visitRepository.countVisitsByUserIds(List.of(2L))).thenReturn(List.<Object[]>of(new Object[]{2L, 8L}));
+        when(followRepository.findFollowingIdsByFollowerIdAndTargetIds(1L, List.of(2L))).thenReturn(List.of(2L));
+
+        // When
+        Page<FollowUserResponseDto> result = followService.getFollowings("me", "followerUser", pageable);
+
+        // Then
+        assertThat(result.getContent()).hasSize(1);
+        FollowUserResponseDto item = result.getContent().get(0);
+        assertThat(item.getUserId()).isEqualTo(TARGET_PUBLIC_ID);
+        assertThat(item.getNickname()).isEqualTo("소금파장인");
+        assertThat(item.getVisitedCount()).isEqualTo(8L);
+        assertThat(item.getIsFollowing()).isTrue();
+    }
 }

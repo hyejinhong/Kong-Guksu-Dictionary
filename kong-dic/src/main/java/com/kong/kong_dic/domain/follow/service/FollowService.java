@@ -80,8 +80,7 @@ public class FollowService {
 
     @Transactional(readOnly = true)
     public FollowStatusResponseDto getFollowStatus(String currentUsername, String targetPublicId) {
-        User targetUser = userRepository.findByPublicId(targetPublicId)
-                .orElseThrow(() -> new BaseException(UserExceptionType.USER_NOT_FOUND));
+        User targetUser = resolveTargetUser(targetPublicId, currentUsername);
         Long targetUserId = targetUser.getId();
 
         boolean isFollowing = false;
@@ -104,8 +103,7 @@ public class FollowService {
 
     @Transactional(readOnly = true)
     public Page<FollowUserResponseDto> getFollowers(String targetPublicId, String currentUsername, Pageable pageable) {
-        User targetUser = userRepository.findByPublicId(targetPublicId)
-                .orElseThrow(() -> new BaseException(UserExceptionType.USER_NOT_FOUND));
+        User targetUser = resolveTargetUser(targetPublicId, currentUsername);
 
         Page<Follow> followPage = followRepository.findFollowersByUserId(targetUser.getId(), pageable);
         return mapFollowPage(followPage, Follow::getFollower, currentUsername);
@@ -113,11 +111,22 @@ public class FollowService {
 
     @Transactional(readOnly = true)
     public Page<FollowUserResponseDto> getFollowings(String targetPublicId, String currentUsername, Pageable pageable) {
-        User targetUser = userRepository.findByPublicId(targetPublicId)
-                .orElseThrow(() -> new BaseException(UserExceptionType.USER_NOT_FOUND));
+        User targetUser = resolveTargetUser(targetPublicId, currentUsername);
 
         Page<Follow> followPage = followRepository.findFollowingsByUserId(targetUser.getId(), pageable);
         return mapFollowPage(followPage, Follow::getFollowing, currentUsername);
+    }
+
+    private User resolveTargetUser(String targetPublicId, String currentUsername) {
+        if ("me".equalsIgnoreCase(targetPublicId)) {
+            if (currentUsername == null || currentUsername.isBlank()) {
+                throw new BaseException(UserExceptionType.USER_NOT_FOUND);
+            }
+            return userRepository.findByUsername(currentUsername)
+                    .orElseThrow(() -> new BaseException(UserExceptionType.USER_NOT_FOUND));
+        }
+        return userRepository.findByPublicId(targetPublicId)
+                .orElseThrow(() -> new BaseException(UserExceptionType.USER_NOT_FOUND));
     }
 
     private Page<FollowUserResponseDto> mapFollowPage(Page<Follow> followPage, Function<Follow, User> userExtractor, String currentUsername) {
