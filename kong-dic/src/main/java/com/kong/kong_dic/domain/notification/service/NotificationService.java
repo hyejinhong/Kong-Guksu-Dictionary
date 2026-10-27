@@ -8,18 +8,53 @@ import com.kong.kong_dic.domain.user.entity.User;
 import com.kong.kong_dic.domain.user.exception.UserExceptionType;
 import com.kong.kong_dic.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
+    private final SimpMessagingTemplate messagingTemplate;
+
+    /**
+     * 알림 생성 및 실시간 WebSocket 발송
+     */
+    @Transactional
+    public void sendNotification(User receiver, String title, String content, String type) {
+        if (receiver == null) return;
+
+        Notification dbNotification = Notification.builder()
+                .receiverId(receiver.getId())
+                .title(title)
+                .content(content)
+                .type(type)
+                .isRead(false)
+                .createdAt(LocalDateTime.now())
+                .build();
+        notificationRepository.save(dbNotification);
+
+        try {
+            NotificationMessage notification = NotificationMessage.builder()
+                    .username(receiver.getUsername())
+                    .title(title)
+                    .content(content)
+                    .type(type)
+                    .build();
+            messagingTemplate.convertAndSend("/topic/notifications/" + receiver.getUsername(), notification);
+        } catch (Exception e) {
+            log.warn("실시간 알림 WebSocket 전송 실패 (DB 저장은 완료됨): {}", e.getMessage());
+        }
+    }
 
     /**
      * 사용자의 모든 알림 내역 조회 (DB)

@@ -29,7 +29,7 @@ public class RecentReviewResponseDto {
     private String imageUrl;
     private Boolean isImageBlinded;
     private LocalDate visitDate;
-    private Long userId;
+    private String userId;
     private String nickname;
     private String avatarVariant;
     private String avatarSeed;
@@ -55,7 +55,7 @@ public class RecentReviewResponseDto {
                 .imageUrl(isBlinded ? null : visit.getImageUrl())
                 .isImageBlinded(isBlinded)
                 .visitDate(visit.getVisitDate())
-                .userId(user != null ? user.getId() : null)
+                .userId(user != null ? user.getPublicId() : null)
                 .nickname(user != null && user.getNickname() != null ? user.getNickname() : (user != null ? user.getUsername() : "익명"))
                 .avatarVariant(user != null && user.getAvatarVariant() != null ? user.getAvatarVariant() : "beam")
                 .avatarSeed(user != null && user.getAvatarSeed() != null ? user.getAvatarSeed() : "default")

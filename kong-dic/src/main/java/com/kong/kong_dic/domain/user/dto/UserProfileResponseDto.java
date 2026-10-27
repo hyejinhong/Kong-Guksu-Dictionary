@@ -12,7 +12,8 @@ import java.util.Date;
 @Setter
 @Builder
 public class UserProfileResponseDto {
-    private Long id;
+    private String id;
+    private String userId;
     private String username;
     private String nickname;
     private String role;
@@ -22,10 +23,18 @@ public class UserProfileResponseDto {
     private String avatarSeed;
     private String profileImageUrl;
     private SeasoningPreference seasoningPreference;
+    private long followerCount;
+    private long followingCount;
+    private long visitedCount;
 
     public static UserProfileResponseDto of(User user) {
+        return of(user, 0L, 0L, 0L);
+    }
+
+    public static UserProfileResponseDto of(User user, long followerCount, long followingCount, long visitedCount) {
         return UserProfileResponseDto.builder()
-                .id(user.getId())
+                .id(user.getPublicId())
+                .userId(user.getPublicId())
                 .username(user.getUsername())
                 .nickname(user.getNickname())
                 .role(user.getRole().name())
@@ -35,6 +44,9 @@ public class UserProfileResponseDto {
                 .avatarSeed(user.getAvatarSeed())
                 .profileImageUrl(user.getProfileImageUrl())
                 .seasoningPreference(user.getSeasoningPreference() != null ? user.getSeasoningPreference() : SeasoningPreference.NONE)
+                .followerCount(followerCount)
+                .followingCount(followingCount)
+                .visitedCount(visitedCount)
                 .build();
     }
 }

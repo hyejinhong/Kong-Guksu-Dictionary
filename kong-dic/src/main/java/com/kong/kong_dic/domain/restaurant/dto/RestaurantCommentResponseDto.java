@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 @Builder
 public class RestaurantCommentResponseDto {
     private Long id;
+    private String userId;
     private String nickname;
     private String content;
     private LocalDateTime createdAt;

@@ -20,7 +20,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -42,6 +41,7 @@ public class RestaurantCommentService {
     private RestaurantCommentResponseDto toDto(RestaurantComment comment) {
         return RestaurantCommentResponseDto.builder()
                 .id(comment.getId())
+                .userId(comment.getAuthor() != null ? comment.getAuthor().getPublicId() : null)
                 .nickname(comment.getAuthor().getNickname())
                 .content(comment.getContent())
                 .createdAt(comment.getCreatedAt())

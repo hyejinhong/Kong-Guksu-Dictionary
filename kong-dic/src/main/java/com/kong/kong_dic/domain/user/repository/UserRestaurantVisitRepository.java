@@ -38,5 +38,16 @@ public interface UserRestaurantVisitRepository extends JpaRepository<UserRestaur
             "AND (urv.isImageBlinded IS NULL OR urv.isImageBlinded = false) " +
             "ORDER BY urv.visitDate DESC, urv.id DESC")
     List<Object[]> findLatestImageUrlsByRestaurantIds(@Param("restaurantIds") List<Long> restaurantIds);
+
+    long countByUserId(Long userId);
+
+    @Query(value = "SELECT urv FROM UserRestaurantVisit urv JOIN FETCH urv.restaurant " +
+            "WHERE urv.user.id = :userId " +
+            "ORDER BY urv.visitDate DESC, urv.id DESC",
+            countQuery = "SELECT COUNT(urv) FROM UserRestaurantVisit urv WHERE urv.user.id = :userId")
+    Page<UserRestaurantVisit> findPageByUserId(@Param("userId") Long userId, Pageable pageable);
+
+    @Query("SELECT urv.user.id, COUNT(urv) FROM UserRestaurantVisit urv WHERE urv.user.id IN :userIds GROUP BY urv.user.id")
+    List<Object[]> countVisitsByUserIds(@Param("userIds") List<Long> userIds);
 }
 

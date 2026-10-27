@@ -1,13 +1,11 @@
 package com.kong.kong_dic.domain.user.controller;
 
-import com.kong.kong_dic.common.exception.BaseException;
 import com.kong.kong_dic.common.response.BaseResponse;
 import com.kong.kong_dic.common.domain.restaurant.dto.RestaurantSubmitRequestDto;
 import com.kong.kong_dic.domain.restaurant.service.RestaurantCommentService;
 import com.kong.kong_dic.domain.restaurant.service.RestaurantSubmitService;
 import com.kong.kong_dic.domain.user.dto.*;
-import com.kong.kong_dic.domain.user.entity.User;
-import com.kong.kong_dic.domain.user.exception.UserExceptionType;
+import com.kong.kong_dic.domain.user.service.UserRestaurantVisitService;
 import com.kong.kong_dic.domain.user.service.UserService;
 import com.kong.kong_dic.global.annotation.AuthUser;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +14,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,11 +27,10 @@ public class UserController {
     private final UserService userService;
     private final RestaurantCommentService commentService;
     private final RestaurantSubmitService submitService;
+    private final UserRestaurantVisitService visitService;
 
     /**
      * 사용자 정보 조회 API
-     * @param userDetails
-     * @return
      */
     @GetMapping("/me")
     public ResponseEntity<BaseResponse<UserProfileResponseDto>> getMyProfile(
@@ -43,10 +39,28 @@ public class UserController {
     }
 
     /**
+     * 타 유저 프로필 및 사전 요약 조회 API (publicId 기반)
+     */
+    @GetMapping("/{userId}/profile")
+    public ResponseEntity<BaseResponse<PublicUserProfileResponseDto>> getUserProfile(
+            @AuthUser(required = false) UserDetails userDetails,
+            @PathVariable String userId) {
+        String currentUsername = userDetails != null ? userDetails.getUsername() : null;
+        return ResponseEntity.ok(BaseResponse.success("User profile fetched successfully.", userService.getUserProfile(userId, currentUsername)));
+    }
+
+    /**
+     * 특정 유저의 방문 식당 기록(콩국수 사전) 목록 조회 API (publicId 기반)
+     */
+    @GetMapping("/{userId}/visited-restaurants")
+    public ResponseEntity<BaseResponse<Page<UserRestaurantVisitResponseDto>>> getUserVisitedRestaurants(
+            @PathVariable String userId,
+            @PageableDefault(size = 10, page = 0, sort = "visitDate", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(BaseResponse.success(visitService.getVisitedRestaurantsByUserId(userId, pageable)));
+    }
+
+    /**
      * 사용자 정보 수정 API
-     * @param userDetails
-     * @param request
-     * @return
      */
     @PatchMapping("/me")
     public ResponseEntity<BaseResponse<UserProfileResponseDto>> updateMyProfile(

@@ -576,7 +576,16 @@ const V2RestaurantDetailPage = () => {
                   className="bg-surface-container-low rounded-2xl p-5 space-y-3 soy-shadow transition-all hover:bg-surface-container"
                 >
                   <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-3">
+                    <div
+                      onClick={(e) => {
+                        if (note.userId) {
+                          e.stopPropagation();
+                          navigate(`/v2/users/${note.userId}/dictionary`);
+                        }
+                      }}
+                      className={`flex items-center gap-3 ${note.userId ? 'cursor-pointer group/author' : ''}`}
+                      title={note.userId ? `${note.nickname}님의 콩국수 사전 보기` : undefined}
+                    >
                       <V2UserAvatar 
                         size={36} 
                         src={note.profileImageUrl}
@@ -586,7 +595,9 @@ const V2RestaurantDetailPage = () => {
                       />
                       <div>
                         <div className="flex items-center gap-1.5">
-                          <span className="font-bold text-on-surface text-sm">{note.nickname}</span>
+                          <span className="font-bold text-on-surface text-sm group-hover/author:text-primary group-hover/author:underline transition-colors">
+                            {note.nickname}
+                          </span>
                           {(() => {
                             const badge = getSeasoningBadge(note.seasoningPreference || note.seasoning_preference);
                             return badge ? (
@@ -684,7 +695,15 @@ const V2RestaurantDetailPage = () => {
             {comments.length > 0 ? comments.map(comment => (
               <div key={comment.id} className="bg-surface-container-lowest p-4 shadow-sm rounded-lg">
                 <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
+                  <div
+                    onClick={() => {
+                      if (comment.userId) {
+                        navigate(`/v2/users/${comment.userId}/dictionary`);
+                      }
+                    }}
+                    className={`flex items-center gap-2 ${comment.userId ? 'cursor-pointer group/commenter' : ''}`}
+                    title={comment.userId ? `${comment.nickname || '작성자'}님의 콩국수 사전 보기` : undefined}
+                  >
                     <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center overflow-hidden border border-surface-container shadow-sm">
                       <V2UserAvatar
                         size={32}
@@ -694,7 +713,9 @@ const V2RestaurantDetailPage = () => {
                         variant={comment.avatarVariant || 'beam'}
                       />
                     </div>
-                    <span className="font-semibold text-sm">{comment.nickname || '익명'}</span>
+                    <span className="font-semibold text-sm group-hover/commenter:text-primary group-hover/commenter:underline transition-colors">
+                      {comment.nickname || '익명'}
+                    </span>
                     {(() => {
                       const badge = getSeasoningBadge(comment.seasoningPreference || comment.seasoning_preference);
                       return badge ? (

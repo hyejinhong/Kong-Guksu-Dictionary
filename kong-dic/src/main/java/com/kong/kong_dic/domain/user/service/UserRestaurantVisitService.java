@@ -2,7 +2,6 @@ package com.kong.kong_dic.domain.user.service;
 
 import com.kong.kong_dic.common.exception.BaseException;
 import com.kong.kong_dic.domain.image.service.ImageUploadService;
-import com.kong.kong_dic.domain.restaurant.dto.RestaurantRankingDto;
 import com.kong.kong_dic.domain.restaurant.entity.Restaurant;
 import com.kong.kong_dic.domain.restaurant.exception.RestaurantExceptionType;
 import com.kong.kong_dic.domain.restaurant.repository.RestaurantRepository;
@@ -21,7 +20,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-
 
 import java.util.List;
 
@@ -48,7 +46,7 @@ public class UserRestaurantVisitService {
             boolean isBlinded = Boolean.TRUE.equals(visit.getIsImageBlinded());
             return RestaurantVisitNoteResponseDto.builder()
                     .id(visit.getId())
-                    .userId(u != null ? u.getId() : null)
+                    .userId(u != null ? u.getPublicId() : null)
                     .nickname(u != null && u.getNickname() != null ? u.getNickname() : (u != null ? u.getUsername() : "익명"))
                     .avatarVariant(u != null ? u.getAvatarVariant() : "beam")
                     .avatarSeed(u != null ? u.getAvatarSeed() : "default")
@@ -69,6 +67,15 @@ public class UserRestaurantVisitService {
 
         List<UserRestaurantVisit> entityList = visitRepository.findByUserId(user.getId(), pageable);
         return entityList.stream().map(this::entityToResponseDto).toList();
+    }
+
+    @Transactional
+    public Page<UserRestaurantVisitResponseDto> getVisitedRestaurantsByUserId(String targetPublicId, Pageable pageable) {
+        User user = userRepository.findByPublicId(targetPublicId)
+                .orElseThrow(() -> new BaseException(UserExceptionType.USER_NOT_FOUND));
+
+        Page<UserRestaurantVisit> visitPage = visitRepository.findPageByUserId(user.getId(), pageable);
+        return visitPage.map(this::entityToResponseDto);
     }
 
     private UserRestaurantVisitResponseDto entityToResponseDto(UserRestaurantVisit entity) {

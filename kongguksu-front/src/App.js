@@ -16,6 +16,7 @@ import V2RankingPage from "./v2/pages/V2RankingPage";
 import V2ForgotPasswordPage from "./v2/pages/V2ForgotPasswordPage";
 import V2ResetPasswordPage from "./v2/pages/V2ResetPasswordPage";
 import V2FindIdPage from "./v2/pages/V2FindIdPage";
+import V2UserDictionaryPage from "./v2/pages/V2UserDictionaryPage";
 import { NotificationProvider } from "./v2/contexts/NotificationContext";
 import V2NotificationModal from "./v2/components/V2NotificationModal";
 
@@ -42,6 +43,7 @@ function App() {
           <Route path="/v2/submit" element={<V2SubmissionPage />} />
           <Route path="/v2/restaurant/:id" element={<V2RestaurantDetailPage />} />
           <Route path="/v2/saved" element={<V2SavedRestaurantsPage />} />
+          <Route path="/v2/users/:userId/dictionary" element={<V2UserDictionaryPage />} />
           <Route path="/v2/mypage" element={<V2MyPage />} />
           <Route path="/v2/ranking" element={<V2RankingPage />} />
           <Route path="/v2/forgot-password" element={<V2ForgotPasswordPage />} />
