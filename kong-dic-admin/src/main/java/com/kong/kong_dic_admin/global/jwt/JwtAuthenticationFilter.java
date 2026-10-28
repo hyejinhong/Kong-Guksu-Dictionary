@@ -14,13 +14,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
 @Slf4j
-@Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
@@ -36,14 +34,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         try {
-            String token = jwtProvider.resolveToken((HttpServletRequest) request);
+            String token = jwtProvider.resolveToken(request);
 
             if (token != null && jwtProvider.validateToken(token)) {
                 String username = jwtProvider.getUsernameFromToken(token);
                 if (username != null) {
                     try {
                         UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-                        if (userDetails != null) {
+                        if (userDetails != null && userDetails.isEnabled()) {
                             SecurityContextHolder.getContext().setAuthentication(jwtProvider.getAuthentication(token));
                         }
                     } catch (Exception e) {

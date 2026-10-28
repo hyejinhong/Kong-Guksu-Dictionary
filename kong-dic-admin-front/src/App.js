@@ -24,24 +24,24 @@ const parseJwt = (token) => {
   }
 };
 
-// 토큰 만료 여부 확인
-const isTokenExpired = (token) => {
-  if (!token) return true;
+// 토큰 만료 및 관리자 권한(ADMIN) 여부 확인
+const isValidAdminToken = (token) => {
+  if (!token) return false;
 
   const payload = parseJwt(token);
   if (!payload || !payload.exp) {
-    // exp 필드가 없으면 유효하지 않은 토큰으로 간주
-    return true;
+    return false;
   }
 
-  // payload.exp는 유닉스 타임스탬프 (초 단위)이므로 1000을 곱하여 밀리초로 변환
-  const expirationTimeMs = payload.exp * 1000;
+  // ADMIN 권한 확인
+  if (payload.role !== 'ADMIN') {
+    return false;
+  }
 
-  // 현재 시간 (밀리초)
+  const expirationTimeMs = payload.exp * 1000;
   const currentTimeMs = Date.now();
 
-  // 만료 시간(exp)이 현재 시간보다 작으면 만료됨
-  return expirationTimeMs < currentTimeMs;
+  return expirationTimeMs > currentTimeMs;
 };
 
 // 헤더 컴포넌트 (홈 버튼 및 로그아웃 버튼 포함)
@@ -69,7 +69,7 @@ const Header = ({ onLogout }) => {
   );
 };
 
-// 홈 페이지 컴포넌트 (링크 수정 완료)
+// 홈 페이지 컴포넌트
 const HomePage = () => (
   <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 text-gray-800 p-4">
     <h1 className="text-4xl font-bold mb-4 text-center">관리자 대시보드 🛠️</h1>
@@ -121,26 +121,29 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
-  // 토큰 유효성 검사 (아주 기본적인 로직)
+  // 토큰 유효성 및 관리자 권한 검사
   useEffect(() => {
     const token = localStorage.getItem('admin_token');
 
-    // 1. 토큰 존재 및 만료 검사
     if (token) {
-      if (!isTokenExpired(token)) {
-        // 토큰이 존재하고 만료되지 않음
+      if (isValidAdminToken(token)) {
         setIsAuthenticated(true);
       } else {
-        // 토큰은 있으나 만료됨
         localStorage.removeItem('admin_token');
-        console.warn("관리자 토큰이 만료되었습니다. 다시 로그인해주세요.");
+        console.warn("유효하지 않거나 만료된 관리자 토큰입니다. 다시 로그인해주세요.");
       }
     }
-    setIsLoading(false); // 로딩 종료
+    setIsLoading(false);
   }, []);
 
   // 로그인 성공 시 호출될 함수
   const handleLogin = (token) => {
+    if (!isValidAdminToken(token)) {
+      localStorage.removeItem('admin_token');
+      setIsAuthenticated(false);
+      alert('관리자 권한이 없는 계정입니다.');
+      return;
+    }
     localStorage.setItem('admin_token', token);
     setIsAuthenticated(true);
     navigate('/');

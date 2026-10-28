@@ -17,14 +17,18 @@ const Login = ({ onLogin }) => {
         username,
         password,
       });
-      if (response.status === 200 && response.data) {
+      if (response.status === 200 && response.data?.data?.token) {
         onLogin(response.data.data.token); // 부모 컴포넌트로 토큰 전달
       } else {
         setError('로그인에 실패했습니다. 다시 시도해주세요.');
       }
     } catch (err) {
       console.error('Login error:', err);
-      setError('로그인에 실패했습니다. 아이디 또는 비밀번호를 확인해주세요.');
+      if (err.response?.status === 403) {
+        setError(err.response?.data?.message || '관리자 권한이 없는 계정입니다.');
+      } else {
+        setError('로그인에 실패했습니다. 아이디 또는 비밀번호를 확인해주세요.');
+      }
     }
   };
 
