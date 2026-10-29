@@ -1,0 +1,23 @@
+# Git & IDE
+.git
+.gitignore
+.github
+.idea
+.vscode
+.agents
+GEMINI.md
+PR.md
+
+# Secret & Environment configs (Never bake secrets into Docker image layers)
+**/src/main/resources/application-*.yml
+**/src/main/resources/application.yml
+**/build/
+**/.gradle/
+.env
+.env.*
+**/.env
+**/.env.*
+
+# Frontend build & dependencies
+**/node_modules/
+**/coverage/
