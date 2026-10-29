@@ -3,15 +3,16 @@ package com.kong.kong_dic.domain.user.service;
 import com.kong.kong_dic.common.exception.BaseException;
 import com.kong.kong_dic.domain.auth.exception.AuthExceptionType;
 import com.kong.kong_dic.domain.follow.repository.FollowRepository;
+import com.kong.kong_dic.domain.image.exception.ImageExceptionType;
+import com.kong.kong_dic.domain.image.service.ImageUploadService;
 import com.kong.kong_dic.domain.user.dto.*;
 import com.kong.kong_dic.domain.user.entity.User;
 import com.kong.kong_dic.domain.user.exception.UserExceptionType;
 import com.kong.kong_dic.domain.user.repository.UserRepository;
 import com.kong.kong_dic.domain.user.repository.UserRestaurantVisitRepository;
 import com.kong.kong_dic.domain.user.util.NicknameGenerator;
-import com.kong.kong_dic.domain.image.service.ImageUploadService;
-import com.kong.kong_dic.global.service.RedisService;
 import com.kong.kong_dic.global.service.EmailService;
+import com.kong.kong_dic.global.service.RedisService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
@@ -156,7 +157,7 @@ public class UserService {
 
             // 현재 비밀번호 일치 확인
             if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
-                throw new BadCredentialsException("현재 비밀번호가 일치하지 않습니다."); // Security 예외 사용 또는 커스텀 예외
+                throw new BadCredentialsException("현재 비밀번호가 일치하지 않습니다.");
             }
 
             // 새 비밀번호 해싱 후 저장
@@ -175,16 +176,27 @@ public class UserService {
         // 4. 프로필 이미지 수정
         if (Boolean.TRUE.equals(request.getResetProfileImage()) || (request.getProfileImageUrl() != null && request.getProfileImageUrl().isBlank())) {
             // 프로필 이미지 초기화 (기본 그래픽 아바타 사용)
-            if (user.getProfileImageUrl() != null && !user.getProfileImageUrl().isBlank()) {
-                imageUploadService.deleteImage(user.getProfileImageUrl());
-            }
+            String oldProfileUrl = user.getProfileImageUrl();
             user.setProfileImageUrl(null);
-        } else if (request.getProfileImageUrl() != null && !request.getProfileImageUrl().isBlank()) {
-            // 새 프로필 이미지 설정
-            if (user.getProfileImageUrl() != null && !user.getProfileImageUrl().equals(request.getProfileImageUrl())) {
-                imageUploadService.deleteImage(user.getProfileImageUrl());
+            if (oldProfileUrl != null && !oldProfileUrl.isBlank()
+                    && !userRepository.existsByProfileImageUrlAndIdNot(oldProfileUrl, user.getId())) {
+                imageUploadService.deleteImage(oldProfileUrl);
             }
-            user.setProfileImageUrl(request.getProfileImageUrl());
+        } else if (request.getProfileImageUrl() != null && !request.getProfileImageUrl().isBlank()) {
+            String newProfileUrl = request.getProfileImageUrl().trim();
+            imageUploadService.validateImageUrl(newProfileUrl, "profiles");
+
+            // 다른 유저가 이미 사용 중인 프로필 이미지 URL 도용 차단 (IDOR 방지)
+            if (userRepository.existsByProfileImageUrlAndIdNot(newProfileUrl, user.getId())) {
+                throw new BaseException(ImageExceptionType.INVALID_IMAGE_URL);
+            }
+
+            String oldProfileUrl = user.getProfileImageUrl();
+            user.setProfileImageUrl(newProfileUrl);
+            if (oldProfileUrl != null && !oldProfileUrl.equals(newProfileUrl)
+                    && !userRepository.existsByProfileImageUrlAndIdNot(oldProfileUrl, user.getId())) {
+                imageUploadService.deleteImage(oldProfileUrl);
+            }
         }
 
         // 5. 간/양념 취향 수정

@@ -91,6 +91,7 @@ public class RestaurantController {
      * @return
      */
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<BaseResponse<RestaurantResponseDto>> updateRestaurant(@PathVariable Long id, @RequestBody RestaurantRequestDto request) {
         return ResponseEntity.ok(BaseResponse.success(restaurantService.updateRestaurant(id, request)));
     }
@@ -101,6 +102,7 @@ public class RestaurantController {
      * @param id
      */
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<BaseResponse<Void>> deleteRestaurant(@PathVariable Long id) {
         restaurantService.deleteRestaurant(id);
         return ResponseEntity.ok(BaseResponse.success("Deleted."));

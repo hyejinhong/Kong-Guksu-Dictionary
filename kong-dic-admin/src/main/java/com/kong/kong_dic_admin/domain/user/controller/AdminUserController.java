@@ -6,6 +6,7 @@ import com.kong.kong_dic_admin.domain.user.dto.UserStatusUpdateRequestDto;
 import com.kong.kong_dic_admin.domain.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -13,6 +14,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/admin/users")
 @RequiredArgsConstructor
+@PreAuthorize("hasAuthority('ADMIN')")
 public class AdminUserController {
 
     private final UserService userService;

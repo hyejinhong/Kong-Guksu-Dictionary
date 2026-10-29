@@ -12,6 +12,7 @@ import com.kong.kong_dic.domain.user.entity.Role;
 import com.kong.kong_dic.domain.user.entity.SeasoningPreference;
 import com.kong.kong_dic.domain.user.entity.User;
 import com.kong.kong_dic.domain.user.repository.UserRepository;
+import com.kong.kong_dic.global.config.CorsProperties;
 import com.kong.kong_dic.global.jwt.JwtProvider;
 import com.kong.kong_dic.global.service.RedisService;
 import com.kong.kong_dic.global.service.EmailService;
@@ -34,6 +35,7 @@ public class AuthService {
     private final RefreshTokenService refreshTokenService;
     private final RedisService redisService;
     private final EmailService emailService;
+    private final CorsProperties corsProperties;
 
     private static final String PASSWORD_RESET_TOKEN_PREFIX = "PR:";
     private static final long PASSWORD_RESET_EXPIRATION_TIME = 15; // 15 minutes
@@ -119,7 +121,7 @@ public class AuthService {
                 java.util.concurrent.TimeUnit.MINUTES
         );
 
-        String frontUrl = (origin != null && !origin.isEmpty()) ? origin : "http://localhost:3000";
+        String frontUrl = corsProperties.resolveAllowedOrigin(origin);
         String resetLink = frontUrl + "/reset-password?token=" + token;
 
         emailService.sendPasswordResetEmail(user.getEmail(), resetLink);

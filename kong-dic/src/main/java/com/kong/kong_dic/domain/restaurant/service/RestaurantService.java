@@ -322,6 +322,7 @@ public class RestaurantService {
         return responseDto;
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     public RestaurantResponseDto addRestaurant(RestaurantRequestDto request) {
         Coordinates coordinate = kakaoMapUtil.addressToCoordinates(request.getAddress());
 
@@ -341,7 +342,7 @@ public class RestaurantService {
     }
 
     @Transactional
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasAuthority('ADMIN')")
     public RestaurantResponseDto updateRestaurant(Long id, RestaurantRequestDto request) {
         Restaurant restaurant = restaurantRepository.findById(id).orElseThrow(() -> new BaseException(RestaurantExceptionType.RESTAURANT_NOT_FOUND));
 
@@ -360,6 +361,8 @@ public class RestaurantService {
         return entityToResponseDto(restaurant);
     }
 
+    @Transactional
+    @PreAuthorize("hasAuthority('ADMIN')")
     public void deleteRestaurant(Long id) {
         Restaurant restaurant = restaurantRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("식당을 찾을 수 없습니다: " + id));

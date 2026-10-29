@@ -36,6 +36,10 @@ class ImageUploadServiceTest {
     private final String bucketName = "test-bucket";
     private final String publicUrl = "https://pub-test.r2.dev";
 
+    private static final byte[] VALID_JPEG_BYTES = new byte[]{
+            (byte) 0xFF, (byte) 0xD8, (byte) 0xFF, (byte) 0xE0, 0x00, 0x10, 'J', 'F', 'I', 'F'
+    };
+
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(imageUploadService, "bucketName", bucketName);
@@ -49,8 +53,8 @@ class ImageUploadServiceTest {
         MockMultipartFile file = new MockMultipartFile(
                 "file",
                 "sample.jpg",
-                "image/jpeg",
-                "test-image-content".getBytes()
+                "text/html", // 클라이언트가 악의적 Content-Type을 보내도 image/jpeg로 강제 변환되어야 함
+                VALID_JPEG_BYTES
         );
 
         // when
@@ -63,7 +67,9 @@ class ImageUploadServiceTest {
         assertThat(response.getFileKey()).startsWith("reviews/");
         assertThat(response.getFileKey()).endsWith(".jpg");
 
-        verify(s3Client, times(1)).putObject(any(PutObjectRequest.class), any(RequestBody.class));
+        ArgumentCaptor<PutObjectRequest> captor = ArgumentCaptor.forClass(PutObjectRequest.class);
+        verify(s3Client, times(1)).putObject(captor.capture(), any(RequestBody.class));
+        assertThat(captor.getValue().contentType()).isEqualTo("image/jpeg");
     }
 
     @Test
@@ -74,13 +80,51 @@ class ImageUploadServiceTest {
                 "file",
                 "malicious.exe",
                 "application/octet-stream",
-                "fake-content".getBytes()
+                VALID_JPEG_BYTES
         );
 
         // when & then
         assertThatThrownBy(() -> imageUploadService.uploadImage(file, "reviews"))
                 .isInstanceOf(BaseException.class)
                 .hasFieldOrPropertyWithValue("exceptionType", ImageExceptionType.INVALID_FILE_EXTENSION);
+
+        verify(s3Client, never()).putObject(any(PutObjectRequest.class), any(RequestBody.class));
+    }
+
+    @Test
+    @DisplayName("이미지 업로드 실패 - 확장자는 .jpg이나 실제 Magic Bytes가 이미지가 아닌 경우 차단")
+    void uploadImage_invalidMagicBytes_throwsException() {
+        // given
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "disguised.jpg",
+                "image/jpeg",
+                "<script>alert(1)</script>".getBytes()
+        );
+
+        // when & then
+        assertThatThrownBy(() -> imageUploadService.uploadImage(file, "reviews"))
+                .isInstanceOf(BaseException.class)
+                .hasFieldOrPropertyWithValue("exceptionType", ImageExceptionType.INVALID_FILE_EXTENSION);
+
+        verify(s3Client, never()).putObject(any(PutObjectRequest.class), any(RequestBody.class));
+    }
+
+    @Test
+    @DisplayName("이미지 업로드 실패 - 허용되지 않은 folder 경로 요청 시 차단")
+    void uploadImage_invalidFolder_throwsException() {
+        // given
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "sample.jpg",
+                "image/jpeg",
+                VALID_JPEG_BYTES
+        );
+
+        // when & then
+        assertThatThrownBy(() -> imageUploadService.uploadImage(file, "../secret"))
+                .isInstanceOf(BaseException.class)
+                .hasFieldOrPropertyWithValue("exceptionType", ImageExceptionType.INVALID_FOLDER);
 
         verify(s3Client, never()).putObject(any(PutObjectRequest.class), any(RequestBody.class));
     }

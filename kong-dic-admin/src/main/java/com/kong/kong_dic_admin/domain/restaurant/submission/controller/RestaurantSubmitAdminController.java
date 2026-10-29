@@ -13,6 +13,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/admin/restaurants/submissions")
 @RequiredArgsConstructor
+@PreAuthorize("hasAuthority('ADMIN')")
 public class RestaurantSubmitAdminController {
 
     private final RestaurantSubmitAdminService submitAdminService;
@@ -28,7 +29,6 @@ public class RestaurantSubmitAdminController {
     }
 
     @PatchMapping("/{id}/approve")
-    @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<BaseResponse<Void>> approveRestaurantSubmission(
             @PathVariable Long id,
             @RequestBody(required = false) RestaurantSubmitRequestDto updateDto) {
@@ -37,7 +37,6 @@ public class RestaurantSubmitAdminController {
     }
 
     @PatchMapping("/{id}/reject")
-    @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<BaseResponse<Void>> rejectRestaurantSubmission(
             @PathVariable Long id,
             @RequestBody(required = false) java.util.Map<String, String> body) {

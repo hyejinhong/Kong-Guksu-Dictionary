@@ -7,6 +7,7 @@ import com.kong.kong_dic.common.response.BaseResponse;
 import com.kong.kong_dic_admin.domain.restaurant.report.service.RestaurantReportAdminService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -14,6 +15,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin/restaurant-reports")
 @RequiredArgsConstructor
+@PreAuthorize("hasAuthority('ADMIN')")
 public class RestaurantReportAdminController {
 
     private final RestaurantReportAdminService adminService;

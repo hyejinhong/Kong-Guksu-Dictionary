@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kong.kong_dic.common.response.BaseResponse;
 import com.kong.kong_dic_admin.domain.auth.dto.LoginResponseDto;
+import com.kong.kong_dic_admin.domain.user.entity.Role;
 import com.kong.kong_dic_admin.domain.user.entity.User;
 import com.kong.kong_dic_admin.global.jwt.JwtProvider;
 import jakarta.servlet.FilterChain;
@@ -12,6 +13,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -35,11 +37,15 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
 
     @Override
     public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response) throws AuthenticationException {
-        log.info("### Login Request");
+        log.info("### Admin Login Request");
 
         try {
             String requestBody = request.getReader().lines().collect(Collectors.joining(System.lineSeparator()));
             JsonNode jsonNode = objectMapper.readTree(requestBody);
+
+            if (jsonNode == null || !jsonNode.hasNonNull("username") || !jsonNode.hasNonNull("password")) {
+                throw new BadCredentialsException("아이디와 비밀번호를 모두 입력해주세요.");
+            }
 
             String username = jsonNode.get("username").asText();
             String password = jsonNode.get("password").asText();
@@ -48,16 +54,27 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
             return authenticationManager.authenticate(authToken);
 
         } catch (IOException e) {
-            throw new RuntimeException("로그인 요청을 처리하는 중 오류 발생", e);
+            throw new BadCredentialsException("로그인 요청을 처리하는 중 오류가 발생했습니다.", e);
         }
     }
 
     @Override
     protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response,
                                             FilterChain chain, Authentication authResult) throws IOException, ServletException {
-        log.info("### Login success");
+        User user = (User) authResult.getPrincipal();
 
-        LoginResponseDto loginResponse = jwtProvider.generateToken((User) authResult.getPrincipal());
+        if (user.getRole() != Role.ADMIN) {
+            log.warn("### Admin login denied for non-admin user: {}", user.getUsername());
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            response.setContentType("application/json");
+            response.setCharacterEncoding("UTF-8");
+            response.getWriter().write(objectMapper.writeValueAsString(BaseResponse.error(403, "관리자 권한이 없는 계정입니다.")));
+            response.getWriter().flush();
+            return;
+        }
+
+        log.info("### Admin Login success: {}", user.getUsername());
+        LoginResponseDto loginResponse = jwtProvider.generateToken(user);
 
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
@@ -69,7 +86,7 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
     @Override
     protected void unsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response,
                                               AuthenticationException failed) throws IOException, ServletException {
-        log.info("### Login failed");
+        log.info("### Admin Login failed");
 
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
 
