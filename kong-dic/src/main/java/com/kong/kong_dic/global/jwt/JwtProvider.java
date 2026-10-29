@@ -4,7 +4,6 @@ import com.kong.kong_dic.domain.auth.dto.LoginResponseDto;
 import com.kong.kong_dic.domain.user.entity.User;
 import com.kong.kong_dic.domain.user.service.CustomUserDetailsService;
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
@@ -116,18 +115,23 @@ public class JwtProvider {
     }
 
     /**
-     * ✅ JWT 토큰에서 인증 정보 가져오기
+     * ✅ JWT 토큰에서 인증 정보 가져오기 (DB UserDetails 권한 기반 표준화)
      */
     public Authentication getAuthentication(String token) {
-        Claims claims = getClaimsFromToken(token);
-
         String username = getUsernameFromToken(token);
         UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-        String roleName = claims.get("role", String.class);
         Collection<GrantedAuthority> authorities = new ArrayList<>();
-        if (roleName != null) {
-            authorities.add(new SimpleGrantedAuthority("ROLE_" + roleName.toUpperCase()));
+        if (userDetails != null && userDetails.getAuthorities() != null) {
+            for (GrantedAuthority authority : userDetails.getAuthorities()) {
+                String auth = authority.getAuthority();
+                if (auth != null && !auth.isBlank()) {
+                    authorities.add(new SimpleGrantedAuthority(auth));
+                    if (!auth.startsWith("ROLE_")) {
+                        authorities.add(new SimpleGrantedAuthority("ROLE_" + auth));
+                    }
+                }
+            }
         }
 
         return new UsernamePasswordAuthenticationToken(userDetails, "", authorities);

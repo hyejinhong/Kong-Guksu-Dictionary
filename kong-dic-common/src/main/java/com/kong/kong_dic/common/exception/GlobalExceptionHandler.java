@@ -22,6 +22,13 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<BaseResponse<Void>> handleGeneralException(Exception ex) {
+        String className = ex.getClass().getName();
+        if (className.endsWith("AccessDeniedException") || className.endsWith("AuthorizationDeniedException")) {
+            log.warn("Access denied: {}", ex.getMessage());
+            return ResponseEntity
+                    .status(HttpStatus.FORBIDDEN)
+                    .body(BaseResponse.error(403, "접근 권한이 없습니다."));
+        }
         log.error("", ex);
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
