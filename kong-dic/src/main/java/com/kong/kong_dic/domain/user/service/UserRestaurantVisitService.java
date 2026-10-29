@@ -1,6 +1,7 @@
 package com.kong.kong_dic.domain.user.service;
 
 import com.kong.kong_dic.common.exception.BaseException;
+import com.kong.kong_dic.domain.image.exception.ImageExceptionType;
 import com.kong.kong_dic.domain.image.service.ImageUploadService;
 import com.kong.kong_dic.domain.restaurant.entity.Restaurant;
 import com.kong.kong_dic.domain.restaurant.exception.RestaurantExceptionType;
@@ -107,13 +108,22 @@ public class UserRestaurantVisitService {
                 ? request.getMemo().trim()
                 : null;
 
+        String validatedImageUrl = null;
+        if (request.getImageUrl() != null && !request.getImageUrl().trim().isEmpty()) {
+            validatedImageUrl = request.getImageUrl().trim();
+            imageUploadService.validateImageUrl(validatedImageUrl, "reviews");
+            if (visitRepository.existsByImageUrl(validatedImageUrl)) {
+                throw new BaseException(ImageExceptionType.INVALID_IMAGE_URL);
+            }
+        }
+
         UserRestaurantVisit entity = UserRestaurantVisit.builder()
                 .user(user)
                 .restaurant(restaurant)
                 .visitDate(request.getVisitDate())
                 .rating(request.getRating())
                 .memo(trimmedMemo)
-                .imageUrl(request.getImageUrl())
+                .imageUrl(validatedImageUrl)
                 .build();
         visitRepository.save(entity);
 
@@ -152,8 +162,8 @@ public class UserRestaurantVisitService {
             restaurantRepository.save(restaurant);
         }
 
-        // Cloudflare R2 이미지 삭제
-        if (imageUrl != null && !imageUrl.isBlank()) {
+        // Cloudflare R2 이미지 삭제 (다른 리뷰에서 참조되지 않는 경우에만)
+        if (imageUrl != null && !imageUrl.isBlank() && !visitRepository.existsByImageUrl(imageUrl)) {
             imageUploadService.deleteImage(imageUrl);
         }
     }
@@ -185,6 +195,10 @@ public class UserRestaurantVisitService {
         if (request.getImageUrl() != null) {
             String trimmedUrl = !request.getImageUrl().trim().isEmpty() ? request.getImageUrl().trim() : null;
             if (trimmedUrl != null && !trimmedUrl.equals(oldImageUrl)) {
+                imageUploadService.validateImageUrl(trimmedUrl, "reviews");
+                if (visitRepository.existsByImageUrlAndIdNot(trimmedUrl, visit.getId())) {
+                    throw new BaseException(ImageExceptionType.INVALID_IMAGE_URL);
+                }
                 visit.setImageUrl(trimmedUrl);
                 visit.unblindImage();
                 imageRemovedOrReplaced = true;
@@ -208,7 +222,8 @@ public class UserRestaurantVisitService {
         }
 
         // 기존 이미지가 교체되었거나 삭제되었으면 이전 R2 이미지 삭제
-        if (imageRemovedOrReplaced && oldImageUrl != null && !oldImageUrl.isBlank()) {
+        if (imageRemovedOrReplaced && oldImageUrl != null && !oldImageUrl.isBlank()
+                && !visitRepository.existsByImageUrlAndIdNot(oldImageUrl, visit.getId())) {
             imageUploadService.deleteImage(oldImageUrl);
         }
     }

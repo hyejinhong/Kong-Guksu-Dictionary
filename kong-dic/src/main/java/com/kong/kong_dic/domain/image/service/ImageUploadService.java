@@ -14,9 +14,12 @@ import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @Slf4j
@@ -33,6 +36,14 @@ public class ImageUploadService {
     private String publicUrl;
 
     private static final List<String> ALLOWED_EXTENSIONS = Arrays.asList("jpg", "jpeg", "png", "webp", "gif");
+    private static final Set<String> ALLOWED_FOLDERS = Set.of("reviews", "profiles");
+    private static final Map<String, String> EXTENSION_TO_MIME = Map.of(
+            "jpg", "image/jpeg",
+            "jpeg", "image/jpeg",
+            "png", "image/png",
+            "webp", "image/webp",
+            "gif", "image/gif"
+    );
     private static final long MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
     public ImageUploadResponseDto uploadImage(MultipartFile file, String folder) {
@@ -44,29 +55,36 @@ public class ImageUploadService {
             throw new BaseException(ImageExceptionType.FILE_SIZE_EXCEEDED);
         }
 
-        String originalFilename = file.getOriginalFilename();
-        String extension = extractExtension(originalFilename);
+        String normalizedFolder = (folder != null && !folder.isBlank())
+                ? folder.trim().replaceAll("^/+|/+$", "").toLowerCase()
+                : "reviews";
 
-        if (!ALLOWED_EXTENSIONS.contains(extension.toLowerCase())) {
+        if (!ALLOWED_FOLDERS.contains(normalizedFolder)) {
+            throw new BaseException(ImageExceptionType.INVALID_FOLDER);
+        }
+
+        String originalFilename = file.getOriginalFilename();
+        String extension = extractExtension(originalFilename).toLowerCase();
+
+        if (!ALLOWED_EXTENSIONS.contains(extension)) {
             throw new BaseException(ImageExceptionType.INVALID_FILE_EXTENSION);
         }
 
-        String key = (folder != null && !folder.isBlank() ? folder.replaceAll("^/+|/+$", "") + "/" : "")
-                + UUID.randomUUID() + "." + extension;
+        validateMagicBytes(file);
+
+        String safeContentType = EXTENSION_TO_MIME.getOrDefault(extension, "image/jpeg");
+        String key = normalizedFolder + "/" + UUID.randomUUID() + "." + extension;
 
         try {
             PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                     .bucket(bucketName)
                     .key(key)
-                    .contentType(file.getContentType() != null ? file.getContentType() : "image/" + extension)
+                    .contentType(safeContentType)
                     .build();
 
             s3Client.putObject(putObjectRequest, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
 
-            String normalizedPublicUrl = (publicUrl != null && !publicUrl.isBlank())
-                    ? (publicUrl.endsWith("/") ? publicUrl.substring(0, publicUrl.length() - 1) : publicUrl)
-                    : "";
-
+            String normalizedPublicUrl = getNormalizedPublicUrl();
             String fileUrl = normalizedPublicUrl.isBlank() ? key : normalizedPublicUrl + "/" + key;
 
             return new ImageUploadResponseDto(fileUrl, key);
@@ -79,13 +97,33 @@ public class ImageUploadService {
         }
     }
 
+    public void validateImageUrl(String imageUrl, String expectedFolder) {
+        if (imageUrl == null || imageUrl.isBlank()) {
+            return;
+        }
+
+        String trimmed = imageUrl.trim();
+        String normalizedPublicUrl = getNormalizedPublicUrl();
+
+        if (!normalizedPublicUrl.isBlank() && (trimmed.startsWith("http://") || trimmed.startsWith("https://"))) {
+            if (!trimmed.startsWith(normalizedPublicUrl + "/")) {
+                throw new BaseException(ImageExceptionType.INVALID_IMAGE_URL);
+            }
+        }
+
+        String key = extractKey(trimmed);
+        if (key == null || key.isBlank() || key.contains("..") || !key.startsWith(expectedFolder + "/")) {
+            throw new BaseException(ImageExceptionType.INVALID_IMAGE_URL);
+        }
+    }
+
     public void deleteImage(String fileUrlOrKey) {
         if (fileUrlOrKey == null || fileUrlOrKey.isBlank()) {
             return;
         }
 
         String key = extractKey(fileUrlOrKey);
-        if (key == null || key.isBlank()) {
+        if (key == null || key.isBlank() || key.contains("..")) {
             return;
         }
 
@@ -107,9 +145,7 @@ public class ImageUploadService {
             return null;
         }
 
-        String normalizedPublicUrl = (publicUrl != null && !publicUrl.isBlank())
-                ? (publicUrl.endsWith("/") ? publicUrl.substring(0, publicUrl.length() - 1) : publicUrl)
-                : "";
+        String normalizedPublicUrl = getNormalizedPublicUrl();
 
         if (!normalizedPublicUrl.isBlank() && fileUrlOrKey.startsWith(normalizedPublicUrl)) {
             String key = fileUrlOrKey.substring(normalizedPublicUrl.length());
@@ -129,6 +165,71 @@ public class ImageUploadService {
         }
 
         return fileUrlOrKey.replaceAll("^/+", "");
+    }
+
+    private String getNormalizedPublicUrl() {
+        return (publicUrl != null && !publicUrl.isBlank())
+                ? (publicUrl.endsWith("/") ? publicUrl.substring(0, publicUrl.length() - 1) : publicUrl)
+                : "";
+    }
+
+    private void validateMagicBytes(MultipartFile file) {
+        try (InputStream is = file.getInputStream()) {
+            byte[] header = new byte[12];
+            int read = is.read(header);
+            if (read < 3 || !isValidImageSignature(header, read)) {
+                throw new BaseException(ImageExceptionType.INVALID_FILE_EXTENSION);
+            }
+        } catch (BaseException e) {
+            throw e;
+        } catch (IOException e) {
+            throw new BaseException(ImageExceptionType.UPLOAD_FAILED);
+        }
+    }
+
+    private boolean isValidImageSignature(byte[] header, int length) {
+        // JPEG: FF D8 FF
+        if (length >= 3
+                && (header[0] & 0xFF) == 0xFF
+                && (header[1] & 0xFF) == 0xD8
+                && (header[2] & 0xFF) == 0xFF) {
+            return true;
+        }
+        // PNG: 89 50 4E 47 0D 0A 1A 0A
+        if (length >= 8
+                && (header[0] & 0xFF) == 0x89
+                && header[1] == 0x50
+                && header[2] == 0x4E
+                && header[3] == 0x47
+                && header[4] == 0x0D
+                && header[5] == 0x0A
+                && header[6] == 0x1A
+                && header[7] == 0x0A) {
+            return true;
+        }
+        // GIF: GIF87a or GIF89a
+        if (length >= 6
+                && header[0] == 'G'
+                && header[1] == 'I'
+                && header[2] == 'F'
+                && header[3] == '8'
+                && (header[4] == '7' || header[4] == '9')
+                && header[5] == 'a') {
+            return true;
+        }
+        // WEBP: RIFF....WEBP
+        if (length >= 12
+                && header[0] == 'R'
+                && header[1] == 'I'
+                && header[2] == 'F'
+                && header[3] == 'F'
+                && header[8] == 'W'
+                && header[9] == 'E'
+                && header[10] == 'B'
+                && header[11] == 'P') {
+            return true;
+        }
+        return false;
     }
 
     private String extractExtension(String filename) {

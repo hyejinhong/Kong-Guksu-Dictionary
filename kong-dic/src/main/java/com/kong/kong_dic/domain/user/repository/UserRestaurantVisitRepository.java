@@ -49,5 +49,7 @@ public interface UserRestaurantVisitRepository extends JpaRepository<UserRestaur
 
     @Query("SELECT urv.user.id, COUNT(urv) FROM UserRestaurantVisit urv WHERE urv.user.id IN :userIds GROUP BY urv.user.id")
     List<Object[]> countVisitsByUserIds(@Param("userIds") List<Long> userIds);
-}
 
+    boolean existsByImageUrl(String imageUrl);
+    boolean existsByImageUrlAndIdNot(String imageUrl, Long id);
+}
