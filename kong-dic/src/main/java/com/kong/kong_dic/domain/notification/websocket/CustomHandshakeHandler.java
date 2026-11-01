@@ -4,13 +4,14 @@ import com.kong.kong_dic.global.jwt.JwtProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.server.ServerHttpRequest;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.server.support.DefaultHandshakeHandler;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 import java.security.Principal;
-import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -24,20 +25,30 @@ public class CustomHandshakeHandler extends DefaultHandshakeHandler {
                                       WebSocketHandler wsHandler,
                                       Map<String, Object> attributes) {
 
-        // 1. 요청 URI에서 토큰 쿼리 파라미터 추출
         URI uri = request.getURI();
         String token = UriComponentsBuilder.fromUri(uri)
                 .build()
                 .getQueryParams()
-                .getFirst("token"); // "token"이라는 이름의 쿼리 파라미터
+                .getFirst("token");
 
-        if (token != null && jwtTokenProvider.validateToken(token)) {
-            var authentication = jwtTokenProvider.getAuthentication(token);
-            log.info("### authentication : {}", authentication);
-            attributes.put("principal", authentication.getPrincipal());
-            return authentication;
+        if (token != null && !token.isBlank()) {
+            try {
+                if (jwtTokenProvider.validateToken(token) && jwtTokenProvider.isAccessToken(token)) {
+                    Authentication authentication = jwtTokenProvider.getAuthentication(token);
+                    Object principal = authentication.getPrincipal();
+                    if (principal instanceof UserDetails userDetails && !userDetails.isEnabled()) {
+                        log.warn("⚠️ CustomHandshakeHandler: 정지된 계정 WebSocket 연결 거부 [{}]", userDetails.getUsername());
+                        return null;
+                    }
+                    attributes.put("principal", principal);
+                    return authentication;
+                }
+            } catch (Exception e) {
+                log.warn("⚠️ CustomHandshakeHandler: 유효하지 않은 토큰: {}", e.getMessage());
+            }
         }
 
         log.warn("⚠️ CustomHandshakeHandler: Principal 설정 실패 (토큰을 찾을 수 없거나 유효하지 않습니다.)");
-        return null;    }
+        return null;
+    }
 }
