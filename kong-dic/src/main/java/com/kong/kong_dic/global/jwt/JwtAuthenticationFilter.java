@@ -39,15 +39,25 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String token = jwtProvider.resolveToken((HttpServletRequest) request);
 
             if (token != null && jwtProvider.validateToken(token)) {
+                if (!jwtProvider.isAccessToken(token)) {
+                    throw new JwtException("Refresh token cannot be used as access token.");
+                }
+
                 String username = jwtProvider.getUsernameFromToken(token);
                 if (username != null) {
+                    UserDetails userDetails = null;
                     try {
-                        UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-                        if (userDetails != null) {
-                            SecurityContextHolder.getContext().setAuthentication(jwtProvider.getAuthentication(token));
-                        }
+                        userDetails = userDetailsService.loadUserByUsername(username);
                     } catch (Exception e) {
                         log.warn("Failed to load user details for username [{}]: {}", username, e.getMessage());
+                    }
+
+                    if (userDetails != null) {
+                        if (!userDetails.isEnabled()) {
+                            handleException(response, "Account is disabled.", HttpStatus.UNAUTHORIZED);
+                            return;
+                        }
+                        SecurityContextHolder.getContext().setAuthentication(jwtProvider.getAuthentication(userDetails));
                     }
                 }
             }

@@ -65,9 +65,14 @@ public class AuthService {
 
     @Transactional
     public LoginResponseDto refresh(String refreshToken) {
-        // 1. Refresh Token 검증
+        // 1. Refresh Token 서명/만료 및 토큰 타입 검증
         try {
             jwtProvider.validateToken(refreshToken);
+            if (!jwtProvider.isRefreshToken(refreshToken)) {
+                throw new BaseException(AuthExceptionType.INVALID_REFRESH_TOKEN);
+            }
+        } catch (BaseException e) {
+            throw e;
         } catch (Exception e) {
             throw new BaseException(AuthExceptionType.INVALID_REFRESH_TOKEN);
         }
@@ -78,9 +83,14 @@ public class AuthService {
             throw new BaseException(AuthExceptionType.INVALID_REFRESH_TOKEN);
         }
 
-        // 3. 사용자 정보 조회
+        // 3. 사용자 정보 조회 및 계정 활성화 상태 검증
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new BaseException(AuthExceptionType.USER_NOT_FOUND));
+
+        if (!user.isEnabled()) {
+            refreshTokenService.deleteRefreshToken(refreshToken);
+            throw new BaseException(AuthExceptionType.INVALID_REFRESH_TOKEN);
+        }
 
         // 4. 새로운 토큰 쌍 생성 (Refresh Token Rotation)
         LoginResponseDto response = jwtProvider.generateToken(user);
@@ -100,11 +110,20 @@ public class AuthService {
     public boolean verifyToken(String token) {
         try {
             jwtProvider.validateToken(token);
+            if (!jwtProvider.isAccessToken(token)) {
+                return false;
+            }
+            String username = jwtProvider.getUsernameFromToken(token);
+            if (username == null) {
+                return false;
+            }
+            return userRepository.findByUsername(username)
+                    .map(User::isEnabled)
+                    .orElse(false);
         } catch (Exception e) {
             log.error(">>> Token verify fail", e);
             return false;
         }
-        return true;
     }
 
     @Transactional
