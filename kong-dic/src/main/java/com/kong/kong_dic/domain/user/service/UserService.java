@@ -22,10 +22,12 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.security.SecureRandom;
 import java.sql.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -40,7 +42,10 @@ public class UserService {
     private final UserRestaurantVisitRepository visitRepository;
 
     private static final String EMAIL_VERIFICATION_PREFIX = "EV:";
+    private static final String EMAIL_VERIFICATION_ATTEMPTS_PREFIX = "EV_ATTEMPTS:";
     private static final long EMAIL_VERIFICATION_EXPIRATION = 5; // 5 minutes
+    private static final int MAX_VERIFICATION_ATTEMPTS = 5;
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     @EventListener(ApplicationReadyEvent.class)
     @Transactional
@@ -216,13 +221,14 @@ public class UserService {
             throw new BaseException(AuthExceptionType.DUPLICATED_EMAIL);
         }
 
-        String code = String.format("%06d", new java.util.Random().nextInt(1000000));
+        String code = String.format("%06d", SECURE_RANDOM.nextInt(1000000));
 
+        redisService.deleteData(EMAIL_VERIFICATION_ATTEMPTS_PREFIX + request.getEmail());
         redisService.setData(
                 EMAIL_VERIFICATION_PREFIX + request.getEmail(),
                 code,
                 EMAIL_VERIFICATION_EXPIRATION,
-                java.util.concurrent.TimeUnit.MINUTES
+                TimeUnit.MINUTES
         );
 
         emailService.sendVerificationEmail(request.getEmail(), code);
@@ -233,15 +239,29 @@ public class UserService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new BaseException(UserExceptionType.USER_NOT_FOUND));
 
-        String savedCode = redisService.getData(EMAIL_VERIFICATION_PREFIX + request.getEmail());
-        if (savedCode == null || !savedCode.equals(request.getCode())) {
+        String email = request.getEmail();
+        String codeKey = EMAIL_VERIFICATION_PREFIX + email;
+        String attemptsKey = EMAIL_VERIFICATION_ATTEMPTS_PREFIX + email;
+
+        String savedCode = redisService.getData(codeKey);
+        if (savedCode == null) {
             throw new BaseException(AuthExceptionType.INVALID_VERIFICATION_CODE);
         }
 
-        user.setEmail(request.getEmail());
+        if (!savedCode.equals(request.getCode())) {
+            long attempts = redisService.incrementWithExpire(attemptsKey, EMAIL_VERIFICATION_EXPIRATION, TimeUnit.MINUTES);
+            if (attempts >= MAX_VERIFICATION_ATTEMPTS) {
+                redisService.deleteData(codeKey);
+                redisService.deleteData(attemptsKey);
+            }
+            throw new BaseException(AuthExceptionType.INVALID_VERIFICATION_CODE);
+        }
+
+        user.setEmail(email);
         User updatedUser = userRepository.save(user);
 
-        redisService.deleteData(EMAIL_VERIFICATION_PREFIX + request.getEmail());
+        redisService.deleteData(codeKey);
+        redisService.deleteData(attemptsKey);
 
         return UserProfileResponseDto.of(updatedUser);
     }

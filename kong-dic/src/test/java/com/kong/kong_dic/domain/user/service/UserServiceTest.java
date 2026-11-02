@@ -1,16 +1,22 @@
 package com.kong.kong_dic.domain.user.service;
 
 import com.kong.kong_dic.common.exception.BaseException;
+import com.kong.kong_dic.domain.auth.exception.AuthExceptionType;
+import com.kong.kong_dic.domain.user.dto.EmailRegisterRequestDto;
+import com.kong.kong_dic.domain.user.dto.EmailVerificationRequestDto;
 import com.kong.kong_dic.domain.user.dto.UserProfileResponseDto;
 import com.kong.kong_dic.domain.user.dto.UserProfileUpdateRequestDto;
 import com.kong.kong_dic.domain.user.entity.Role;
 import com.kong.kong_dic.domain.user.entity.User;
 import com.kong.kong_dic.domain.user.exception.UserExceptionType;
 import com.kong.kong_dic.domain.user.repository.UserRepository;
+import com.kong.kong_dic.global.service.EmailService;
+import com.kong.kong_dic.global.service.RedisService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -19,6 +25,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.sql.Date;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -33,6 +40,12 @@ public class UserServiceTest {
 
     @Mock
     private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private RedisService redisService;
+
+    @Mock
+    private EmailService emailService;
 
     @Mock
     private com.kong.kong_dic.domain.image.service.ImageUploadService imageUploadService;
@@ -59,7 +72,7 @@ public class UserServiceTest {
     }
 
     @Test
-    @DisplayName("섣공 : 닉네임만 수정")
+    @DisplayName("성공 : 닉네임만 수정")
     void updateMyProfile_shouldUpdateNicknameOnly() {
         // Given
         UserProfileUpdateRequestDto request = new UserProfileUpdateRequestDto();
@@ -242,5 +255,70 @@ public class UserServiceTest {
         verify(imageUploadService, times(1)).deleteImage("https://pub-r2.com/profiles/old-image.jpg");
         verify(userRepository, times(1)).save(any(User.class));
         assertThat(result.getProfileImageUrl()).isNull();
+    }
+
+    @Test
+    @DisplayName("성공: 이메일 인증코드 발송 시 6자리 코드 생성 및 이전 실패 횟수 초기화")
+    void sendVerificationCode_shouldGenerateSixDigitCodeAndResetAttempts() throws Exception {
+        // Given
+        EmailVerificationRequestDto request = new EmailVerificationRequestDto();
+        request.setEmail("test@example.com");
+
+        when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(testUser));
+        when(userRepository.existsByEmail("test@example.com")).thenReturn(false);
+
+        // When
+        userService.sendVerificationCode(USERNAME, request);
+
+        // Then
+        ArgumentCaptor<String> codeCaptor = ArgumentCaptor.forClass(String.class);
+        verify(redisService).deleteData("EV_ATTEMPTS:test@example.com");
+        verify(redisService).setData(eq("EV:test@example.com"), codeCaptor.capture(), eq(5L), eq(TimeUnit.MINUTES));
+        assertThat(codeCaptor.getValue()).matches("^\\d{6}$");
+        verify(emailService).sendVerificationEmail("test@example.com", codeCaptor.getValue());
+    }
+
+    @Test
+    @DisplayName("실패: 이메일 인증번호 5회 이상 오입력 시 인증코드 즉시 만료(브루트포스 방어)")
+    void verifyAndRegisterEmail_shouldInvalidateCode_whenMaxAttemptsReached() {
+        // Given
+        EmailRegisterRequestDto request = new EmailRegisterRequestDto();
+        request.setEmail("test@example.com");
+        request.setCode("000000");
+
+        when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(testUser));
+        when(redisService.getData("EV:test@example.com")).thenReturn("123456");
+        when(redisService.incrementWithExpire("EV_ATTEMPTS:test@example.com", 5L, TimeUnit.MINUTES)).thenReturn(5L);
+
+        // When & Then
+        BaseException ex = assertThrows(BaseException.class,
+                () -> userService.verifyAndRegisterEmail(USERNAME, request));
+
+        assertThat(ex.getExceptionType()).isEqualTo(AuthExceptionType.INVALID_VERIFICATION_CODE);
+        verify(redisService).deleteData("EV:test@example.com");
+        verify(redisService).deleteData("EV_ATTEMPTS:test@example.com");
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("성공: 이메일 인증 성공 시 인증코드 및 시도 횟수 키 모두 삭제")
+    void verifyAndRegisterEmail_shouldSucceedAndCleanRedisKeys() {
+        // Given
+        EmailRegisterRequestDto request = new EmailRegisterRequestDto();
+        request.setEmail("test@example.com");
+        request.setCode("123456");
+
+        when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(testUser));
+        when(redisService.getData("EV:test@example.com")).thenReturn("123456");
+        when(userRepository.save(any(User.class))).thenReturn(testUser);
+
+        // When
+        UserProfileResponseDto result = userService.verifyAndRegisterEmail(USERNAME, request);
+
+        // Then
+        assertThat(testUser.getEmail()).isEqualTo("test@example.com");
+        assertThat(result.getEmail()).isEqualTo("test@example.com");
+        verify(redisService).deleteData("EV:test@example.com");
+        verify(redisService).deleteData("EV_ATTEMPTS:test@example.com");
     }
 }

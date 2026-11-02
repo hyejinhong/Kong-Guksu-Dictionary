@@ -3,9 +3,11 @@ package com.kong.kong_dic.domain.user.dto;
 import com.kong.kong_dic.domain.user.entity.SeasoningPreference;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 
 @Getter
 @Setter
+@ToString(exclude = {"currentPassword", "newPassword"})
 public class UserProfileUpdateRequestDto {
     private String nickname;
     private String currentPassword; // 기존 비밀번호 확인용
