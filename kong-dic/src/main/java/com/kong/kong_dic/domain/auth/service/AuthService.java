@@ -38,7 +38,9 @@ public class AuthService {
     private final CorsProperties corsProperties;
 
     private static final String PASSWORD_RESET_TOKEN_PREFIX = "PR:";
+    private static final String PASSWORD_RESET_COOLDOWN_PREFIX = "EMAIL_COOLDOWN:RESET:";
     private static final long PASSWORD_RESET_EXPIRATION_TIME = 15; // 15 minutes
+    private static final long PASSWORD_RESET_COOLDOWN_SECONDS = 60; // 60 seconds
 
     public void signup(SignupRequestDto request) throws Exception {
         if (userRepository.existsByUsernameIgnoreCase(request.getUsername())) {
@@ -131,6 +133,11 @@ public class AuthService {
         User user = userRepository.findByUsernameIgnoreCaseAndEmail(request.getUsername(), request.getEmail())
                 .orElseThrow(() -> new BaseException(AuthExceptionType.USER_EMAIL_MISMATCH));
 
+        String cooldownKey = PASSWORD_RESET_COOLDOWN_PREFIX + user.getEmail();
+        if (redisService.getData(cooldownKey) != null) {
+            throw new BaseException(AuthExceptionType.EMAIL_SEND_TOO_FREQUENT);
+        }
+
         String token = java.util.UUID.randomUUID().toString();
 
         redisService.setData(
@@ -138,6 +145,12 @@ public class AuthService {
                 user.getUsername(),
                 PASSWORD_RESET_EXPIRATION_TIME,
                 java.util.concurrent.TimeUnit.MINUTES
+        );
+        redisService.setData(
+                cooldownKey,
+                "1",
+                PASSWORD_RESET_COOLDOWN_SECONDS,
+                java.util.concurrent.TimeUnit.SECONDS
         );
 
         String frontUrl = corsProperties.resolveAllowedOrigin(origin);

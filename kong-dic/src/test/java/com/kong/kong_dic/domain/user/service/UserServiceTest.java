@@ -274,8 +274,28 @@ public class UserServiceTest {
         ArgumentCaptor<String> codeCaptor = ArgumentCaptor.forClass(String.class);
         verify(redisService).deleteData("EV_ATTEMPTS:test@example.com");
         verify(redisService).setData(eq("EV:test@example.com"), codeCaptor.capture(), eq(5L), eq(TimeUnit.MINUTES));
+        verify(redisService).setData(eq("EMAIL_COOLDOWN:VERIFY:test@example.com"), eq("1"), eq(60L), eq(TimeUnit.SECONDS));
         assertThat(codeCaptor.getValue()).matches("^\\d{6}$");
         verify(emailService).sendVerificationEmail("test@example.com", codeCaptor.getValue());
+    }
+
+    @Test
+    @DisplayName("실패: 이메일 인증코드 발송 쿨타임(60초) 이내 재요청 시 429 예외 발생 및 메일 미발송")
+    void sendVerificationCode_shouldThrowException_whenCooldownActive() throws Exception {
+        // Given
+        EmailVerificationRequestDto request = new EmailVerificationRequestDto();
+        request.setEmail("test@example.com");
+
+        when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(testUser));
+        when(userRepository.existsByEmail("test@example.com")).thenReturn(false);
+        when(redisService.getData("EMAIL_COOLDOWN:VERIFY:test@example.com")).thenReturn("1");
+
+        // When & Then
+        BaseException ex = assertThrows(BaseException.class,
+                () -> userService.sendVerificationCode(USERNAME, request));
+
+        assertThat(ex.getExceptionType()).isEqualTo(AuthExceptionType.EMAIL_SEND_TOO_FREQUENT);
+        verify(emailService, never()).sendVerificationEmail(anyString(), anyString());
     }
 
     @Test

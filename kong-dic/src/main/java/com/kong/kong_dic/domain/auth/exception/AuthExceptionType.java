@@ -13,7 +13,8 @@ public enum AuthExceptionType implements BaseExceptionType {
     DUPLICATED_EMAIL(4, 400, "Email is duplicated. Please use another one."),
     INVALID_RESET_TOKEN(5, 400, "Invalid or expired password reset token."),
     USER_EMAIL_MISMATCH(6, 400, "Username and email do not match."),
-    INVALID_VERIFICATION_CODE(7, 400, "Invalid or expired verification code.");
+    INVALID_VERIFICATION_CODE(7, 400, "Invalid or expired verification code."),
+    EMAIL_SEND_TOO_FREQUENT(8, 429, "이메일 발송 요청이 너무 빠릅니다. 1분 후 다시 시도해주세요.");
 
     private final int code;
     private final int httpStatusCode;

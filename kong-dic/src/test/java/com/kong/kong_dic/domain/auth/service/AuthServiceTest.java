@@ -138,6 +138,33 @@ class AuthServiceTest {
     }
 
     @Test
+    @DisplayName("비밀번호 재설정 메일 발송 쿨타임(60초) 이내 재요청 시 429 예외를 던지고 메일을 발송하지 않는다")
+    void requestPasswordReset_ThrowsWhenCooldownActive() throws Exception {
+        User user = User.builder()
+                .id(1L)
+                .username("testuser")
+                .email("test@example.com")
+                .role(Role.USER)
+                .enabled(true)
+                .build();
+        when(userRepository.findByUsernameIgnoreCaseAndEmail("testuser", "test@example.com"))
+                .thenReturn(Optional.of(user));
+        when(redisService.getData("EMAIL_COOLDOWN:RESET:test@example.com"))
+                .thenReturn("1");
+
+        PasswordResetRequestDto requestDto = new PasswordResetRequestDto();
+        requestDto.setUsername("testuser");
+        requestDto.setEmail("test@example.com");
+
+        assertThatThrownBy(() -> authService.requestPasswordReset(requestDto, "http://localhost:3000"))
+                .isInstanceOf(BaseException.class)
+                .extracting("exceptionType")
+                .isEqualTo(AuthExceptionType.EMAIL_SEND_TOO_FREQUENT);
+
+        verify(emailService, never()).sendPasswordResetEmail(any(), any());
+    }
+
+    @Test
     @DisplayName("정지된 계정(enabled=false)으로 토큰 갱신 요청 시 Redis에서 Refresh Token을 폐기하고 예외를 던진다")
     void refresh_DisabledUser_RevokesTokenAndThrowsException() {
         String refreshToken = "valid-refresh-token";

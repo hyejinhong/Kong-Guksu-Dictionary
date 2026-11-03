@@ -43,7 +43,9 @@ public class UserService {
 
     private static final String EMAIL_VERIFICATION_PREFIX = "EV:";
     private static final String EMAIL_VERIFICATION_ATTEMPTS_PREFIX = "EV_ATTEMPTS:";
+    private static final String EMAIL_COOLDOWN_PREFIX = "EMAIL_COOLDOWN:VERIFY:";
     private static final long EMAIL_VERIFICATION_EXPIRATION = 5; // 5 minutes
+    private static final long EMAIL_COOLDOWN_SECONDS = 60; // 60 seconds
     private static final int MAX_VERIFICATION_ATTEMPTS = 5;
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
@@ -221,6 +223,11 @@ public class UserService {
             throw new BaseException(AuthExceptionType.DUPLICATED_EMAIL);
         }
 
+        String cooldownKey = EMAIL_COOLDOWN_PREFIX + request.getEmail();
+        if (redisService.getData(cooldownKey) != null) {
+            throw new BaseException(AuthExceptionType.EMAIL_SEND_TOO_FREQUENT);
+        }
+
         String code = String.format("%06d", SECURE_RANDOM.nextInt(1000000));
 
         redisService.deleteData(EMAIL_VERIFICATION_ATTEMPTS_PREFIX + request.getEmail());
@@ -229,6 +236,12 @@ public class UserService {
                 code,
                 EMAIL_VERIFICATION_EXPIRATION,
                 TimeUnit.MINUTES
+        );
+        redisService.setData(
+                cooldownKey,
+                "1",
+                EMAIL_COOLDOWN_SECONDS,
+                TimeUnit.SECONDS
         );
 
         emailService.sendVerificationEmail(request.getEmail(), code);
