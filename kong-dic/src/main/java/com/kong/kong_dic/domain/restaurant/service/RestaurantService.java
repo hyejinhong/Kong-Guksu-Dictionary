@@ -25,6 +25,7 @@ import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -35,10 +36,13 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -71,6 +75,9 @@ public class RestaurantService {
     // (DB 통계 기반으로 계산 후 결과만 캐싱 됨)
     // =========================================================
     private static final String CACHE_RATING_ALL_KEY = "restaurant:ranking:rating_top10_cache";
+
+    private static final String VIEW_DUPLICATE_LOCK_PREFIX = "restaurant:view:lock:";
+    private static final long VIEW_DUPLICATE_LOCK_MINUTES = 10;
 
     private static final Duration CACHE_TTL = Duration.ofMinutes(1);
 
@@ -125,12 +132,10 @@ public class RestaurantService {
                     predicates.add(criteriaBuilder.isTrue(root.get("servesAllYear")));
                 } else if ("open-now".equalsIgnoreCase(season)) {
                     int currentMonth = LocalDate.now().getMonthValue();
-                    // 사계절 판매 OR (현재 월이 판매 시작 월 >= 현재 월 <= 판매 종료 월)
-                    // 계절이 연도를 걸쳐서 판매되는 경우 (예: 11월~2월) 추가 로직 필요
                     Predicate isSeasonalOpen = criteriaBuilder.and(
                             criteriaBuilder.isFalse(root.get("servesAllYear")),
-                            criteriaBuilder.greaterThanOrEqualTo(root.get("endMonth"), currentMonth), // 현재 월이 종료 월 이전이거나
-                            criteriaBuilder.lessThanOrEqualTo(root.get("startMonth"), currentMonth)   // 현재 월이 시작 월 이후이거나
+                            criteriaBuilder.greaterThanOrEqualTo(root.get("endMonth"), currentMonth),
+                            criteriaBuilder.lessThanOrEqualTo(root.get("startMonth"), currentMonth)
                     );
                     Predicate isYearRound = criteriaBuilder.isTrue(root.get("servesAllYear"));
                     predicates.add(criteriaBuilder.or(isYearRound, isSeasonalOpen));
@@ -138,34 +143,24 @@ public class RestaurantService {
             }
 
             if (minPrice != null && maxPrice != null) {
-                // prices 컬렉션에 대한 Join을 수행합니다.
-                // JoinType.INNER는 해당 조건에 맞는 BeanPrice가 하나라도 있는 식당만 포함합니다.
-                // 만약 prices 컬렉션 자체가 없는 식당은 배제됩니다.
                 if (pricesJoin == null) {
                     pricesJoin = root.join("prices", JoinType.INNER);
                 }
-
-                // prices 컬렉션 내의 각 BeanPrice 객체의 'price' 필드에 대해 범위 조건 적용
                 predicates.add(criteriaBuilder.between(pricesJoin.get("price"), minPrice, maxPrice));
             }
 
-            // 모든 조건을 AND 연산으로 결합
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         };
 
-        // Specification과 Pageable을 사용하여 DB에서 직접 필터링된 결과 조회
         List<Restaurant> filteredRestaurants = restaurantRepository.findAll(spec, pageable).getContent();
         Map<Long, String> imageMap = getLatestImagesForRestaurants(filteredRestaurants);
 
-        // 거리 계산 (이전과 동일하게 서비스 단에서 수행)
-        // 사용자의 lan, lon이 있을 경우에만 거리 계산
         if (lan != null && lon != null) {
             return filteredRestaurants.stream()
                     .map(restaurant -> entityToResponseDto(restaurant, lan, lon, imageMap.get(restaurant.getId())))
-                    .sorted((d1, d2) -> Double.compare(d1.getDistance(), d2.getDistance())) // 거리순 정렬
+                    .sorted((d1, d2) -> Double.compare(d1.getDistance(), d2.getDistance()))
                     .collect(Collectors.toList());
         } else {
-            // 위치 정보가 없으면 거리 없이 DTO로 변환
             return filteredRestaurants.stream()
                     .map(restaurant -> entityToResponseDto(restaurant, null, null, imageMap.get(restaurant.getId())))
                     .collect(Collectors.toList());
@@ -174,7 +169,6 @@ public class RestaurantService {
 
     /**
      * 실시간 인기 식당 TOP 10 조회 (캐싱)
-     * @return
      */
     @Transactional
     public List<RestaurantRankingDto> getTopRestaurantsByViewCount(String period) {
@@ -190,11 +184,9 @@ public class RestaurantService {
         }
 
         try {
-            // 1. Redis에서 캐시된 완성본(JSON)이 있는지 먼저 확인 (Cache Hit)
             String cachedRanking = stringRedisTemplate.opsForValue().get(cacheKey);
             if (cachedRanking != null) {
                 log.info(">> 랭킹 캐시 존재 (DB 조회 생략)");
-                // JSON 문자열을 List<RestaurantRankingDto> 객체로 변환하여 즉시 반환
                 return objectMapper.readValue(cachedRanking, new TypeReference<List<RestaurantRankingDto>>() {});
             }
         } catch (Exception e) {
@@ -203,7 +195,6 @@ public class RestaurantService {
 
         log.info(">> 랭킹 캐시 없음. ZSet 및 DB를 조회하여 랭킹을 새로 계산합니다.");
 
-        // 2. 캐시가 없으면(Cache Miss) 기존 로직대로 새로 계산
         Set<String> topIdsObj = redisService.getTopRanking(zSetKey, 0, 9);
 
         if (topIdsObj == null || topIdsObj.isEmpty()) {
@@ -224,10 +215,9 @@ public class RestaurantService {
         for (Long id : topIds) {
             if (restaurantMap.containsKey(id)) {
                 Restaurant restaurant = restaurantMap.get(id);
-                // Redis에서 최신 점수 가져오기 (전체 누적 및 일간)
                 Double totalScore = stringRedisTemplate.opsForZSet().score(ZSET_VIEWS_ALL_KEY, id.toString());
                 Double dailyScore = stringRedisTemplate.opsForZSet().score(ZSET_VIEWS_DAILY_KEY, id.toString());
-                
+
                 Long defaultDbView = restaurant.getViewCount() != null ? restaurant.getViewCount() : 0L;
                 Long totalView = (totalScore != null) ? totalScore.longValue() : defaultDbView;
                 Long dailyView = (dailyScore != null) ? dailyScore.longValue() : 0L;
@@ -236,7 +226,6 @@ public class RestaurantService {
             }
         }
 
-        // 3. 새로 계산한 랭킹 결과를 JSON으로 변환하여 Redis에 1분간 캐싱
         try {
             String rankingJson = objectMapper.writeValueAsString(rankingList);
             stringRedisTemplate.opsForValue().set(cacheKey, rankingJson, CACHE_TTL);
@@ -254,7 +243,6 @@ public class RestaurantService {
     @Transactional(readOnly = true)
     public List<RestaurantRankingDto> getTopRatedRestaurants() {
         try {
-            // 1. Redis에서 캐시된 완성본(JSON)이 있는지 확인 (Cache Hit)
             String cachedRanking = stringRedisTemplate.opsForValue().get(CACHE_RATING_ALL_KEY);
             if (cachedRanking != null) {
                 log.info("🎯 별점 랭킹 캐시 적중! (DB 조회 생략)");
@@ -266,17 +254,14 @@ public class RestaurantService {
 
         log.info("🐌 별점 랭킹 캐시 없음. DB를 조회하여 별점 랭킹을 새로 계산합니다.");
 
-        // 2. DB에서 별점 순으로 상위 10개 식당 직접 조회
         List<Restaurant> topRatedRestaurants = restaurantRepository.findTop10ByOrderByAverageRatingDesc();
 
-        // 3. Entity List -> DTO List 로 변환 (순위 rank 값 부여)
         List<RestaurantRankingDto> rankingList = new ArrayList<>();
         int rank = 1;
         for (Restaurant restaurant : topRatedRestaurants) {
             rankingList.add(RestaurantRankingDto.of(restaurant, rank++));
         }
 
-        // 4. 조회된 결과를 JSON으로 변환하여 Redis에 1분간 캐싱
         try {
             String rankingJson = objectMapper.writeValueAsString(rankingList);
             stringRedisTemplate.opsForValue().set(CACHE_RATING_ALL_KEY, rankingJson, CACHE_TTL);
@@ -292,15 +277,24 @@ public class RestaurantService {
         Restaurant restaurant = restaurantRepository.findById(id)
                 .orElseThrow(() -> new BaseException(RestaurantExceptionType.RESTAURANT_NOT_FOUND));
 
-        // 조회수 1 증가
-        redisService.incrementScore(ZSET_VIEWS_ALL_KEY, id.toString(), 1.0);
-        redisService.incrementScore(ZSET_VIEWS_DAILY_KEY, id.toString(), 1.0);
+        String viewerKey = resolveViewerIdentifier(username);
+        boolean shouldIncrementView = true;
+        if (viewerKey != null && redisService != null) {
+            String lockKey = VIEW_DUPLICATE_LOCK_PREFIX + id + ":" + viewerKey;
+            if (redisService.getData(lockKey) != null) {
+                shouldIncrementView = false;
+            } else {
+                redisService.setData(lockKey, "1", VIEW_DUPLICATE_LOCK_MINUTES, TimeUnit.MINUTES);
+            }
+        }
 
-        // 현재 Redis 실시간 점수 가져오기
-        Double totalScore = stringRedisTemplate.opsForZSet().score(ZSET_VIEWS_ALL_KEY, id.toString());
-        Double todayScore = stringRedisTemplate.opsForZSet().score(ZSET_VIEWS_DAILY_KEY, id.toString());
+        if (shouldIncrementView && redisService != null) {
+            redisService.incrementScore(ZSET_VIEWS_ALL_KEY, id.toString(), 1.0);
+            redisService.incrementScore(ZSET_VIEWS_DAILY_KEY, id.toString(), 1.0);
+        }
+
+        Double totalScore = stringRedisTemplate != null ? stringRedisTemplate.opsForZSet().score(ZSET_VIEWS_ALL_KEY, id.toString()) : null;
         long totalView = (totalScore != null) ? totalScore.longValue() : 0L;
-        long todayView = (todayScore != null) ? todayScore.longValue() : 0L;
 
         // 로그인 한 경우, 이미 저장 여부
         boolean isSaved = false;
@@ -320,6 +314,25 @@ public class RestaurantService {
         responseDto.setIsSaved(isSaved);
         responseDto.setVisitId(visitId);
         return responseDto;
+    }
+
+    private String resolveViewerIdentifier(String username) {
+        if (username != null && !username.isBlank()) {
+            return "user:" + username;
+        }
+        try {
+            ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attrs != null) {
+                HttpServletRequest req = attrs.getRequest();
+                String xff = req.getHeader("X-Forwarded-For");
+                String ip = (xff != null && !xff.isBlank()) ? xff.split(",")[0].trim() : req.getRemoteAddr();
+                if (ip != null && !ip.isBlank()) {
+                    return "ip:" + ip;
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return null;
     }
 
     @PreAuthorize("hasAuthority('ADMIN')")
@@ -444,12 +457,6 @@ public class RestaurantService {
         return entityToResponseDto(restaurant, latitude, longitude, null);
     }
 
-    /**
-     * 현재 좌표 정보가 없는 경우 오버로딩
-     *
-     * @param restaurant
-     * @return
-     */
     public static RestaurantResponseDto entityToResponseDto(Restaurant restaurant) {
         return entityToResponseDto(restaurant, null, null, null);
     }
@@ -488,21 +495,23 @@ public class RestaurantService {
      */
     @Transactional
     public void addOrUpdateVisit(Long userId, Long restaurantId, Double rating) {
+        if (rating == null || Double.isNaN(rating) || Double.isInfinite(rating)
+                || rating < 0.5 || rating > 5.0
+                || Math.abs(rating * 2 - Math.round(rating * 2)) > 1e-6) {
+            throw new BaseException(UserExceptionType.INVALID_INPUT, "별점은 0.5점 단위로 0.5점에서 5.0점 사이여야 합니다.");
+        }
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BaseException(UserExceptionType.USER_NOT_FOUND));
         Restaurant restaurant = restaurantRepository.findById(restaurantId)
                 .orElseThrow(() -> new BaseException(RestaurantExceptionType.RESTAURANT_NOT_FOUND));
 
-        // 1. 기존 방문 기록 조회
         Optional<UserRestaurantVisit> existingVisit = visitRepository.findByUserIdAndRestaurantId(userId, restaurantId);
 
         if (existingVisit.isPresent()) {
-            // 1-A. 이미 존재하면 별점만 업데이트 (수정)
             UserRestaurantVisit visit = existingVisit.get();
             visit.updateRating(rating);
-            // JPA Dirty Checking으로 인해 save 호출 불필요 (트랜잭션 종료 시 자동 업데이트)
         } else {
-            // 1-B. 없으면 새로 생성 (저장)
             UserRestaurantVisit newVisit = UserRestaurantVisit.builder()
                     .user(user)
                     .restaurant(restaurant)
@@ -511,23 +520,18 @@ public class RestaurantService {
             visitRepository.save(newVisit);
         }
 
-        // 2. 통계 재계산 및 Restaurant 엔티티 업데이트 (역정규화)
         updateRestaurantStats(restaurantId);
     }
 
-    // 내부적으로 사용되는 통계 업데이트 메서드
     private void updateRestaurantStats(Long restaurantId) {
         Restaurant restaurant = restaurantRepository.findById(restaurantId)
                 .orElseThrow(() -> new BaseException(RestaurantExceptionType.RESTAURANT_NOT_FOUND));
 
-        // DB에서 최신 통계 집계
         RatingStatsDto stats = visitRepository.findStatsByRestaurantId(restaurantId);
 
-        // 결과가 없으면(모두 삭제된 경우) 0으로 초기화
         long count = stats != null ? stats.getCount() : 0L;
         double average = stats != null ? stats.getAverage() : 0.0;
 
-        // 엔티티에 값 반영 (Restaurant 엔티티에 updateStats 메서드 필요)
         restaurant.updateStats(count, average);
     }
 }

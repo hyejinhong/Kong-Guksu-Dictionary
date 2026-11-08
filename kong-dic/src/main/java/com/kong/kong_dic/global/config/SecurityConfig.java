@@ -47,6 +47,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/admin/**").hasAuthority(Role.ADMIN.getAuthority())
+                        .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").hasAuthority(Role.ADMIN.getAuthority())
                         .requestMatchers(HttpMethod.POST, "/restaurants").hasAuthority(Role.ADMIN.getAuthority())
                         .requestMatchers(HttpMethod.PUT, "/restaurants/*").hasAuthority(Role.ADMIN.getAuthority())
                         .requestMatchers(HttpMethod.DELETE, "/restaurants/*").hasAuthority(Role.ADMIN.getAuthority())

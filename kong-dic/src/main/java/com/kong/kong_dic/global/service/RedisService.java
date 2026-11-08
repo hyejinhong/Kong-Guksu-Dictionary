@@ -35,6 +35,28 @@ public class RedisService {
     }
 
     /**
+     * Set에 데이터 추가 및 만료 시간 갱신
+     */
+    public void addSetData(String key, String value, long timeout, TimeUnit unit) {
+        redisTemplate.opsForSet().add(key, value);
+        redisTemplate.expire(key, timeout, unit);
+    }
+
+    /**
+     * Set의 모든 멤버 조회
+     */
+    public Set<String> getSetData(String key) {
+        return redisTemplate.opsForSet().members(key);
+    }
+
+    /**
+     * Set에서 특정 값 제거
+     */
+    public void removeSetData(String key, String value) {
+        redisTemplate.opsForSet().remove(key, value);
+    }
+
+    /**
      * 카운터 1 증가 및 만료 시간 설정 (최초 생성 시)
      */
     public long incrementWithExpire(String key, long timeout, TimeUnit unit) {

@@ -1,10 +1,13 @@
 package com.kong.kong_dic.domain.auth.service;
 
 import com.kong.kong_dic.common.exception.BaseException;
+import com.kong.kong_dic.domain.auth.dto.PasswordResetConfirmDto;
 import com.kong.kong_dic.domain.auth.dto.PasswordResetRequestDto;
+import com.kong.kong_dic.domain.auth.dto.SignupRequestDto;
 import com.kong.kong_dic.domain.auth.exception.AuthExceptionType;
 import com.kong.kong_dic.domain.user.entity.Role;
 import com.kong.kong_dic.domain.user.entity.User;
+import com.kong.kong_dic.domain.user.exception.UserExceptionType;
 import com.kong.kong_dic.domain.user.repository.UserRepository;
 import com.kong.kong_dic.global.config.CorsProperties;
 import com.kong.kong_dic.global.jwt.JwtAuthenticationFilter;
@@ -253,5 +256,55 @@ class AuthServiceTest {
         assertThat(response.getStatus()).isEqualTo(401);
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
         verify(filterChain, never()).doFilter(any(), any());
+    }
+
+    @Test
+    @DisplayName("비밀번호 재설정 확정 시 해당 유저의 기존 Refresh Token을 전량 폐기한다")
+    void confirmPasswordReset_RevokesAllUserRefreshTokens() {
+        User user = User.builder()
+                .id(1L)
+                .username("testuser")
+                .password("oldHashed")
+                .role(Role.USER)
+                .enabled(true)
+                .build();
+
+        PasswordResetConfirmDto requestDto = new PasswordResetConfirmDto();
+        requestDto.setToken("reset-token-123");
+        requestDto.setNewPassword("newPass1234");
+
+        when(redisService.getData("PR:reset-token-123")).thenReturn("testuser");
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+        when(passwordEncoder.encode("newPass1234")).thenReturn("newHashed");
+
+        authService.confirmPasswordReset(requestDto);
+
+        assertThat(user.getPassword()).isEqualTo("newHashed");
+        verify(redisService).deleteData("PR:reset-token-123");
+        verify(refreshTokenService).deleteAllByUsername("testuser");
+    }
+
+    @Test
+    @DisplayName("회원가입 시 예약어('me', 'admin' 등)를 아이디나 닉네임으로 사용할 수 없다")
+    void signup_RejectsReservedUsernameOrNickname() {
+        SignupRequestDto req1 = new SignupRequestDto();
+        req1.setUsername("me");
+        req1.setPassword("pass1234");
+        req1.setNickname("정상닉네임");
+
+        assertThatThrownBy(() -> authService.signup(req1))
+                .isInstanceOf(BaseException.class)
+                .extracting("exceptionType")
+                .isEqualTo(UserExceptionType.INVALID_INPUT);
+
+        SignupRequestDto req2 = new SignupRequestDto();
+        req2.setUsername("normaluser");
+        req2.setPassword("pass1234");
+        req2.setNickname("admin");
+
+        assertThatThrownBy(() -> authService.signup(req2))
+                .isInstanceOf(BaseException.class)
+                .extracting("exceptionType")
+                .isEqualTo(UserExceptionType.INVALID_INPUT);
     }
 }

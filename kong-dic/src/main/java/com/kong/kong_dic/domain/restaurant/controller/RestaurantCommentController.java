@@ -1,22 +1,15 @@
 package com.kong.kong_dic.domain.restaurant.controller;
 
-import com.kong.kong_dic.common.exception.BaseException;
 import com.kong.kong_dic.common.response.BaseResponse;
 import com.kong.kong_dic.domain.restaurant.dto.RestaurantCommentRequestDto;
 import com.kong.kong_dic.domain.restaurant.dto.RestaurantCommentResponseDto;
 import com.kong.kong_dic.domain.restaurant.service.RestaurantCommentService;
-import com.kong.kong_dic.domain.user.entity.User;
-import com.kong.kong_dic.domain.user.exception.UserExceptionType;
 import com.kong.kong_dic.global.annotation.AuthUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -41,9 +34,10 @@ public class RestaurantCommentController {
 
     @DeleteMapping("/{commentId}")
     public ResponseEntity<BaseResponse<Void>> deleteComment(
+            @PathVariable Long restaurantId,
             @PathVariable Long commentId,
             @AuthUser UserDetails userDetails) {
-        commentService.deleteMyComment(commentId, userDetails.getUsername());
+        commentService.deleteMyComment(restaurantId, commentId, userDetails.getUsername());
         return ResponseEntity.ok(BaseResponse.success());
     }
 }

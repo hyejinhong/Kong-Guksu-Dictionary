@@ -10,6 +10,7 @@ import com.kong.kong_dic.domain.user.entity.User;
 import com.kong.kong_dic.domain.user.exception.UserExceptionType;
 import com.kong.kong_dic.domain.user.repository.UserRepository;
 import com.kong.kong_dic.domain.user.repository.UserRestaurantVisitRepository;
+import com.kong.kong_dic.global.service.RedisService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 @Service
@@ -27,6 +29,10 @@ public class FollowService {
     private final UserRepository userRepository;
     private final UserRestaurantVisitRepository visitRepository;
     private final NotificationService notificationService;
+    private final RedisService redisService;
+
+    private static final String FOLLOW_NOTIFY_LOCK_PREFIX = "FOLLOW_NOTIFY_LOCK:";
+    private static final long FOLLOW_NOTIFY_COOLDOWN_MINUTES = 10;
 
     @Transactional
     public FollowStatusResponseDto toggleFollow(String currentUsername, String targetPublicId) {
@@ -57,15 +63,22 @@ public class FollowService {
             followRepository.flush();
             isFollowing = true;
 
-            String followerName = (follower.getNickname() != null && !follower.getNickname().isBlank())
-                    ? follower.getNickname()
-                    : follower.getUsername();
-            notificationService.sendNotification(
-                    following,
-                    "새로운 팔로워",
-                    followerName + "님이 회원님을 팔로우하기 시작했습니다.",
-                    "팔로우"
-            );
+            String notifyLockKey = FOLLOW_NOTIFY_LOCK_PREFIX + follower.getId() + ":" + targetUserId;
+            boolean shouldSendNotification = (redisService == null || redisService.getData(notifyLockKey) == null);
+            if (shouldSendNotification) {
+                if (redisService != null) {
+                    redisService.setData(notifyLockKey, "1", FOLLOW_NOTIFY_COOLDOWN_MINUTES, TimeUnit.MINUTES);
+                }
+                String followerName = (follower.getNickname() != null && !follower.getNickname().isBlank())
+                        ? follower.getNickname()
+                        : follower.getUsername();
+                notificationService.sendNotification(
+                        following,
+                        "새로운 팔로워",
+                        followerName + "님이 회원님을 팔로우하기 시작했습니다.",
+                        "팔로우"
+                );
+            }
         }
 
         long followerCount = followRepository.countByFollowingId(targetUserId);

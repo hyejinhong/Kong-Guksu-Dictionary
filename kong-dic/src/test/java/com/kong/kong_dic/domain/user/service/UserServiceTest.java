@@ -50,6 +50,9 @@ public class UserServiceTest {
     @Mock
     private com.kong.kong_dic.domain.image.service.ImageUploadService imageUploadService;
 
+    @Mock
+    private com.kong.kong_dic.domain.auth.service.RefreshTokenService refreshTokenService;
+
     @InjectMocks
     private UserService userService;
 
@@ -128,6 +131,7 @@ public class UserServiceTest {
         // passwordEncoder 작동?
         verify(passwordEncoder, times(1)).matches(CURRENT_PASSWORD, HASHED_PASSWORD);
         verify(passwordEncoder, times(1)).encode(NEW_PASSWORD);
+        verify(refreshTokenService, times(1)).deleteAllByUsername(USERNAME);
     }
 
     @Test

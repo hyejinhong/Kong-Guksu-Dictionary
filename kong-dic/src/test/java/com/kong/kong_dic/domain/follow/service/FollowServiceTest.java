@@ -12,6 +12,7 @@ import com.kong.kong_dic.domain.user.entity.User;
 import com.kong.kong_dic.domain.user.exception.UserExceptionType;
 import com.kong.kong_dic.domain.user.repository.UserRepository;
 import com.kong.kong_dic.domain.user.repository.UserRestaurantVisitRepository;
+import com.kong.kong_dic.global.service.RedisService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -27,6 +28,7 @@ import org.springframework.data.domain.Pageable;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -48,6 +50,9 @@ class FollowServiceTest {
 
     @Mock
     private NotificationService notificationService;
+
+    @Mock
+    private RedisService redisService;
 
     @InjectMocks
     private FollowService followService;
@@ -81,21 +86,19 @@ class FollowServiceTest {
     @Test
     @DisplayName("성공: 미팔로우 상태에서 토글 시 팔로우 생성 및 알림 발송")
     void toggleFollow_shouldCreateFollowAndSendNotification_whenNotFollowing() {
-        // Given
         when(userRepository.findByUsername("followerUser")).thenReturn(Optional.of(followerUser));
         when(userRepository.findByPublicId(TARGET_PUBLIC_ID)).thenReturn(Optional.of(targetUser));
         when(followRepository.findByFollowerIdAndFollowingId(1L, 2L)).thenReturn(Optional.empty());
         when(followRepository.countByFollowingId(2L)).thenReturn(5L);
         when(followRepository.countByFollowerId(2L)).thenReturn(3L);
 
-        // When
         FollowStatusResponseDto result = followService.toggleFollow("followerUser", TARGET_PUBLIC_ID);
 
-        // Then
         assertThat(result.getIsFollowing()).isTrue();
         assertThat(result.getFollowerCount()).isEqualTo(5L);
         assertThat(result.getFollowingCount()).isEqualTo(3L);
         verify(followRepository, times(1)).save(any(Follow.class));
+        verify(redisService, times(1)).setData("FOLLOW_NOTIFY_LOCK:1:2", "1", 10L, TimeUnit.MINUTES);
         verify(notificationService, times(1)).sendNotification(
                 eq(targetUser),
                 eq("새로운 팔로워"),
@@ -105,9 +108,25 @@ class FollowServiceTest {
     }
 
     @Test
+    @DisplayName("성공: 팔로우/언팔로우 반복 시 쿨타임(10분) 내에는 중복 알림을 발송하지 않는다")
+    void toggleFollow_shouldSuppressDuplicateNotification_whenCooldownActive() {
+        when(userRepository.findByUsername("followerUser")).thenReturn(Optional.of(followerUser));
+        when(userRepository.findByPublicId(TARGET_PUBLIC_ID)).thenReturn(Optional.of(targetUser));
+        when(followRepository.findByFollowerIdAndFollowingId(1L, 2L)).thenReturn(Optional.empty());
+        when(redisService.getData("FOLLOW_NOTIFY_LOCK:1:2")).thenReturn("1");
+        when(followRepository.countByFollowingId(2L)).thenReturn(5L);
+        when(followRepository.countByFollowerId(2L)).thenReturn(3L);
+
+        FollowStatusResponseDto result = followService.toggleFollow("followerUser", TARGET_PUBLIC_ID);
+
+        assertThat(result.getIsFollowing()).isTrue();
+        verify(followRepository, times(1)).save(any(Follow.class));
+        verify(notificationService, never()).sendNotification(any(), any(), any(), any());
+    }
+
+    @Test
     @DisplayName("성공: 이미 팔로우 중인 상태에서 토글 시 언팔로우 처리 및 알림 미발송")
     void toggleFollow_shouldDeleteFollow_whenAlreadyFollowing() {
-        // Given
         Follow existingFollow = Follow.builder()
                 .id(10L)
                 .follower(followerUser)
@@ -120,10 +139,8 @@ class FollowServiceTest {
         when(followRepository.countByFollowingId(2L)).thenReturn(4L);
         when(followRepository.countByFollowerId(2L)).thenReturn(3L);
 
-        // When
         FollowStatusResponseDto result = followService.toggleFollow("followerUser", TARGET_PUBLIC_ID);
 
-        // Then
         assertThat(result.getIsFollowing()).isFalse();
         assertThat(result.getFollowerCount()).isEqualTo(4L);
         verify(followRepository, times(1)).delete(existingFollow);
@@ -133,11 +150,9 @@ class FollowServiceTest {
     @Test
     @DisplayName("실패: 자기 자신을 팔로우하려 할 때 CANNOT_FOLLOW_SELF 예외 발생")
     void toggleFollow_shouldThrowException_whenFollowingSelf() {
-        // Given
         when(userRepository.findByUsername("followerUser")).thenReturn(Optional.of(followerUser));
         when(userRepository.findByPublicId(FOLLOWER_PUBLIC_ID)).thenReturn(Optional.of(followerUser));
 
-        // When & Then
         BaseException ex = assertThrows(BaseException.class, () ->
                 followService.toggleFollow("followerUser", FOLLOWER_PUBLIC_ID)
         );
@@ -148,17 +163,14 @@ class FollowServiceTest {
     @Test
     @DisplayName("성공: 팔로우 상태 및 팔로워/팔로잉 수 조회")
     void getFollowStatus_shouldReturnStatusAndCounts() {
-        // Given
         when(userRepository.findByPublicId(TARGET_PUBLIC_ID)).thenReturn(Optional.of(targetUser));
         when(userRepository.findByUsername("followerUser")).thenReturn(Optional.of(followerUser));
         when(followRepository.existsByFollowerIdAndFollowingId(1L, 2L)).thenReturn(true);
         when(followRepository.countByFollowingId(2L)).thenReturn(10L);
         when(followRepository.countByFollowerId(2L)).thenReturn(7L);
 
-        // When
         FollowStatusResponseDto result = followService.getFollowStatus("followerUser", TARGET_PUBLIC_ID);
 
-        // Then
         assertThat(result.getIsFollowing()).isTrue();
         assertThat(result.getFollowerCount()).isEqualTo(10L);
         assertThat(result.getFollowingCount()).isEqualTo(7L);
@@ -167,7 +179,6 @@ class FollowServiceTest {
     @Test
     @DisplayName("성공: 팔로워 목록 페이징 조회")
     void getFollowers_shouldReturnPagedFollowers() {
-        // Given
         Pageable pageable = PageRequest.of(0, 20);
         Follow follow = Follow.builder()
                 .id(100L)
@@ -183,10 +194,8 @@ class FollowServiceTest {
         when(userRepository.findByUsername("targetUser")).thenReturn(Optional.of(targetUser));
         when(followRepository.findFollowingIdsByFollowerIdAndTargetIds(2L, List.of(1L))).thenReturn(List.of(1L));
 
-        // When
         Page<FollowUserResponseDto> result = followService.getFollowers(TARGET_PUBLIC_ID, "targetUser", pageable);
 
-        // Then
         assertThat(result.getContent()).hasSize(1);
         FollowUserResponseDto item = result.getContent().get(0);
         assertThat(item.getUserId()).isEqualTo(FOLLOWER_PUBLIC_ID);
@@ -198,7 +207,6 @@ class FollowServiceTest {
     @Test
     @DisplayName("성공: 'me' 키워드로 내 팔로잉 목록 페이징 조회")
     void getFollowings_withMeKeyword_shouldReturnMyFollowings() {
-        // Given
         Pageable pageable = PageRequest.of(0, 20);
         Follow follow = Follow.builder()
                 .id(101L)
@@ -213,10 +221,8 @@ class FollowServiceTest {
         when(visitRepository.countVisitsByUserIds(List.of(2L))).thenReturn(List.<Object[]>of(new Object[]{2L, 8L}));
         when(followRepository.findFollowingIdsByFollowerIdAndTargetIds(1L, List.of(2L))).thenReturn(List.of(2L));
 
-        // When
         Page<FollowUserResponseDto> result = followService.getFollowings("me", "followerUser", pageable);
 
-        // Then
         assertThat(result.getContent()).hasSize(1);
         FollowUserResponseDto item = result.getContent().get(0);
         assertThat(item.getUserId()).isEqualTo(TARGET_PUBLIC_ID);

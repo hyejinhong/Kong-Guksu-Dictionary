@@ -11,6 +11,7 @@ import com.kong.kong_dic.domain.auth.exception.AuthExceptionType;
 import com.kong.kong_dic.domain.user.entity.Role;
 import com.kong.kong_dic.domain.user.entity.SeasoningPreference;
 import com.kong.kong_dic.domain.user.entity.User;
+import com.kong.kong_dic.domain.user.exception.UserExceptionType;
 import com.kong.kong_dic.domain.user.repository.UserRepository;
 import com.kong.kong_dic.global.config.CorsProperties;
 import com.kong.kong_dic.global.jwt.JwtProvider;
@@ -22,6 +23,8 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -41,28 +44,59 @@ public class AuthService {
     private static final String PASSWORD_RESET_COOLDOWN_PREFIX = "EMAIL_COOLDOWN:RESET:";
     private static final long PASSWORD_RESET_EXPIRATION_TIME = 15; // 15 minutes
     private static final long PASSWORD_RESET_COOLDOWN_SECONDS = 60; // 60 seconds
+    private static final Set<String> RESERVED_IDENTIFIERS = Set.of(
+            "me", "admin", "administrator", "root", "system", "null", "undefined"
+    );
 
     public void signup(SignupRequestDto request) throws Exception {
-        if (userRepository.existsByUsernameIgnoreCase(request.getUsername())) {
+        validateSignupInput(request);
+
+        String trimmedUsername = request.getUsername().trim();
+        String trimmedNickname = request.getNickname() != null && !request.getNickname().isBlank()
+                ? request.getNickname().trim()
+                : trimmedUsername;
+
+        if (userRepository.existsByUsernameIgnoreCase(trimmedUsername)) {
             throw new BaseException(AuthExceptionType.DUPLICATED_USERNAME);
         }
 
-        if (request.getEmail() != null && userRepository.existsByEmail(request.getEmail())) {
+        if (request.getEmail() != null && !request.getEmail().isBlank()
+                && userRepository.existsByEmail(request.getEmail().trim())) {
             throw new BaseException(AuthExceptionType.DUPLICATED_EMAIL);
         }
 
         User newUser = User.builder()
-                .username(request.getUsername())
+                .username(trimmedUsername)
                 .password(passwordEncoder.encode(request.getPassword()))
-                .nickname(request.getNickname())
-                .email(request.getEmail())
+                .nickname(trimmedNickname)
+                .email(request.getEmail() != null && !request.getEmail().isBlank() ? request.getEmail().trim() : null)
                 .role(Role.USER)
                 .avatarVariant("beam")
-                .avatarSeed(request.getNickname() != null ? request.getNickname() : request.getUsername())
+                .avatarSeed(trimmedNickname)
                 .seasoningPreference(request.getSeasoningPreference() != null ? request.getSeasoningPreference() : SeasoningPreference.NONE)
                 .build();
 
         userRepository.save(newUser);
+    }
+
+    private void validateSignupInput(SignupRequestDto request) {
+        if (request == null || request.getUsername() == null || request.getUsername().isBlank()) {
+            throw new BaseException(UserExceptionType.INVALID_INPUT, "아이디를 입력해주세요.");
+        }
+        String trimmedUsername = request.getUsername().trim();
+        if (trimmedUsername.length() < 3 || trimmedUsername.length() > 30
+                || RESERVED_IDENTIFIERS.contains(trimmedUsername.toLowerCase())) {
+            throw new BaseException(UserExceptionType.INVALID_INPUT, "사용할 수 없는 아이디입니다.");
+        }
+        if (request.getPassword() == null || request.getPassword().isBlank() || request.getPassword().length() < 4) {
+            throw new BaseException(UserExceptionType.INVALID_INPUT, "비밀번호는 4자 이상이어야 합니다.");
+        }
+        if (request.getNickname() != null && !request.getNickname().isBlank()) {
+            String trimmedNickname = request.getNickname().trim();
+            if (trimmedNickname.length() > 20 || RESERVED_IDENTIFIERS.contains(trimmedNickname.toLowerCase())) {
+                throw new BaseException(UserExceptionType.INVALID_INPUT, "사용할 수 없는 닉네임입니다.");
+            }
+        }
     }
 
     @Transactional
@@ -161,6 +195,11 @@ public class AuthService {
 
     @Transactional
     public void confirmPasswordReset(PasswordResetConfirmDto request) {
+        if (request == null || request.getNewPassword() == null
+                || request.getNewPassword().isBlank() || request.getNewPassword().length() < 4) {
+            throw new BaseException(UserExceptionType.INVALID_INPUT, "비밀번호는 4자 이상이어야 합니다.");
+        }
+
         String username = redisService.getData(PASSWORD_RESET_TOKEN_PREFIX + request.getToken());
         if (username == null) {
             throw new BaseException(AuthExceptionType.INVALID_RESET_TOKEN);
@@ -173,6 +212,7 @@ public class AuthService {
         userRepository.save(user);
 
         redisService.deleteData(PASSWORD_RESET_TOKEN_PREFIX + request.getToken());
+        refreshTokenService.deleteAllByUsername(user.getUsername());
     }
 
     @Transactional(readOnly = true)

@@ -2,6 +2,7 @@ package com.kong.kong_dic.domain.user.service;
 
 import com.kong.kong_dic.common.exception.BaseException;
 import com.kong.kong_dic.domain.auth.exception.AuthExceptionType;
+import com.kong.kong_dic.domain.auth.service.RefreshTokenService;
 import com.kong.kong_dic.domain.follow.repository.FollowRepository;
 import com.kong.kong_dic.domain.image.exception.ImageExceptionType;
 import com.kong.kong_dic.domain.image.service.ImageUploadService;
@@ -26,6 +27,7 @@ import java.security.SecureRandom;
 import java.sql.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -40,6 +42,7 @@ public class UserService {
     private final ImageUploadService imageUploadService;
     private final FollowRepository followRepository;
     private final UserRestaurantVisitRepository visitRepository;
+    private final RefreshTokenService refreshTokenService;
 
     private static final String EMAIL_VERIFICATION_PREFIX = "EV:";
     private static final String EMAIL_VERIFICATION_ATTEMPTS_PREFIX = "EV_ATTEMPTS:";
@@ -48,6 +51,9 @@ public class UserService {
     private static final long EMAIL_COOLDOWN_SECONDS = 60; // 60 seconds
     private static final int MAX_VERIFICATION_ATTEMPTS = 5;
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    private static final Set<String> RESERVED_NICKNAMES = Set.of(
+            "me", "admin", "administrator", "root", "system", "null", "undefined"
+    );
 
     @EventListener(ApplicationReadyEvent.class)
     @Transactional
@@ -71,13 +77,28 @@ public class UserService {
     }
 
     public void updateMyInfo(User user, UserUpdateRequestDto request) {
-        if (!StringUtils.isEmpty(request.getNickname()))
-            user.setNickname(request.getNickname());
-        if (!StringUtils.isEmpty(request.getPassword()))
+        if (!StringUtils.isEmpty(request.getNickname())) {
+            String trimmedNickname = request.getNickname().trim();
+            if (trimmedNickname.length() > 20 || RESERVED_NICKNAMES.contains(trimmedNickname.toLowerCase())) {
+                throw new BaseException(UserExceptionType.INVALID_INPUT, "사용할 수 없는 닉네임입니다.");
+            }
+            user.setNickname(trimmedNickname);
+        }
+        boolean passwordChanged = false;
+        if (!StringUtils.isEmpty(request.getPassword())) {
+            if (request.getPassword().length() < 4) {
+                throw new BaseException(UserExceptionType.INVALID_INPUT, "비밀번호는 4자 이상이어야 합니다.");
+            }
             user.setPassword(passwordEncoder.encode(request.getPassword()));
+            passwordChanged = true;
+        }
 
         user.setModifiedAt(new Date(System.currentTimeMillis()));
         userRepository.save(user);
+
+        if (passwordChanged && refreshTokenService != null) {
+            refreshTokenService.deleteAllByUsername(user.getUsername());
+        }
     }
 
     public String getRandomNickname() {
@@ -150,14 +171,22 @@ public class UserService {
         // 1. 닉네임 수정 (값이 있을 경우에만)
         String newNickname = request.getNickname();
         if (newNickname != null && !newNickname.isBlank()) {
-            if (!user.getNickname().equals(newNickname) && userRepository.existsByNickname(newNickname)) {
+            String trimmedNickname = newNickname.trim();
+            if (trimmedNickname.length() > 20 || RESERVED_NICKNAMES.contains(trimmedNickname.toLowerCase())) {
+                throw new BaseException(UserExceptionType.INVALID_INPUT, "사용할 수 없는 닉네임입니다.");
+            }
+            if (!user.getNickname().equals(trimmedNickname) && userRepository.existsByNickname(trimmedNickname)) {
                 throw new BaseException(UserExceptionType.DUPLICATED_NICKNAME);
             }
-            user.setNickname(request.getNickname());
+            user.setNickname(trimmedNickname);
         }
 
         // 2. 비밀번호 수정 로직 (새 비밀번호가 제공된 경우)
+        boolean passwordChanged = false;
         if (request.getNewPassword() != null && !request.getNewPassword().isBlank()) {
+            if (request.getNewPassword().length() < 4) {
+                throw new BaseException(UserExceptionType.INVALID_INPUT, "새 비밀번호는 4자 이상이어야 합니다.");
+            }
             if (request.getCurrentPassword() == null || request.getCurrentPassword().isBlank()) {
                 throw new BaseException(UserExceptionType.INVALID_INPUT, "비밀번호 변경을 위해 현재 비밀번호를 입력해야 합니다.");
             }
@@ -170,6 +199,7 @@ public class UserService {
             // 새 비밀번호 해싱 후 저장
             String hashedNewPassword = passwordEncoder.encode(request.getNewPassword());
             user.setPassword(hashedNewPassword);
+            passwordChanged = true;
         }
 
         // 3. 아바타 정보 수정
@@ -212,6 +242,9 @@ public class UserService {
         }
 
         User updatedUser = userRepository.save(user);
+        if (passwordChanged && refreshTokenService != null) {
+            refreshTokenService.deleteAllByUsername(user.getUsername());
+        }
         return UserProfileResponseDto.of(updatedUser);
     }
 

@@ -28,7 +28,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -53,7 +52,6 @@ public class RestaurantCommentControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-
     // --- SecurityConfig 의존성 Mocking ---
     @MockitoBean
     private JwtProvider jwtProvider;
@@ -75,19 +73,16 @@ public class RestaurantCommentControllerTest {
         }
     }
 
-
     // --- 비즈니스 로직 Mocking ---
     @MockitoBean private RestaurantCommentService restaurantCommentService;
 
     @Test
     @DisplayName("댓글 작성 성공 시 200 OK를 반환한다")
     void addComment_shouldReturnOk_whenUserIsAuthenticated() throws Exception {
-        // given
         Long restaurantId = 1L;
         RestaurantCommentRequestDto requestDto = new RestaurantCommentRequestDto();
         requestDto.setContent("ㅇㅅㅇ");
 
-        // 서비스가 반환할 가짜 응답 객체 생성
         RestaurantCommentResponseDto responseDto = RestaurantCommentResponseDto.builder()
                 .id(1L)
                 .nickname("testUser")
@@ -95,11 +90,9 @@ public class RestaurantCommentControllerTest {
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        // 서비스 메서드 반환값을 명시
         given(restaurantCommentService.addComment(anyLong(), any(RestaurantCommentRequestDto.class), any()))
                 .willReturn(responseDto);
 
-        // when & then
         mockMvc.perform(post("/restaurants/{restaurantId}/comments", restaurantId)
                         .with(csrf())
                         .with(user("testUser").roles("USER"))
@@ -112,35 +105,28 @@ public class RestaurantCommentControllerTest {
     }
 
     @Test
-    @DisplayName("댓글 삭제 성공 시 204 No Content를 반환한다")
+    @DisplayName("댓글 삭제 성공 시 200 OK를 반환한다")
     void deleteComment_shouldReturnNoContent_whenUserIsOwner() throws Exception {
-        // given
         Long restaurantId = 1L;
         Long commentId = 5L;
 
-        // 서비스의 deleteMyComment가 호출되면 아무 일도 일어나지 않음 (성공 가정)
-        doNothing().when(restaurantCommentService).deleteMyComment(anyLong(), anyString());
+        doNothing().when(restaurantCommentService).deleteMyComment(anyLong(), anyLong(), anyString());
 
-        // when & then
         mockMvc.perform(delete("/restaurants/{restaurantId}/comments/{commentId}", restaurantId, commentId)
-                        .with(csrf()) // CSRF 토큰 주입
-                        .with(user("testUser").roles("USER"))) // 확실한 사용자 인증 정보 주입
-                .andExpect(status().isOk()) // 204 확인
+                        .with(csrf())
+                        .with(user("testUser").roles("USER")))
+                .andExpect(status().isOk())
                 .andDo(print());
 
-        // 서비스 메서드가 올바른 파라미터로 호출되었는지 검증
-        verify(restaurantCommentService).deleteMyComment(commentId, "testUser");
-
+        verify(restaurantCommentService).deleteMyComment(restaurantId, commentId, "testUser");
     }
 
     @Test
     @DisplayName("로그인하지 않은 사용자가 삭제 요청 시 401 Unauthorized를 반환한다")
     void deleteComment_shouldReturnUnauthorized_whenUserIsAnonymous() throws Exception {
-        // given
         Long restaurantId = 1L;
         Long commentId = 5L;
 
-        // when & then
         mockMvc.perform(delete("/restaurants/{restaurantId}/comments/{commentId}", restaurantId, commentId)
                         .with(csrf()))
                 .andExpect(status().isUnauthorized())
@@ -148,14 +134,13 @@ public class RestaurantCommentControllerTest {
     }
 
     @Test
-    @DisplayName("존재하지 않는 댓글 삭제 요청시 404")
+    @DisplayName("존재하지 않는 댓글 또는 다른 식당의 댓글 삭제 요청시 404")
     void deleteComment_shouldReturnNotFound_whenCommentDoesNotExist() throws Exception {
-        // given
         Long restaurantId = 1L;
         Long nonExistentCommentId = 999L;
 
         doThrow(new BaseException(RestaurantExceptionType.COMMENT_NOT_FOUND))
-                .when(restaurantCommentService).deleteMyComment(anyLong(), anyString());
+                .when(restaurantCommentService).deleteMyComment(anyLong(), anyLong(), anyString());
 
         mockMvc.perform(delete("/restaurants/{restaurantId}/comments/{commentId}", restaurantId, nonExistentCommentId)
                 .with(csrf())
@@ -163,5 +148,4 @@ public class RestaurantCommentControllerTest {
                 .andExpect(status().isNotFound())
                 .andDo(print());
     }
-
 }

@@ -78,17 +78,25 @@ public class RestaurantCommentService {
         return comments.map(MyCommentResponse::from);
     }
 
-    public void deleteMyComment(Long commentId, String username) {
+    public void deleteMyComment(Long restaurantId, Long commentId, String username) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new BaseException(UserExceptionType.USER_NOT_FOUND));
 
         RestaurantComment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new BaseException(RestaurantExceptionType.COMMENT_NOT_FOUND));
 
+        if (restaurantId != null && (comment.getRestaurant() == null || !comment.getRestaurant().getId().equals(restaurantId))) {
+            throw new BaseException(RestaurantExceptionType.COMMENT_NOT_FOUND);
+        }
+
         if (!comment.getAuthor().getId().equals(user.getId())) {
             throw new BaseException(UserExceptionType.FORBIDDEN);
         }
 
         commentRepository.delete(comment);
+    }
+
+    public void deleteMyComment(Long commentId, String username) {
+        deleteMyComment(null, commentId, username);
     }
 }
