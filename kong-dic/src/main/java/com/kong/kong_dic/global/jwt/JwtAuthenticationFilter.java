@@ -2,6 +2,7 @@ package com.kong.kong_dic.global.jwt;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kong.kong_dic.common.response.BaseResponse;
+import com.kong.kong_dic.global.security.SecurityAuditLogger;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
@@ -9,7 +10,6 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -18,7 +18,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-@Slf4j
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
@@ -47,11 +46,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     try {
                         userDetails = userDetailsService.loadUserByUsername(username);
                     } catch (Exception e) {
-                        log.warn("Failed to load user details for username [{}]: {}", username, e.getMessage());
+                        SecurityAuditLogger.logWarn("USER_LOAD_FAILED", username, request, e.getMessage());
                     }
 
                     if (userDetails != null) {
                         if (!userDetails.isEnabled()) {
+                            SecurityAuditLogger.logWarn("DISABLED_ACCOUNT_ACCESS", username, request, "Disabled account attempted API access");
                             handleException(response, "Account is disabled.", HttpStatus.UNAUTHORIZED);
                             return;
                         }
@@ -62,11 +62,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             filterChain.doFilter(request, response);
         } catch (ExpiredJwtException e) {
+            String expiredUser = e.getClaims() != null ? e.getClaims().getSubject() : null;
+            SecurityAuditLogger.logWarn("TOKEN_EXPIRED", expiredUser, request, "Access token expired");
             handleException(response, "Session Expired, Please log in again.", HttpStatus.UNAUTHORIZED);
         } catch (JwtException | IllegalArgumentException e) {
+            SecurityAuditLogger.logWarn("TOKEN_INVALID", null, request, e.getMessage());
             handleException(response, "Invalid token.", HttpStatus.UNAUTHORIZED);
         } catch (Exception e) {
-            log.error("Authentication filter exception: ", e);
+            SecurityAuditLogger.logError("AUTH_FILTER_ERROR", null, request, e.getMessage(), e);
             handleException(response, "Authentication error.", HttpStatus.UNAUTHORIZED);
         }
     }

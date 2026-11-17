@@ -15,10 +15,10 @@ import com.kong.kong_dic.domain.user.exception.UserExceptionType;
 import com.kong.kong_dic.domain.user.repository.UserRepository;
 import com.kong.kong_dic.global.config.CorsProperties;
 import com.kong.kong_dic.global.jwt.JwtProvider;
+import com.kong.kong_dic.global.security.SecurityAuditLogger;
 import com.kong.kong_dic.global.service.RedisService;
 import com.kong.kong_dic.global.service.EmailService;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -26,7 +26,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Set;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -105,17 +104,20 @@ public class AuthService {
         try {
             jwtProvider.validateToken(refreshToken);
             if (!jwtProvider.isRefreshToken(refreshToken)) {
+                SecurityAuditLogger.logWarn("REFRESH_TOKEN_REJECTED", null, "N/A", "POST /auth/refresh", "Non-refresh token used for refresh");
                 throw new BaseException(AuthExceptionType.INVALID_REFRESH_TOKEN);
             }
         } catch (BaseException e) {
             throw e;
         } catch (Exception e) {
+            SecurityAuditLogger.logWarn("REFRESH_TOKEN_REJECTED", null, "N/A", "POST /auth/refresh", "Invalid or expired refresh token: " + e.getMessage());
             throw new BaseException(AuthExceptionType.INVALID_REFRESH_TOKEN);
         }
 
         // 2. Redis에서 해당 토큰의 소유자 확인
         String username = refreshTokenService.getUsernameByRefreshToken(refreshToken);
         if (username == null) {
+            SecurityAuditLogger.logWarn("REFRESH_TOKEN_REJECTED", null, "N/A", "POST /auth/refresh", "Refresh token not found in Redis");
             throw new BaseException(AuthExceptionType.INVALID_REFRESH_TOKEN);
         }
 
@@ -125,6 +127,7 @@ public class AuthService {
 
         if (!user.isEnabled()) {
             refreshTokenService.deleteRefreshToken(refreshToken);
+            SecurityAuditLogger.logWarn("REFRESH_TOKEN_REJECTED", username, "N/A", "POST /auth/refresh", "Disabled account attempted token refresh");
             throw new BaseException(AuthExceptionType.INVALID_REFRESH_TOKEN);
         }
 
@@ -147,6 +150,7 @@ public class AuthService {
         try {
             jwtProvider.validateToken(token);
             if (!jwtProvider.isAccessToken(token)) {
+                SecurityAuditLogger.logWarn("TOKEN_VERIFY_FAILED", null, "N/A", "GET /auth/verify-token", "Non-access token provided");
                 return false;
             }
             String username = jwtProvider.getUsernameFromToken(token);
@@ -157,7 +161,7 @@ public class AuthService {
                     .map(User::isEnabled)
                     .orElse(false);
         } catch (Exception e) {
-            log.error(">>> Token verify fail", e);
+            SecurityAuditLogger.logWarn("TOKEN_VERIFY_FAILED", null, "N/A", "GET /auth/verify-token", e.getMessage());
             return false;
         }
     }

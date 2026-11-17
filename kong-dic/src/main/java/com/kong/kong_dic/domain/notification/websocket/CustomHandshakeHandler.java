@@ -1,8 +1,8 @@
 package com.kong.kong_dic.domain.notification.websocket;
 
 import com.kong.kong_dic.global.jwt.JwtProvider;
+import com.kong.kong_dic.global.security.SecurityAuditLogger;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -14,7 +14,6 @@ import java.net.URI;
 import java.security.Principal;
 import java.util.Map;
 
-@Slf4j
 @RequiredArgsConstructor
 public class CustomHandshakeHandler extends DefaultHandshakeHandler {
 
@@ -26,6 +25,8 @@ public class CustomHandshakeHandler extends DefaultHandshakeHandler {
                                       Map<String, Object> attributes) {
 
         URI uri = request.getURI();
+        String path = uri != null ? uri.getPath() : "/ws";
+        String clientIp = request.getRemoteAddress() != null ? request.getRemoteAddress().toString() : "N/A";
         String token = UriComponentsBuilder.fromUri(uri)
                 .build()
                 .getQueryParams()
@@ -37,18 +38,18 @@ public class CustomHandshakeHandler extends DefaultHandshakeHandler {
                     Authentication authentication = jwtTokenProvider.getAuthentication(token);
                     Object principal = authentication.getPrincipal();
                     if (principal instanceof UserDetails userDetails && !userDetails.isEnabled()) {
-                        log.warn("⚠️ CustomHandshakeHandler: 정지된 계정 WebSocket 연결 거부 [{}]", userDetails.getUsername());
+                        SecurityAuditLogger.logWarn("WS_HANDSHAKE_REJECTED", userDetails.getUsername(), clientIp, path, "Disabled account attempted WebSocket handshake");
                         return null;
                     }
                     attributes.put("principal", principal);
                     return authentication;
                 }
             } catch (Exception e) {
-                log.warn("⚠️ CustomHandshakeHandler: 유효하지 않은 토큰: {}", e.getMessage());
+                SecurityAuditLogger.logWarn("WS_HANDSHAKE_REJECTED", null, clientIp, path, "Invalid token: " + e.getMessage());
             }
         }
 
-        log.warn("⚠️ CustomHandshakeHandler: Principal 설정 실패 (토큰을 찾을 수 없거나 유효하지 않습니다.)");
+        SecurityAuditLogger.logWarn("WS_HANDSHAKE_REJECTED", null, clientIp, path, "Missing or invalid WebSocket token");
         return null;
     }
 }

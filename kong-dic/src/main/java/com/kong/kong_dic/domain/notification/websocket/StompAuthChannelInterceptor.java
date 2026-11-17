@@ -1,8 +1,8 @@
 package com.kong.kong_dic.domain.notification.websocket;
 
 import com.kong.kong_dic.global.jwt.JwtProvider;
+import com.kong.kong_dic.global.security.SecurityAuditLogger;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.MessageDeliveryException;
@@ -16,7 +16,6 @@ import org.springframework.stereotype.Component;
 
 import java.security.Principal;
 
-@Slf4j
 @Component
 @RequiredArgsConstructor
 public class StompAuthChannelInterceptor implements ChannelInterceptor {
@@ -38,25 +37,27 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
             authenticateIfNeeded(accessor);
             Principal user = accessor.getUser();
             if (user == null || user.getName() == null || user.getName().isBlank()) {
-                log.warn("⚠️ STOMP CONNECT 거부: 인증되지 않은 사용자");
+                SecurityAuditLogger.logWarn("STOMP_CONNECT_REJECTED", null, "N/A", "STOMP CONNECT", "Unauthenticated WebSocket connection attempt");
                 throw new MessageDeliveryException("Unauthorized WebSocket connection.");
             }
         } else if (StompCommand.SUBSCRIBE.equals(command)) {
             Principal user = accessor.getUser();
+            String destination = accessor.getDestination();
             if (user == null || user.getName() == null || user.getName().isBlank()) {
-                log.warn("⚠️ STOMP SUBSCRIBE 거부: 인증되지 않은 사용자");
+                SecurityAuditLogger.logWarn("STOMP_SUBSCRIBE_REJECTED", null, "N/A", "STOMP SUBSCRIBE " + destination, "Unauthenticated subscription attempt");
                 throw new MessageDeliveryException("Unauthorized WebSocket subscription.");
             }
 
-            String destination = accessor.getDestination();
             String expectedDestination = NOTIFICATION_TOPIC_PREFIX + user.getName();
             if (destination == null || !expectedDestination.equalsIgnoreCase(destination)) {
-                log.warn("⚠️ STOMP SUBSCRIBE 거부: 사용자 [{}]가 허용되지 않은 경로 [{}] 구독 시도", user.getName(), destination);
+                SecurityAuditLogger.logWarn("STOMP_SUBSCRIBE_REJECTED", user.getName(), "N/A", "STOMP SUBSCRIBE " + destination, "Forbidden subscription destination");
                 throw new MessageDeliveryException("Forbidden subscription destination.");
             }
         } else if (StompCommand.SEND.equals(command)) {
+            Principal user = accessor.getUser();
+            String username = (user != null) ? user.getName() : null;
             String destination = accessor.getDestination();
-            log.warn("⚠️ STOMP SEND 거부: 클라이언트 메시지 발행 차단 (Destination: {})", destination);
+            SecurityAuditLogger.logWarn("STOMP_SEND_REJECTED", username, "N/A", "STOMP SEND " + destination, "Client message publishing blocked");
             throw new MessageDeliveryException("Client message publishing is not allowed.");
         }
 
@@ -84,7 +85,7 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
                     }
                 }
             } catch (Exception e) {
-                log.warn("⚠️ STOMP CONNECT 토큰 검증 실패: {}", e.getMessage());
+                SecurityAuditLogger.logWarn("STOMP_TOKEN_INVALID", null, "N/A", "STOMP CONNECT", e.getMessage());
             }
         }
     }
