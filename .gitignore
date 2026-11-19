@@ -25,3 +25,5 @@ kong-dic-admin-front/.env
 GEMINI.md
 .agents/AGENTS.md
 PR.md
+logs/
+*.log

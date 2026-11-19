@@ -23,6 +23,10 @@ import java.util.Date;
 @RequiredArgsConstructor
 public class JwtProvider {
 
+    public static final String TOKEN_TYPE_CLAIM = "type";
+    public static final String TOKEN_TYPE_ACCESS = "access";
+    public static final String TOKEN_TYPE_REFRESH = "refresh";
+
     @Value("${jwt.secret}")
     private String secretKey;
 
@@ -32,7 +36,7 @@ public class JwtProvider {
     private final CustomUserDetailsService userDetailsService;
 
     private Key getSigningKey() {
-        byte[] keyBytes = secretKey.getBytes();
+        byte[] keyBytes = secretKey.getBytes(StandardCharsets.UTF_8);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
@@ -43,6 +47,7 @@ public class JwtProvider {
         String token = Jwts.builder()
                 .setSubject(user.getUsername())
                 .claim("role", user.getRole())
+                .claim(TOKEN_TYPE_CLAIM, TOKEN_TYPE_ACCESS)
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
@@ -66,15 +71,17 @@ public class JwtProvider {
         return true;
     }
 
-    public String getUsernameFromToken(String token) {
-        Key key = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
+    public boolean isAccessToken(String token) {
+        Claims claims = getClaimsFromToken(token);
+        String type = claims.get(TOKEN_TYPE_CLAIM, String.class);
+        if (TOKEN_TYPE_REFRESH.equals(type)) {
+            return false;
+        }
+        return TOKEN_TYPE_ACCESS.equals(type) || (type == null && claims.get("role") != null);
+    }
 
-        return Jwts.parserBuilder()
-                .setSigningKey(key)
-                .build()
-                .parseClaimsJws(token)
-                .getBody()
-                .getSubject();
+    public String getUsernameFromToken(String token) {
+        return getClaimsFromToken(token).getSubject();
     }
 
     /**

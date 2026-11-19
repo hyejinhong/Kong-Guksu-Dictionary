@@ -8,6 +8,7 @@ import com.kong.kong_dic.domain.restaurant.repository.RestaurantRepository;
 import com.kong.kong_dic.domain.user.dto.UserRestaurantVisitRequestDto;
 import com.kong.kong_dic.domain.user.entity.User;
 import com.kong.kong_dic.domain.user.entity.UserRestaurantVisit;
+import com.kong.kong_dic.domain.user.exception.UserExceptionType;
 import com.kong.kong_dic.domain.user.repository.UserRepository;
 import com.kong.kong_dic.domain.user.repository.UserRestaurantVisitRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -23,7 +24,6 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -47,7 +47,6 @@ class UserRestaurantVisitServiceTest {
     @Test
     @DisplayName("리뷰 삭제 성공 - 방문 기록 삭제, 별점 통계 갱신, R2 이미지 삭제 호출 확인")
     void deleteVisitedRestaurant_success() {
-        // given
         String username = "testUser";
         Long visitId = 1L;
         Long restaurantId = 10L;
@@ -67,10 +66,8 @@ class UserRestaurantVisitServiceTest {
         when(visitRepository.findById(visitId)).thenReturn(Optional.of(visit));
         when(visitRepository.findStatsByRestaurantId(restaurantId)).thenReturn(new RatingStatsDto(0L, 0.0));
 
-        // when
         visitService.deleteVisitedRestaurant(username, visitId);
 
-        // then
         verify(visitRepository, times(1)).delete(visit);
         verify(visitRepository, times(1)).flush();
         verify(visitRepository, times(1)).findStatsByRestaurantId(restaurantId);
@@ -81,7 +78,6 @@ class UserRestaurantVisitServiceTest {
     @Test
     @DisplayName("리뷰 수정 성공 - 사진 교체 시 기존 R2 이미지 삭제 호출 및 별점 변경 시 통계 갱신")
     void updateVisitedRestaurant_replaceImageAndChangeRating_success() {
-        // given
         String username = "testUser";
         Long visitId = 1L;
         Long restaurantId = 10L;
@@ -110,10 +106,8 @@ class UserRestaurantVisitServiceTest {
         when(visitRepository.findById(visitId)).thenReturn(Optional.of(visit));
         when(visitRepository.findStatsByRestaurantId(restaurantId)).thenReturn(new RatingStatsDto(1L, 5.0));
 
-        // when
         visitService.updateVisitedRestaurant(username, request, visitId);
 
-        // then
         assertThat(visit.getImageUrl()).isEqualTo(newImageUrl);
         assertThat(visit.getRating()).isEqualTo(5.0);
         assertThat(visit.getMemo()).isEqualTo("새로운 메모");
@@ -127,7 +121,6 @@ class UserRestaurantVisitServiceTest {
     @Test
     @DisplayName("리뷰 수정 실패 - 타인의 리뷰를 수정하려는 경우 FORBIDDEN 예외")
     void updateVisitedRestaurant_forbidden() {
-        // given
         String username = "testUser";
         Long visitId = 1L;
 
@@ -145,8 +138,29 @@ class UserRestaurantVisitServiceTest {
         when(userRepository.findByUsername(username)).thenReturn(Optional.of(anotherUser));
         when(visitRepository.findById(visitId)).thenReturn(Optional.of(visit));
 
-        // when & then
         assertThrows(BaseException.class, () -> visitService.updateVisitedRestaurant(username, request, visitId));
         verify(imageUploadService, never()).deleteImage(anyString());
+    }
+
+    @Test
+    @DisplayName("리뷰 등록/수정 실패 - 허용 범위(0.5~5.0, 0.5 단위)를 벗어난 별점 입력 시 INVALID_INPUT 예외")
+    void insertOrUpdateVisitedRestaurant_invalidRating_throwsException() {
+        UserRestaurantVisitRequestDto tooHigh = UserRestaurantVisitRequestDto.builder()
+                .restaurantId(1L)
+                .rating(999999.0)
+                .build();
+        BaseException ex1 = assertThrows(BaseException.class,
+                () -> visitService.insertVisitedRestaurant("testUser", tooHigh));
+        assertThat(ex1.getExceptionType()).isEqualTo(UserExceptionType.INVALID_INPUT);
+
+        UserRestaurantVisitRequestDto invalidStep = UserRestaurantVisitRequestDto.builder()
+                .restaurantId(1L)
+                .rating(3.3)
+                .build();
+        BaseException ex2 = assertThrows(BaseException.class,
+                () -> visitService.updateVisitedRestaurant("testUser", invalidStep, 1L));
+        assertThat(ex2.getExceptionType()).isEqualTo(UserExceptionType.INVALID_INPUT);
+
+        verify(visitRepository, never()).save(any());
     }
 }

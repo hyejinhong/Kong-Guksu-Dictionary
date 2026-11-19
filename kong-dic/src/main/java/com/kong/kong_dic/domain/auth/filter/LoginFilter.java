@@ -7,11 +7,11 @@ import com.kong.kong_dic.domain.auth.dto.LoginResponseDto;
 import com.kong.kong_dic.domain.auth.service.RefreshTokenService;
 import com.kong.kong_dic.domain.user.entity.User;
 import com.kong.kong_dic.global.jwt.JwtProvider;
+import com.kong.kong_dic.global.security.SecurityAuditLogger;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -21,8 +21,9 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import java.io.IOException;
 import java.util.stream.Collectors;
 
-@Slf4j
 public class LoginFilter extends UsernamePasswordAuthenticationFilter {
+
+    private static final String ATTEMPTED_USERNAME_ATTR = "ATTEMPTED_USERNAME";
 
     private final AuthenticationManager authenticationManager;
     private final JwtProvider jwtProvider;
@@ -38,19 +39,19 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
 
     @Override
     public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response) throws AuthenticationException {
-        log.info("### Login Request");
-
         try {
             String requestBody = request.getReader().lines().collect(Collectors.joining(System.lineSeparator()));
             JsonNode jsonNode = objectMapper.readTree(requestBody);
 
-            String username = jsonNode.get("username").asText();
-            String password = jsonNode.get("password").asText();
+            String username = jsonNode.hasNonNull("username") ? jsonNode.get("username").asText() : "";
+            String password = jsonNode.hasNonNull("password") ? jsonNode.get("password").asText() : "";
+            request.setAttribute(ATTEMPTED_USERNAME_ATTR, username);
 
             UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(username, password, null);
             return authenticationManager.authenticate(authToken);
 
         } catch (IOException e) {
+            SecurityAuditLogger.logError("LOGIN_REQUEST_PARSE_ERROR", null, request, "Failed to parse login request body", e);
             throw new RuntimeException("로그인 요청을 처리하는 중 오류 발생", e);
         }
     }
@@ -58,9 +59,9 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
     @Override
     protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response,
                                             FilterChain chain, Authentication authResult) throws IOException, ServletException {
-        log.info("### Login success");
-
         User user = (User) authResult.getPrincipal();
+        SecurityAuditLogger.logInfo("LOGIN_SUCCESS", user.getUsername(), request, "User logged in successfully");
+
         LoginResponseDto loginResponse = jwtProvider.generateToken(user);
 
         // Refresh Token 저장
@@ -76,7 +77,9 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
     @Override
     protected void unsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response,
                                               AuthenticationException failed) throws IOException, ServletException {
-        log.info("### Login failed");
+        Object attemptedUser = request.getAttribute(ATTEMPTED_USERNAME_ATTR);
+        String username = attemptedUser != null ? attemptedUser.toString() : "unknown";
+        SecurityAuditLogger.logWarn("LOGIN_FAILURE", username, request, failed.getMessage());
 
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
 

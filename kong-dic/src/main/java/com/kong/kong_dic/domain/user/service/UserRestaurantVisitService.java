@@ -95,6 +95,8 @@ public class UserRestaurantVisitService {
 
     @Transactional
     public void insertVisitedRestaurant(String username, UserRestaurantVisitRequestDto request) {
+        validateRating(request != null ? request.getRating() : null);
+
         User user = userRepository.findByUsername(username).orElseThrow(() -> new BaseException(UserExceptionType.USER_NOT_FOUND));
 
         Restaurant restaurant = restaurantRepository.findById(request.getRestaurantId())
@@ -170,6 +172,10 @@ public class UserRestaurantVisitService {
 
     @Transactional
     public void updateVisitedRestaurant(String username, UserRestaurantVisitRequestDto request, Long id) {
+        if (request != null && request.getRating() != null) {
+            validateRating(request.getRating());
+        }
+
         User user = userRepository.findByUsername(username).orElseThrow(() -> new BaseException(UserExceptionType.USER_NOT_FOUND));
 
         UserRestaurantVisit visit = visitRepository.findById(id)
@@ -225,6 +231,14 @@ public class UserRestaurantVisitService {
         if (imageRemovedOrReplaced && oldImageUrl != null && !oldImageUrl.isBlank()
                 && !visitRepository.existsByImageUrlAndIdNot(oldImageUrl, visit.getId())) {
             imageUploadService.deleteImage(oldImageUrl);
+        }
+    }
+
+    private void validateRating(Double rating) {
+        if (rating == null || Double.isNaN(rating) || Double.isInfinite(rating)
+                || rating < 0.5 || rating > 5.0
+                || Math.abs(rating * 2 - Math.round(rating * 2)) > 1e-6) {
+            throw new BaseException(UserExceptionType.INVALID_INPUT, "별점은 0.5점 단위로 0.5점에서 5.0점 사이여야 합니다.");
         }
     }
 }
