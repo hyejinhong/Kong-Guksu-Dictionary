@@ -7,6 +7,7 @@ import com.kong.kong_dic_admin.domain.user.entity.Role;
 import com.kong.kong_dic_admin.domain.user.service.CustomUserDetailsService;
 import com.kong.kong_dic_admin.global.jwt.JwtAuthenticationFilter;
 import com.kong.kong_dic_admin.global.jwt.JwtProvider;
+import com.kong.kong_dic_admin.global.security.SecurityAuditLogger;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -20,6 +21,8 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -52,12 +55,16 @@ public class SecurityConfig {
                 )
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint((request, response, authException) -> {
+                            SecurityAuditLogger.logWarn("UNAUTHORIZED_ACCESS", null, request, authException.getMessage());
                             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                             response.setContentType("application/json");
                             response.setCharacterEncoding("UTF-8");
                             objectMapper.writeValue(response.getWriter(), BaseResponse.error(401, "인증이 필요합니다."));
                         })
                         .accessDeniedHandler((request, response, accessDeniedException) -> {
+                            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+                            String currentUser = auth != null ? auth.getName() : null;
+                            SecurityAuditLogger.logWarn("ACCESS_DENIED", currentUser, request, accessDeniedException.getMessage());
                             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
                             response.setContentType("application/json");
                             response.setCharacterEncoding("UTF-8");

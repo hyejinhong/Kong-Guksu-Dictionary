@@ -1,11 +1,10 @@
 package com.kong.kong_dic_admin.domain.auth.service;
 
 import com.kong.kong_dic_admin.global.jwt.JwtProvider;
+import com.kong.kong_dic_admin.global.security.SecurityAuditLogger;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -15,8 +14,12 @@ public class AuthService {
     public boolean verifyToken(String token) {
         try {
             jwtProvider.validateToken(token);
+            if (!jwtProvider.isAccessToken(token)) {
+                SecurityAuditLogger.logWarn("TOKEN_VERIFY_FAILED", null, "N/A", "GET /auth/verify-token", "Non-access token provided");
+                return false;
+            }
         } catch (Exception e) {
-            log.error(">>> Token verify fail", e);
+            SecurityAuditLogger.logWarn("TOKEN_VERIFY_FAILED", null, "N/A", "GET /auth/verify-token", e.getMessage());
             return false;
         }
         return true;

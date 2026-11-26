@@ -7,11 +7,11 @@ import com.kong.kong_dic_admin.domain.auth.dto.LoginResponseDto;
 import com.kong.kong_dic_admin.domain.user.entity.Role;
 import com.kong.kong_dic_admin.domain.user.entity.User;
 import com.kong.kong_dic_admin.global.jwt.JwtProvider;
+import com.kong.kong_dic_admin.global.security.SecurityAuditLogger;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -22,8 +22,9 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import java.io.IOException;
 import java.util.stream.Collectors;
 
-@Slf4j
 public class LoginFilter extends UsernamePasswordAuthenticationFilter {
+
+    private static final String ATTEMPTED_USERNAME_ATTR = "ATTEMPTED_USERNAME";
 
     private final AuthenticationManager authenticationManager;
     private final JwtProvider jwtProvider;
@@ -37,8 +38,6 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
 
     @Override
     public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response) throws AuthenticationException {
-        log.info("### Admin Login Request");
-
         try {
             String requestBody = request.getReader().lines().collect(Collectors.joining(System.lineSeparator()));
             JsonNode jsonNode = objectMapper.readTree(requestBody);
@@ -49,11 +48,13 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
 
             String username = jsonNode.get("username").asText();
             String password = jsonNode.get("password").asText();
+            request.setAttribute(ATTEMPTED_USERNAME_ATTR, username);
 
             UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(username, password, null);
             return authenticationManager.authenticate(authToken);
 
         } catch (IOException e) {
+            SecurityAuditLogger.logError("LOGIN_REQUEST_PARSE_ERROR", null, request, "Failed to parse admin login request body", e);
             throw new BadCredentialsException("로그인 요청을 처리하는 중 오류가 발생했습니다.", e);
         }
     }
@@ -64,7 +65,7 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
         User user = (User) authResult.getPrincipal();
 
         if (user.getRole() != Role.ADMIN) {
-            log.warn("### Admin login denied for non-admin user: {}", user.getUsername());
+            SecurityAuditLogger.logWarn("ADMIN_LOGIN_DENIED", user.getUsername(), request, "Non-admin user attempted admin login");
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
             response.setContentType("application/json");
             response.setCharacterEncoding("UTF-8");
@@ -73,7 +74,7 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
             return;
         }
 
-        log.info("### Admin Login success: {}", user.getUsername());
+        SecurityAuditLogger.logInfo("LOGIN_SUCCESS", user.getUsername(), request, "Admin logged in successfully");
         LoginResponseDto loginResponse = jwtProvider.generateToken(user);
 
         response.setContentType("application/json");
@@ -86,7 +87,9 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
     @Override
     protected void unsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response,
                                               AuthenticationException failed) throws IOException, ServletException {
-        log.info("### Admin Login failed");
+        Object attemptedUser = request.getAttribute(ATTEMPTED_USERNAME_ATTR);
+        String username = attemptedUser != null ? attemptedUser.toString() : "unknown";
+        SecurityAuditLogger.logWarn("LOGIN_FAILURE", username, request, failed.getMessage());
 
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
 
